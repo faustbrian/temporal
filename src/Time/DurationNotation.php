@@ -207,7 +207,7 @@ enum DurationNotation
 
         $minutes = (int) $parts['minutes'];
         $seconds = (int) $parts['seconds'];
-        $microseconds = (int) ($parts['microseconds'] ?? '0');
+        $microseconds = (int) $parts['microseconds'];
 
         if (!($minutes >= 0 && $minutes < 60)) {
             throw InvalidDuration::dueToMalformedMinute($minutes);
@@ -274,6 +274,7 @@ enum DurationNotation
         if (1 !== preg_match(self::REGEXP_ISO8601, $notation, $parts)) {
             throw InvalidDuration::dueToMalformedIso8601($notation);
         }
+
         $parts += ['weeks' => '0', 'days' => '0', 'hours' => '0', 'minutes' => '0', 'seconds' => '0', 'sign' => ''];
 
         $microseconds = self::toMicroseconds(

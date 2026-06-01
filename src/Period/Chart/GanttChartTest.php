@@ -28,6 +28,7 @@ use const STDOUT;
 use function fopen;
 use function rewind;
 use function stream_get_contents;
+use function throw_if;
 
 /**
  * @author Brian Faust <brian@cline.sh>
@@ -141,10 +142,7 @@ final class GanttChartTest extends TestCase
     private function setStream()
     {
         $stream = fopen('php://memory', 'r+b');
-
-        if (false === $stream) {
-            throw new RuntimeException('Unable to create memory stream.');
-        }
+        throw_if(false === $stream, RuntimeException::class, 'Unable to create memory stream.');
 
         return $stream;
     }

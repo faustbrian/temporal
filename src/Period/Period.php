@@ -457,7 +457,7 @@ final readonly class Period implements JsonSerializable
         $datePoint = self::filterDatePoint($timeSlot);
 
         return $this->endDate < $datePoint
-            || (self::sameDate($this->endDate, $datePoint) && !$this->bounds->isEndIncluded());
+            || ($this->sameDate($this->endDate, $datePoint) && !$this->bounds->isEndIncluded());
     }
 
     /**
@@ -468,7 +468,7 @@ final readonly class Period implements JsonSerializable
      */
     public function bordersOnStart(self $timeSlot): bool
     {
-        return self::sameDate($this->endDate, $timeSlot->startDate)
+        return $this->sameDate($this->endDate, $timeSlot->startDate)
             && !($this->bounds->isEndIncluded() && $timeSlot->bounds->isStartIncluded());
     }
 
@@ -480,7 +480,7 @@ final readonly class Period implements JsonSerializable
      */
     public function meetsOnStart(self $timeSlot): bool
     {
-        return self::sameDate($this->endDate, $timeSlot->startDate)
+        return $this->sameDate($this->endDate, $timeSlot->startDate)
             && $this->bounds->isEndIncluded()
             && $timeSlot->bounds->isStartIncluded();
     }
@@ -500,8 +500,8 @@ final readonly class Period implements JsonSerializable
     public function isStartedBy(self|DatePoint|DateTimeInterface|string $timeSlot): bool
     {
         return match (true) {
-            $timeSlot instanceof self => self::sameDate($this->startDate, $timeSlot->startDate) && $this->bounds->equalsStart($timeSlot->bounds),
-            default => self::sameDate($this->startDate, self::filterDatePoint($timeSlot)) && $this->bounds->isStartIncluded(),
+            $timeSlot instanceof self => $this->sameDate($this->startDate, $timeSlot->startDate) && $this->bounds->equalsStart($timeSlot->bounds),
+            default => $this->sameDate($this->startDate, self::filterDatePoint($timeSlot)) && $this->bounds->isStartIncluded(),
         };
     }
 
@@ -537,8 +537,8 @@ final readonly class Period implements JsonSerializable
      */
     public function equals(self $timeSlot): bool
     {
-        return self::sameDate($this->startDate, $timeSlot->startDate)
-            && self::sameDate($this->endDate, $timeSlot->endDate)
+        return $this->sameDate($this->startDate, $timeSlot->startDate)
+            && $this->sameDate($this->endDate, $timeSlot->endDate)
             && $this->bounds === $timeSlot->bounds;
     }
 
@@ -557,8 +557,8 @@ final readonly class Period implements JsonSerializable
     public function isEndedBy(self|DatePoint|DateTimeInterface|string $timeSlot): bool
     {
         return match (true) {
-            $timeSlot instanceof self => self::sameDate($this->endDate, $timeSlot->endDate) && $this->bounds->equalsEnd($timeSlot->bounds),
-            default => self::sameDate($this->endDate, self::filterDatePoint($timeSlot)) && $this->bounds->isEndIncluded(),
+            $timeSlot instanceof self => $this->sameDate($this->endDate, $timeSlot->endDate) && $this->bounds->equalsEnd($timeSlot->bounds),
+            default => $this->sameDate($this->endDate, self::filterDatePoint($timeSlot)) && $this->bounds->isEndIncluded(),
         };
     }
 
@@ -570,7 +570,7 @@ final readonly class Period implements JsonSerializable
      */
     public function meetsOnEnd(self $timeSlot): bool
     {
-        return self::sameDate($this->startDate, $timeSlot->endDate)
+        return $this->sameDate($this->startDate, $timeSlot->endDate)
             && $this->bounds->isStartIncluded()
             && $timeSlot->bounds->isEndIncluded();
     }
@@ -602,7 +602,7 @@ final readonly class Period implements JsonSerializable
         $datePoint = self::filterDatePoint($timeSlot);
 
         return $this->startDate > $datePoint
-            || (self::sameDate($this->startDate, $datePoint) && !$this->bounds->isStartIncluded());
+            || ($this->sameDate($this->startDate, $datePoint) && !$this->bounds->isStartIncluded());
     }
 
     /**
@@ -820,12 +820,12 @@ final readonly class Period implements JsonSerializable
         $merge = $this->merge($period);
 
         return match (true) {
-            self::sameDate($merge->startDate, $intersect->startDate) => new Sequence(
+            $this->sameDate($merge->startDate, $intersect->startDate) => new Sequence(
                 $merge->startingOn($intersect->endDate)->boundedBy(
                     $intersect->bounds->isEndIncluded() ? $merge->bounds->excludeStart() : $merge->bounds->includeStart(),
                 ),
             ),
-            self::sameDate($merge->endDate, $intersect->endDate) => new Sequence(
+            $this->sameDate($merge->endDate, $intersect->endDate) => new Sequence(
                 $merge->endingOn($intersect->startDate)->boundedBy(
                     $intersect->bounds->isStartIncluded() ? $merge->bounds->excludeEnd() : $merge->bounds->includeEnd(),
                 ),
@@ -989,7 +989,7 @@ final readonly class Period implements JsonSerializable
         $startDate = self::filterDatePoint($startDate);
 
         return match (true) {
-            self::sameDate($startDate, $this->startDate) => $this,
+            $this->sameDate($startDate, $this->startDate) => $this,
             default => new self($startDate, $this->endDate, $this->bounds),
         };
     }
@@ -1005,7 +1005,7 @@ final readonly class Period implements JsonSerializable
         $endDate = self::filterDatePoint($endDate);
 
         return match (true) {
-            self::sameDate($endDate, $this->endDate) => $this,
+            $this->sameDate($endDate, $this->endDate) => $this,
             default => new self($this->startDate, $endDate, $this->bounds),
         };
     }
@@ -1114,13 +1114,13 @@ final readonly class Period implements JsonSerializable
     {
         $startDate = DatePoint::fromDate($this->startDate)->second()->startDate;
 
-        if (self::sameDate($startDate, $this->startDate)) {
+        if ($this->sameDate($startDate, $this->startDate)) {
             $startDate = $this->startDate;
         }
 
         $endDate = DatePoint::fromDate($this->endDate)->second()->endDate;
 
-        if (self::sameDate($this->endDate->add(
+        if ($this->sameDate($this->endDate->add(
             new DateInterval('PT1S'),
         ), $endDate)) {
             $endDate = $this->endDate;
@@ -1141,13 +1141,13 @@ final readonly class Period implements JsonSerializable
     {
         $startDate = DatePoint::fromDate($this->startDate)->minute()->startDate;
 
-        if (self::sameDate($startDate, $this->startDate)) {
+        if ($this->sameDate($startDate, $this->startDate)) {
             $startDate = $this->startDate;
         }
 
         $endDate = DatePoint::fromDate($this->endDate)->minute()->endDate;
 
-        if (self::sameDate($this->endDate->add(
+        if ($this->sameDate($this->endDate->add(
             new DateInterval('PT1M'),
         ), $endDate)) {
             $endDate = $this->endDate;
@@ -1168,13 +1168,13 @@ final readonly class Period implements JsonSerializable
     {
         $startDate = DatePoint::fromDate($this->startDate)->hour()->startDate;
 
-        if (self::sameDate($startDate, $this->startDate)) {
+        if ($this->sameDate($startDate, $this->startDate)) {
             $startDate = $this->startDate;
         }
 
         $endDate = DatePoint::fromDate($this->endDate)->hour()->endDate;
 
-        if (self::sameDate($this->endDate->add(
+        if ($this->sameDate($this->endDate->add(
             new DateInterval('PT1H'),
         ), $endDate)) {
             $endDate = $this->endDate;
@@ -1195,13 +1195,13 @@ final readonly class Period implements JsonSerializable
     {
         $startDate = DatePoint::fromDate($this->startDate)->day()->startDate;
 
-        if (self::sameDate($startDate, $this->startDate)) {
+        if ($this->sameDate($startDate, $this->startDate)) {
             $startDate = $this->startDate;
         }
 
         $endDate = DatePoint::fromDate($this->endDate)->day()->endDate;
 
-        if (self::sameDate($this->endDate->add(
+        if ($this->sameDate($this->endDate->add(
             new DateInterval('P1D'),
         ), $endDate)) {
             $endDate = $this->endDate;
@@ -1222,13 +1222,13 @@ final readonly class Period implements JsonSerializable
     {
         $startDate = DatePoint::fromDate($this->startDate)->isoWeek()->startDate;
 
-        if (self::sameDate($startDate, $this->startDate)) {
+        if ($this->sameDate($startDate, $this->startDate)) {
             $startDate = $this->startDate;
         }
 
         $endDate = DatePoint::fromDate($this->endDate)->isoWeek()->endDate;
 
-        if (self::sameDate($this->endDate->add(
+        if ($this->sameDate($this->endDate->add(
             new DateInterval('P7D'),
         ), $endDate)) {
             $endDate = $this->endDate;
@@ -1249,13 +1249,13 @@ final readonly class Period implements JsonSerializable
     {
         $startDate = DatePoint::fromDate($this->startDate)->month()->startDate;
 
-        if (self::sameDate($startDate, $this->startDate)) {
+        if ($this->sameDate($startDate, $this->startDate)) {
             $startDate = $this->startDate;
         }
 
         $endDate = DatePoint::fromDate($this->endDate)->month()->endDate;
 
-        if (self::sameDate($this->endDate->add(
+        if ($this->sameDate($this->endDate->add(
             new DateInterval('P1M'),
         ), $endDate)) {
             $endDate = $this->endDate;
@@ -1276,13 +1276,13 @@ final readonly class Period implements JsonSerializable
     {
         $startDate = DatePoint::fromDate($this->startDate)->quarter()->startDate;
 
-        if (self::sameDate($startDate, $this->startDate)) {
+        if ($this->sameDate($startDate, $this->startDate)) {
             $startDate = $this->startDate;
         }
 
         $endDate = DatePoint::fromDate($this->endDate)->quarter()->endDate;
 
-        if (self::sameDate($this->endDate->add(
+        if ($this->sameDate($this->endDate->add(
             new DateInterval('P3M'),
         ), $endDate)) {
             $endDate = $this->endDate;
@@ -1303,13 +1303,13 @@ final readonly class Period implements JsonSerializable
     {
         $startDate = DatePoint::fromDate($this->startDate)->semester()->startDate;
 
-        if (self::sameDate($startDate, $this->startDate)) {
+        if ($this->sameDate($startDate, $this->startDate)) {
             $startDate = $this->startDate;
         }
 
         $endDate = DatePoint::fromDate($this->endDate)->semester()->endDate;
 
-        if (self::sameDate($this->endDate->add(
+        if ($this->sameDate($this->endDate->add(
             new DateInterval('P6M'),
         ), $endDate)) {
             $endDate = $this->endDate;
@@ -1330,7 +1330,7 @@ final readonly class Period implements JsonSerializable
     {
         $startDate = DatePoint::fromDate($this->startDate)->year()->startDate;
 
-        if (self::sameDate($startDate, $this->startDate)) {
+        if ($this->sameDate($startDate, $this->startDate)) {
             $startDate = $this->startDate;
         }
 
@@ -1363,7 +1363,7 @@ final readonly class Period implements JsonSerializable
 
         $endDate = DatePoint::fromDate($this->endDate)->isoYear()->endDate;
 
-        if (self::sameDate($this->endDate->setISODate((int) $this->endDate->format('Y') + 1, 1), $endDate)) {
+        if ($this->sameDate($this->endDate->setISODate((int) $this->endDate->format('Y') + 1, 1), $endDate)) {
             $endDate = $this->endDate;
         }
 
@@ -1492,7 +1492,7 @@ final readonly class Period implements JsonSerializable
         };
     }
 
-    private static function sameDate(DateTimeImmutable $first, DateTimeImmutable $second): bool
+    private function sameDate(DateTimeImmutable $first, DateTimeImmutable $second): bool
     {
         return $first->format('Y-m-d H:i:s.uP') === $second->format('Y-m-d H:i:s.uP');
     }
@@ -1507,10 +1507,10 @@ final readonly class Period implements JsonSerializable
     {
         return match (true) {
             $this->startDate < $timeSlot->startDate && $this->endDate > $timeSlot->endDate => true,
-            self::sameDate($this->startDate, $timeSlot->startDate) && self::sameDate($this->endDate, $timeSlot->endDate) => $this->bounds === $timeSlot->bounds || Bounds::IncludeAll === $this->bounds,
-            self::sameDate($this->startDate, $timeSlot->startDate) => ($this->bounds->equalsStart($timeSlot->bounds) || $this->bounds->isStartIncluded())
+            $this->sameDate($this->startDate, $timeSlot->startDate) && $this->sameDate($this->endDate, $timeSlot->endDate) => $this->bounds === $timeSlot->bounds || Bounds::IncludeAll === $this->bounds,
+            $this->sameDate($this->startDate, $timeSlot->startDate) => ($this->bounds->equalsStart($timeSlot->bounds) || $this->bounds->isStartIncluded())
                     && $this->containsDatePoint($this->startDate->add($timeSlot->dateInterval()), $this->bounds),
-            self::sameDate($this->endDate, $timeSlot->endDate) => ($this->bounds->equalsEnd($timeSlot->bounds) || $this->bounds->isEndIncluded())
+            $this->sameDate($this->endDate, $timeSlot->endDate) => ($this->bounds->equalsEnd($timeSlot->bounds) || $this->bounds->isEndIncluded())
                     && $this->containsDatePoint($this->endDate->sub($timeSlot->dateInterval()), $this->bounds),
             default => false,
         };

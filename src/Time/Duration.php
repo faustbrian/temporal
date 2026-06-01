@@ -18,12 +18,9 @@ use const PHP_INT_MAX;
 use const PHP_INT_MIN;
 
 use function abs;
-use function array_column;
 use function array_reduce;
 use function array_shift;
-use function array_sum;
 use function intdiv;
-use function is_int;
 use function throw_if;
 use function throw_unless;
 
@@ -282,11 +279,17 @@ final readonly class Duration implements JsonSerializable
     public function sum(self ...$other): self
     {
         $other[] = $this;
-        /** @var int|float $value */
-        $value = array_sum(array_column($other, 'value'));
+        $value = 0;
 
-        if (!is_int($value)) {
-            throw InvalidDuration::dueToOverflow();
+        foreach ($other as $duration) {
+            if (
+                ($duration->value > 0 && $value > (PHP_INT_MAX - 1) - $duration->value)
+                || ($duration->value < 0 && $value < (PHP_INT_MIN + 2) - $duration->value)
+            ) {
+                throw InvalidDuration::dueToOverflow();
+            }
+
+            $value += $duration->value;
         }
 
         return $this->value === $value ? $this : new self($value);
@@ -367,14 +370,14 @@ final readonly class Duration implements JsonSerializable
      */
     public function multipliedBy(int $factor): self
     {
-        /** @var int|float $result */
-        $result = $this->value * $factor;
-
-        if (!is_int($result)) {
+        if (
+            ($factor > 0 && ($this->value > intdiv(PHP_INT_MAX - 1, $factor) || $this->value < intdiv(PHP_INT_MIN + 2, $factor)))
+            || ($factor < 0 && ($this->value > intdiv(PHP_INT_MIN + 2, $factor) || $this->value < intdiv(PHP_INT_MAX - 1, $factor)))
+        ) {
             throw InvalidDuration::dueToOverflow();
         }
 
-        return new self($result);
+        return new self($this->value * $factor);
     }
 
     /**

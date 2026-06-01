@@ -271,7 +271,7 @@ final class DurationTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{input: string, reference_date: int|string|DateTimeInterface, expected: string}>
+     * @return iterable<string, array{input: string, reference_date: DateTimeInterface|int|string, expected: string}>
      */
     public static function provideAdjusted_toCases(): iterable
     {

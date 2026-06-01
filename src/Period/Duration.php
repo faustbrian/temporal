@@ -160,7 +160,7 @@ final readonly class Duration
         return self::fromUnits([
             'hour' => $matches['hour'],
             'minute' => $matches['minute'],
-            'second' => $matches['second'] ?? '0',
+            'second' => $matches['second'],
             'fraction' => $matches['fraction'] ?? null,
             'sign' => $matches['sign'],
         ]);

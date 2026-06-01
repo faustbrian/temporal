@@ -108,7 +108,7 @@ final readonly class DatePoint
      */
     public function bordersOnStart(Period $timeSlot): bool
     {
-        return self::sameDate($this->date, $timeSlot->startDate) && !$timeSlot->bounds->isStartIncluded();
+        return $this->sameDate($this->date, $timeSlot->startDate) && !$timeSlot->bounds->isStartIncluded();
     }
 
     /**
@@ -140,7 +140,7 @@ final readonly class DatePoint
      */
     public function bordersOnEnd(Period $timeSlot): bool
     {
-        return self::sameDate($this->date, $timeSlot->endDate) && !$timeSlot->bounds->isEndIncluded();
+        return $this->sameDate($this->date, $timeSlot->endDate) && !$timeSlot->bounds->isEndIncluded();
     }
 
     /**
@@ -351,7 +351,7 @@ final readonly class DatePoint
         );
     }
 
-    private static function sameDate(DateTimeImmutable $first, DateTimeImmutable $second): bool
+    private function sameDate(DateTimeImmutable $first, DateTimeImmutable $second): bool
     {
         return $first->format('Y-m-d H:i:s.uP') === $second->format('Y-m-d H:i:s.uP');
     }

@@ -24,9 +24,11 @@ use TypeError;
 use const PHP_EOL;
 
 use function chr;
+use function fclose;
 use function fopen;
 use function rewind;
 use function stream_get_contents;
+use function throw_if;
 
 /**
  * @author Brian Faust <brian@cline.sh>
@@ -37,8 +39,10 @@ final class StreamOutputTest extends TestCase
     public function test_create_stream_with_invalid_parameter(): void
     {
         $this->expectException(TypeError::class);
-        /** @var mixed $stream */
-        $stream = __DIR__.'/data/foo.csv';
+        $stream = fopen('php://memory', 'r+b');
+        throw_if(false === $stream, RuntimeException::class, 'Unable to create memory stream.');
+
+        fclose($stream);
 
         new StreamOutput($stream, Terminal::Posix);
     }
@@ -111,10 +115,7 @@ final class StreamOutputTest extends TestCase
     private function setStream()
     {
         $stream = fopen('php://memory', 'r+b');
-
-        if (false === $stream) {
-            throw new RuntimeException('Unable to create memory stream.');
-        }
+        throw_if(false === $stream, RuntimeException::class, 'Unable to create memory stream.');
 
         return $stream;
     }

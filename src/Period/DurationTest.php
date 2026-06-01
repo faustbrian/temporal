@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -23,6 +21,7 @@ use DateTime;
 use DateTimeInterface;
 use DateTimeZone;
 use InvalidArgumentException;
+use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Throwable;
@@ -38,6 +37,7 @@ use function sprintf;
 use function var_export;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 final class DurationTest extends TestCase
@@ -73,7 +73,7 @@ final class DurationTest extends TestCase
     public function test_instantiation_from_set_state(): void
     {
         $duration = Duration::fromDateInterval(
-            new DateInterval('P1D')
+            new DateInterval('P1D'),
         );
 
         /** @var Duration $generatedDuration */
@@ -85,7 +85,7 @@ final class DurationTest extends TestCase
     public function test_create_from_date_interval(): void
     {
         $duration = Duration::fromDateInterval(
-            new DateInterval('P1D')
+            new DateInterval('P1D'),
         );
 
         $this->assertSame(1, $duration->dateInterval->d);
@@ -100,22 +100,23 @@ final class DurationTest extends TestCase
         $this->assertFalse($duration->dateInterval->days);
     }
 
-    #[DataProvider('provideCreateFromSecondsCases')]
+    #[DataProvider('provideCreate_from_secondsCases')]
     public function test_create_from_seconds(int $seconds, int $fraction, string $expected): void
     {
         $this->assertSame($expected, $this->formatDuration(Duration::fromSeconds($seconds, $fraction)));
     }
 
     /**
-     * @return \Iterator<string, array{seconds: int, fraction: int, expected: string}>
+     * @return Iterator<string, array{seconds: int, fraction: int, expected: string}>
      */
-    public static function provideCreateFromSecondsCases(): \Iterator
+    public static function provideCreate_from_secondsCases(): iterable
     {
         yield 'from an integer' => [
             'seconds' => 0,
             'fraction' => 0,
             'expected' => 'PT0S',
         ];
+
         yield 'negative seconds' => [
             'seconds' => -3,
             'fraction' => 2_345,
@@ -130,29 +131,31 @@ final class DurationTest extends TestCase
         Duration::fromSeconds(32, -1);
     }
 
-    #[DataProvider('provideIntervalWithFractionCases')]
+    #[DataProvider('provideInterval_with_fractionCases')]
     public function test_interval_with_fraction(string $input, string $expected): void
     {
         $this->assertSame($expected, $this->formatDuration(Duration::fromIsoString($input)));
     }
 
-    public static function provideIntervalWithFractionCases(): \Iterator
+    public static function provideInterval_with_fractionCases(): iterable
     {
         yield 'IsoString with fraction v1' => [
             'input' => 'PT3.1S',
             'expected' => 'PT3.1S',
         ];
+
         yield 'IsoString with fraction v2' => [
             'input' => 'P0000-00-00T00:05:00.023658',
             'expected' => 'PT5M0.023658S',
         ];
+
         yield 'IsoString with fraction v3' => [
             'input' => 'PT5M23658F',
             'expected' => 'PT5M0.023658S',
         ];
     }
 
-    #[DataProvider('provideCreateFromChronoStringFailsCases')]
+    #[DataProvider('provideCreate_from_chrono_string_failsCases')]
     public function test_create_from_chrono_string_fails(string $input): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -160,13 +163,14 @@ final class DurationTest extends TestCase
         Duration::fromChronoString($input);
     }
 
-    public static function provideCreateFromChronoStringFailsCases(): \Iterator
+    public static function provideCreate_from_chrono_string_failsCases(): iterable
     {
         yield 'invalid string' => ['foobar'];
+
         yield 'float like string' => ['-28.5'];
     }
 
-    #[DataProvider('provideCreateFromChronoStringSucceedsCases')]
+    #[DataProvider('provideCreate_from_chrono_string_succeedsCases')]
     public function test_create_from_chrono_string_succeeds(string $chronometer, string $expected): void
     {
         $duration = Duration::fromChronoString($chronometer);
@@ -174,20 +178,23 @@ final class DurationTest extends TestCase
         $this->assertSame($expected, $this->formatDuration($duration));
     }
 
-    public static function provideCreateFromChronoStringSucceedsCases(): \Iterator
+    public static function provideCreate_from_chrono_string_succeedsCases(): iterable
     {
         yield 'minute and seconds' => [
             'chronometer' => '1:2',
             'expected' => 'PT1M2S',
         ];
+
         yield 'hour, minute, seconds' => [
             'chronometer' => '1:2:3',
             'expected' => 'PT1H2M3S',
         ];
+
         yield 'handling 0 prefix' => [
             'chronometer' => '00001:00002:000003.0004',
             'expected' => 'PT1H2M3.0004S',
         ];
+
         yield 'negative chrono' => [
             'chronometer' => '-12:28.5',
             'expected' => 'PT12M28.5S',
@@ -201,7 +208,7 @@ final class DurationTest extends TestCase
         Duration::fromTimeString('123');
     }
 
-    #[DataProvider('provideCreateFromTimeStringSucceedsCases')]
+    #[DataProvider('provideCreate_from_time_string_succeedsCases')]
     public function test_create_from_time_string_succeeds(string $chronometer, string $expected): void
     {
         $duration = Duration::fromTimeString($chronometer);
@@ -210,33 +217,37 @@ final class DurationTest extends TestCase
     }
 
     /**
-     * @return \Iterator<(int | string), array{chronometer: string, expected: string}>
+     * @return Iterator<(int|string), array{chronometer: string, expected: string}>
      */
-    public static function provideCreateFromTimeStringSucceedsCases(): \Iterator
+    public static function provideCreate_from_time_string_succeedsCases(): iterable
     {
         yield 'hour and minute' => [
             'chronometer' => '1:2',
             'expected' => 'PT1H2M',
         ];
+
         yield 'hour, minute, seconds' => [
             'chronometer' => '1:2:3',
             'expected' => 'PT1H2M3S',
         ];
+
         yield 'handling 0 prefix' => [
             'chronometer' => '00001:00002:000003.0004',
             'expected' => 'PT1H2M3.0004S',
         ];
+
         yield 'negative chrono' => [
             'chronometer' => '-12:28',
             'expected' => 'PT-12H28M',
         ];
+
         yield 'negative chrono with seconds' => [
             'chronometer' => '-00:00:28.5',
             'expected' => 'PT28.5S',
         ];
     }
 
-    #[DataProvider('provideAdjustedToCases')]
+    #[DataProvider('provideAdjusted_toCases')]
     public function test_adjusted_to(string $input, int|string|DateTimeInterface $reference_date, string $expected): void
     {
         $duration = Duration::fromIsoString($input);
@@ -250,38 +261,44 @@ final class DurationTest extends TestCase
         $this->assertSame($expected, $this->formatDuration($duration->adjustedTo($date)));
     }
 
-    public static function provideAdjustedToCases(): \Iterator
+    public static function provideAdjusted_toCases(): iterable
     {
         yield 'nothing to carry over' => [
             'input' => 'PT3H',
             'reference_date' => 0,
             'expected' => 'PT3H',
         ];
+
         yield 'hour transformed in days' => [
             'input' => 'PT24H',
             'reference_date' => 0,
             'expected' => 'P1D',
         ];
+
         yield 'days transformed in months' => [
             'input' => 'P31D',
             'reference_date' => 0,
             'expected' => 'P1M',
         ];
+
         yield 'months transformed in years' => [
             'input' => 'P12M',
             'reference_date' => 0,
             'expected' => 'P1Y',
         ];
+
         yield 'leap year' => [
             'input' => 'P29D',
             'reference_date' => '2020-02-01',
             'expected' => 'P1M',
         ];
+
         yield 'none leap year' => [
             'input' => 'P29D',
             'reference_date' => '2019-02-01',
             'expected' => 'P1M1D',
         ];
+
         /*
         * THIS IS FIXED AS OF PHP8.1
         'dst day' => [

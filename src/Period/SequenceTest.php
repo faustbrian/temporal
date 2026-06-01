@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -18,15 +16,16 @@
 
 namespace Cline\Temporal\Period;
 
-use Illuminate\Support\Facades\Date;
 use Carbon\CarbonImmutable;
 use DateInterval;
+use Illuminate\Support\Facades\Date;
 
 use function array_keys;
 use function json_encode;
 use function mb_strlen;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 final class SequenceTest extends PeriodTestCase
@@ -137,7 +136,7 @@ final class SequenceTest extends PeriodTestCase
     {
         $day = DatePoint::fromDateString('2010-06-23')->day();
         $this->assertSame('['.json_encode($day).']', json_encode(
-            new Sequence($day)
+            new Sequence($day),
         ));
     }
 
@@ -195,7 +194,8 @@ final class SequenceTest extends PeriodTestCase
     public function test_some(): void
     {
         $interval = Period::after(
-            CarbonImmutable::parse('2012-02-01 12:00:00'), Duration::fromDateString('1 HOUR')
+            CarbonImmutable::parse('2012-02-01 12:00:00'),
+            Duration::fromDateString('1 HOUR'),
         );
         $predicate = fn (Period $event): bool => $interval->overlaps($event);
 
@@ -207,7 +207,7 @@ final class SequenceTest extends PeriodTestCase
 
         $this->assertTrue($sequence->some($predicate));
         $this->assertFalse(
-            new Sequence()->some($predicate)
+            new Sequence()->some($predicate),
         );
     }
 
@@ -220,16 +220,17 @@ final class SequenceTest extends PeriodTestCase
         );
 
         $interval = Period::after(
-            Date::parse('2012-01-01'), Duration::fromDateString('5 YEARS')
+            Date::parse('2012-01-01'),
+            Duration::fromDateString('5 YEARS'),
         );
         $predicate = fn (Period $event): bool => $interval->contains($event);
 
         $this->assertTrue($sequence->every($predicate));
         $this->assertFalse(
-            new Sequence()->every($predicate)
+            new Sequence()->every($predicate),
         );
         $this->assertFalse(
-            new Sequence(DatePoint::fromDateString('1988-02-01')->day())->every($predicate)
+            new Sequence(DatePoint::fromDateString('1988-02-01')->day())->every($predicate),
         );
     }
 
@@ -246,18 +247,22 @@ final class SequenceTest extends PeriodTestCase
     {
         $sequenceA = new Sequence(
             Period::fromDate(
-                Date::parse('2000-01-01'), Date::parse('2000-01-10')
+                Date::parse('2000-01-01'),
+                Date::parse('2000-01-10'),
             ),
             Period::fromDate(
-                Date::parse('2000-01-12'), Date::parse('2000-01-20')
+                Date::parse('2000-01-12'),
+                Date::parse('2000-01-20'),
             ),
         );
         $sequenceB = new Sequence(
             Period::fromDate(
-                Date::parse('2000-01-05'), Date::parse('2000-01-08')
+                Date::parse('2000-01-05'),
+                Date::parse('2000-01-08'),
             ),
             Period::fromDate(
-                Date::parse('2000-01-11'), Date::parse('2000-01-25')
+                Date::parse('2000-01-11'),
+                Date::parse('2000-01-25'),
             ),
         );
         $diff = $sequenceA->subtract($sequenceB);
@@ -281,18 +286,22 @@ final class SequenceTest extends PeriodTestCase
     {
         $sequenceA = new Sequence(
             Period::fromDate(
-                Date::parse('2000-01-01'), Date::parse('2000-01-05')
+                Date::parse('2000-01-01'),
+                Date::parse('2000-01-05'),
             ),
             Period::fromDate(
-                Date::parse('2000-01-10'), Date::parse('2000-01-15')
+                Date::parse('2000-01-10'),
+                Date::parse('2000-01-15'),
             ),
             Period::fromDate(
-                Date::parse('2000-01-20'), Date::parse('2000-01-25')
+                Date::parse('2000-01-20'),
+                Date::parse('2000-01-25'),
             ),
         );
         $sequenceB = new Sequence(
             Period::fromDate(
-                Date::parse('2000-01-01'), Date::parse('2000-01-30')
+                Date::parse('2000-01-01'),
+                Date::parse('2000-01-30'),
             ),
         );
         $diff = $sequenceA->subtract($sequenceB);
@@ -307,10 +316,12 @@ final class SequenceTest extends PeriodTestCase
     {
         $sequenceA = new Sequence(
             Period::fromDate(
-                Date::parse('2000-01-01'), Date::parse('2000-01-10')
+                Date::parse('2000-01-01'),
+                Date::parse('2000-01-10'),
             ),
             Period::fromDate(
-                Date::parse('2000-01-12'), Date::parse('2000-01-20')
+                Date::parse('2000-01-12'),
+                Date::parse('2000-01-20'),
             ),
         );
         $sequenceB = new Sequence();
@@ -331,14 +342,17 @@ final class SequenceTest extends PeriodTestCase
     {
         $sequenceA = new Sequence(
             Period::fromDate(
-                Date::parse('2000-01-01'), Date::parse('2000-01-10')
+                Date::parse('2000-01-01'),
+                Date::parse('2000-01-10'),
             ),
             Period::fromDate(
-                Date::parse('2000-01-12'), Date::parse('2000-01-20')
+                Date::parse('2000-01-12'),
+                Date::parse('2000-01-20'),
             ),
         );
         $sequenceB = new Sequence(Period::fromDate(
-            Date::parse('2003-01-12'), Date::parse('2003-01-20')
+            Date::parse('2003-01-12'),
+            Date::parse('2003-01-20'),
         ));
         $this->assertSame($sequenceA, $sequenceA->subtract($sequenceB));
     }
@@ -350,14 +364,17 @@ final class SequenceTest extends PeriodTestCase
     {
         $sequenceA = new Sequence(
             Period::fromDate(
-                Date::parse('2000-01-01'), Date::parse('2000-01-10')
+                Date::parse('2000-01-01'),
+                Date::parse('2000-01-10'),
             ),
             Period::fromDate(
-                Date::parse('2001-01-01'), Date::parse('2001-01-10')
+                Date::parse('2001-01-01'),
+                Date::parse('2001-01-10'),
             ),
         );
         $sequenceB = new Sequence(Period::fromDate(
-            Date::parse('2000-01-01'), Date::parse('2000-01-10')
+            Date::parse('2000-01-01'),
+            Date::parse('2000-01-10'),
         ));
         $this->assertCount(0, $sequenceB->subtract($sequenceA));
     }
@@ -377,13 +394,16 @@ final class SequenceTest extends PeriodTestCase
     {
         $sequence = new Sequence(
             Period::fromDate(
-                Date::parse('2018-01-01'), Date::parse('2018-01-31')
+                Date::parse('2018-01-01'),
+                Date::parse('2018-01-31'),
             ),
             Period::fromDate(
-                Date::parse('2018-01-10'), Date::parse('2018-01-15')
+                Date::parse('2018-01-10'),
+                Date::parse('2018-01-15'),
             ),
             Period::fromDate(
-                Date::parse('2018-01-10'), Date::parse('2018-01-31')
+                Date::parse('2018-01-10'),
+                Date::parse('2018-01-31'),
             ),
         );
         $intersections = $sequence->intersections();
@@ -409,16 +429,20 @@ final class SequenceTest extends PeriodTestCase
     {
         $sequence = new Sequence(
             Period::fromDate(
-                Date::parse('2018-01-01'), Date::parse('2018-01-31')
+                Date::parse('2018-01-01'),
+                Date::parse('2018-01-31'),
             ),
             Period::fromDate(
-                Date::parse('2018-02-10'), Date::parse('2018-02-20')
+                Date::parse('2018-02-10'),
+                Date::parse('2018-02-20'),
             ),
             Period::fromDate(
-                Date::parse('2018-03-01'), Date::parse('2018-03-31')
+                Date::parse('2018-03-01'),
+                Date::parse('2018-03-31'),
             ),
             Period::fromDate(
-                Date::parse('2018-01-20'), Date::parse('2018-03-10')
+                Date::parse('2018-01-20'),
+                Date::parse('2018-03-10'),
             ),
         );
         $intersections = $sequence->intersections();
@@ -444,10 +468,12 @@ final class SequenceTest extends PeriodTestCase
         $sequence = new Sequence(
             DatePoint::fromDateString('2018-11-29')->day(),
             Period::after(
-                CarbonImmutable::parse('2018-11-29 + 7 DAYS'), DateInterval::createFromDateString('1 DAY')
+                CarbonImmutable::parse('2018-11-29 + 7 DAYS'),
+                DateInterval::createFromDateString('1 DAY'),
             ),
             Period::around(
-                CarbonImmutable::parse('2018-11-29'), DateInterval::createFromDateString('4 DAYS')
+                CarbonImmutable::parse('2018-11-29'),
+                DateInterval::createFromDateString('4 DAYS'),
             ),
         );
 
@@ -469,7 +495,8 @@ final class SequenceTest extends PeriodTestCase
         $sequence = new Sequence(
             DatePoint::fromDateString('2018-11-29')->day(),
             Period::around(
-                Date::parse('2018-11-29'), Duration::fromDateString('4 DAYS')
+                Date::parse('2018-11-29'),
+                Duration::fromDateString('4 DAYS'),
             ),
         );
 
@@ -489,7 +516,8 @@ final class SequenceTest extends PeriodTestCase
             DatePoint::fromDateString('2018-11-29')->year(),
             DatePoint::fromDateString('2018-11-29')->month(),
             Period::around(
-                CarbonImmutable::parse('2016-06-01'), Duration::fromDateString('3 MONTHS')
+                CarbonImmutable::parse('2016-06-01'),
+                Duration::fromDateString('3 MONTHS'),
             ),
         );
 
@@ -498,7 +526,8 @@ final class SequenceTest extends PeriodTestCase
         $this->assertTrue($unions->intersections()->isEmpty());
         $this->assertEquals($sequence->gaps(), $unions->gaps());
         $this->assertTrue(Period::around(
-            CarbonImmutable::parse('2016-06-01'), Duration::fromDateString('3 MONTHS')
+            CarbonImmutable::parse('2016-06-01'),
+            Duration::fromDateString('3 MONTHS'),
         )->equals($unions->get(0)));
         $this->assertTrue(DatePoint::fromDateString('2018-11-29')->year()->equals($unions->get(1)));
     }
@@ -516,7 +545,7 @@ final class SequenceTest extends PeriodTestCase
             }
 
             return $period->startingOn(
-                CarbonImmutable::parse('2018-01-15')
+                CarbonImmutable::parse('2018-01-15'),
             );
         });
 

@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -33,6 +31,7 @@ use function intdiv;
  *
  * @author  Ignace Nyamagana Butera <nyamsprod@gmail.com>
  * @since   4.2.0
+ * @psalm-immutable
  */
 final readonly class DatePoint
 {
@@ -66,14 +65,14 @@ final readonly class DatePoint
                 $timezone instanceof DateTimeZone => $timezone,
                 null === $timezone => new DateTimeZone(date_default_timezone_get()),
                 default => new DateTimeZone($timezone),
-            })
+            }),
         );
     }
 
     public static function fromTimestamp(int $timestamp): self
     {
         return new self(
-            CarbonImmutable::now()->setTimestamp($timestamp)
+            CarbonImmutable::now()->setTimestamp($timestamp),
         );
     }
 
@@ -152,6 +151,7 @@ final readonly class DatePoint
         if ($this->bordersOnEnd($timeSlot)) {
             return true;
         }
+
         return $this->bordersOnStart($timeSlot);
     }
 

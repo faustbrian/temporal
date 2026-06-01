@@ -11,4 +11,7 @@ namespace Cline\Temporal\Period\Chart;
 
 use Throwable;
 
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 interface ChartError extends Throwable {}

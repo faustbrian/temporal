@@ -11,4 +11,7 @@ namespace Cline\Temporal\Time;
 
 use Exception;
 
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 final class TimeException extends Exception {}

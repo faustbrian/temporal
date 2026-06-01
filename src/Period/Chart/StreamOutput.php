@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -33,8 +31,14 @@ use function implode;
 use function is_resource;
 use function preg_replace;
 use function preg_replace_callback;
+use function sprintf;
 use function strtr;
+use function throw_if;
 
+/**
+ * @author Brian Faust <brian@cline.sh>
+ * @psalm-immutable
+ */
 final readonly class StreamOutput implements Output
 {
     private const string REGEXP_POSIX_PLACEHOLDER = '/(\s+)/msi';

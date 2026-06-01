@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -32,6 +30,7 @@ use function str_repeat;
 
 /**
  * A class to output a Dataset via a Gantt Bar Graph.
+ * @author Brian Faust <brian@cline.sh>
  */
 final class GanttChart implements Chart
 {

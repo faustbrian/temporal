@@ -13,6 +13,9 @@ use function intdiv;
 use function is_float;
 use function round;
 
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 enum Unit
 {
     case Week;

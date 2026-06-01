@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -29,7 +27,9 @@ use function preg_replace;
 /**
  * A class to configure the settings to stroke data using the GanttChart.
  *
+ * @author Brian Faust <brian@cline.sh>
  * @see GanttChart
+ * @psalm-immutable
  */
 final readonly class GanttChartConfig
 {
@@ -59,7 +59,7 @@ final readonly class GanttChartConfig
     public static function fromStream($stream, Terminal $terminal = Terminal::Posix): self
     {
         return new self(
-            new StreamOutput($stream, $terminal)
+            new StreamOutput($stream, $terminal),
         );
     }
 

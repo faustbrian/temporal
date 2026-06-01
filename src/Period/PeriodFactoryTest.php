@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -18,7 +16,6 @@
 
 namespace Cline\Temporal\Period;
 
-use Illuminate\Support\Facades\Date;
 use Carbon\CarbonImmutable;
 use DateInterval;
 use DatePeriod;
@@ -26,6 +23,8 @@ use DateTime;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
+use Illuminate\Support\Facades\Date;
+use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 use function defined;
@@ -33,6 +32,7 @@ use function is_string;
 use function var_export;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 final class PeriodFactoryTest extends PeriodTestCase
@@ -42,7 +42,8 @@ final class PeriodFactoryTest extends PeriodTestCase
         $this->assertEquals(
             Period::fromDate(DatePoint::fromDateString('TODAY'), DatePoint::fromDateString('TOMORROW')),
             Period::fromDate(
-                CarbonImmutable::parse('TODAY'), Date::parse('TOMORROW')
+                CarbonImmutable::parse('TODAY'),
+                Date::parse('TOMORROW'),
             ),
         );
     }
@@ -51,10 +52,12 @@ final class PeriodFactoryTest extends PeriodTestCase
     {
         $this->assertEquals(
             Period::fromDate(
-                Date::parse('TODAY'), CarbonImmutable::parse('TOMORROW')
+                Date::parse('TODAY'),
+                CarbonImmutable::parse('TOMORROW'),
             ),
             Period::fromDate(
-                CarbonImmutable::parse('TODAY'), Date::parse('TOMORROW')
+                CarbonImmutable::parse('TODAY'),
+                Date::parse('TOMORROW'),
             ),
         );
     }
@@ -80,7 +83,8 @@ final class PeriodFactoryTest extends PeriodTestCase
     {
         $date = CarbonImmutable::parse('2014-05-01 00:00:00');
         $this->assertEquals(
-            new DateInterval('PT0S'), Period::fromDate($date, $date)->dateInterval()
+            new DateInterval('PT0S'),
+            Period::fromDate($date, $date)->dateInterval(),
         );
     }
 
@@ -93,7 +97,7 @@ final class PeriodFactoryTest extends PeriodTestCase
         );
     }
 
-    #[DataProvider('provideIntervalAfterCases')]
+    #[DataProvider('provideInterval_afterCases')]
     public function test_interval_after(string $startDate, string $endDate, Period|DateInterval|int|string $duration): void
     {
         $start = new DateTimeImmutable($startDate);
@@ -106,24 +110,28 @@ final class PeriodFactoryTest extends PeriodTestCase
 
         $this->assertEquals($start, $period->startDate);
         $this->assertEquals(
-            new DateTimeImmutable($endDate), $period->endDate
+            new DateTimeImmutable($endDate),
+            $period->endDate,
         );
     }
 
     /**
-     * @return \Iterator<string, array{string, string, (Period | \DateInterval | int | string)}>
+     * @return Iterator<string, array{string, string, (DateInterval|int|Period|string)}>
      */
-    public static function provideIntervalAfterCases(): \Iterator
+    public static function provideInterval_afterCases(): iterable
     {
         yield 'usingAString' => [
             '2015-01-01', '2015-01-02', '+1 DAY',
         ];
+
         yield 'usingAnInt' => [
             '2015-01-01 10:00:00', '2015-01-01 11:00:00', 3_600,
         ];
+
         yield 'usingADateInterval' => [
             '2015-01-01 10:00:00', '2015-01-01 11:00:00', new DateInterval('PT1H'),
         ];
+
         yield 'usingAnInterval' => [
             '2015-01-01 10:00:00', '2015-01-01 11:00:00', DatePoint::fromDateString('2012-01-03 12:00:00')->hour(),
         ];
@@ -136,11 +144,12 @@ final class PeriodFactoryTest extends PeriodTestCase
         $duration->invert = 1;
 
         Period::after(
-            Date::parse('2012-01-12'), $duration
+            Date::parse('2012-01-12'),
+            $duration,
         );
     }
 
-    #[DataProvider('provideIntervalBeforeCases')]
+    #[DataProvider('provideInterval_beforeCases')]
     public function test_interval_before(string $startDate, string $endDate, int|DateInterval|string $duration): void
     {
         $end = new DateTimeImmutable($endDate);
@@ -154,22 +163,25 @@ final class PeriodFactoryTest extends PeriodTestCase
 
         $period = Period::before($end, $dateInterval);
         $this->assertEquals(
-            new DateTimeImmutable($startDate), $period->startDate
+            new DateTimeImmutable($startDate),
+            $period->startDate,
         );
         $this->assertEquals($end, $period->endDate);
     }
 
     /**
-     * @return \Iterator<string, array{string, string, (\DateInterval | int | string)}>
+     * @return Iterator<string, array{string, string, (DateInterval|int|string)}>
      */
-    public static function provideIntervalBeforeCases(): \Iterator
+    public static function provideInterval_beforeCases(): iterable
     {
         yield 'usingAString' => [
             '2015-01-01', '2015-01-02', '+1 DAY',
         ];
+
         yield 'usingAnInt' => [
             '2015-01-01 10:00:00', '2015-01-01 11:00:00', 3_600,
         ];
+
         yield 'usingADateInterval' => [
             '2015-01-01 10:00:00', '2015-01-01 11:00:00', new DateInterval('PT1H'),
         ];
@@ -182,7 +194,8 @@ final class PeriodFactoryTest extends PeriodTestCase
         $duration->invert = 1;
 
         Period::before(
-            Date::parse('2012-01-12'), $duration
+            Date::parse('2012-01-12'),
+            $duration,
         );
     }
 
@@ -204,7 +217,8 @@ final class PeriodFactoryTest extends PeriodTestCase
         $duration = new DateInterval('PT1S');
         $duration->invert = 1;
         Period::around(
-            Date::parse('2012-06-05'), $duration
+            Date::parse('2012-06-05'),
+            $duration,
         );
     }
 
@@ -225,7 +239,7 @@ final class PeriodFactoryTest extends PeriodTestCase
         $this->expectException(InvalidInterval::class);
 
         Period::fromRange(
-            new DatePeriod('R4/2012-07-01T00:00:00Z/P7D')
+            new DatePeriod('R4/2012-07-01T00:00:00Z/P7D'),
         );
     }
 
@@ -234,11 +248,11 @@ final class PeriodFactoryTest extends PeriodTestCase
         $this->expectException(InvalidInterval::class);
 
         Period::fromRange(
-            new DatePeriod('R4/2012-07-01T00:00:00Z/P7D')
+            new DatePeriod('R4/2012-07-01T00:00:00Z/P7D'),
         );
     }
 
-    #[DataProvider('provideFromRangeCases')]
+    #[DataProvider('provideFrom_rangeCases')]
     public function test_from_range(int $options, Bounds $expectedBounds): void
     {
         $datePeriod = new DatePeriod(
@@ -257,7 +271,7 @@ final class PeriodFactoryTest extends PeriodTestCase
     /**
      * @return iterable<string, array{option: int, expectedBounds: Bounds}>
      */
-    public static function provideFromRangeCases(): iterable
+    public static function provideFrom_rangeCases(): iterable
     {
         yield 'include start date legacy' => [
             'options' => DatePeriod::EXCLUDE_START_DATE,
@@ -288,10 +302,12 @@ final class PeriodFactoryTest extends PeriodTestCase
     {
         $period = Period::fromIsoWeek(2_014, 3);
         $this->assertEquals(
-            CarbonImmutable::parse('2014-01-13'), $period->startDate
+            CarbonImmutable::parse('2014-01-13'),
+            $period->startDate,
         );
         $this->assertEquals(
-            CarbonImmutable::parse('2014-01-20'), $period->endDate
+            CarbonImmutable::parse('2014-01-20'),
+            $period->endDate,
         );
     }
 
@@ -299,10 +315,12 @@ final class PeriodFactoryTest extends PeriodTestCase
     {
         $period = Period::fromMonth(2_014, 3);
         $this->assertEquals(
-            CarbonImmutable::parse('2014-03-01'), $period->startDate
+            CarbonImmutable::parse('2014-03-01'),
+            $period->startDate,
         );
         $this->assertEquals(
-            CarbonImmutable::parse('2014-04-01'), $period->endDate
+            CarbonImmutable::parse('2014-04-01'),
+            $period->endDate,
         );
     }
 
@@ -310,10 +328,12 @@ final class PeriodFactoryTest extends PeriodTestCase
     {
         $period = Period::fromQuarter(2_014, 3);
         $this->assertEquals(
-            CarbonImmutable::parse('2014-07-01'), $period->startDate
+            CarbonImmutable::parse('2014-07-01'),
+            $period->startDate,
         );
         $this->assertEquals(
-            CarbonImmutable::parse('2014-10-01'), $period->endDate
+            CarbonImmutable::parse('2014-10-01'),
+            $period->endDate,
         );
     }
 
@@ -321,10 +341,12 @@ final class PeriodFactoryTest extends PeriodTestCase
     {
         $period = Period::fromSemester(2_014, 2);
         $this->assertEquals(
-            CarbonImmutable::parse('2014-07-01'), $period->startDate
+            CarbonImmutable::parse('2014-07-01'),
+            $period->startDate,
         );
         $this->assertEquals(
-            CarbonImmutable::parse('2015-01-01'), $period->endDate
+            CarbonImmutable::parse('2015-01-01'),
+            $period->endDate,
         );
     }
 
@@ -332,10 +354,12 @@ final class PeriodFactoryTest extends PeriodTestCase
     {
         $period = Period::fromYear(2_014);
         $this->assertEquals(
-            CarbonImmutable::parse('2014-01-01'), $period->startDate
+            CarbonImmutable::parse('2014-01-01'),
+            $period->startDate,
         );
         $this->assertEquals(
-            CarbonImmutable::parse('2015-01-01'), $period->endDate
+            CarbonImmutable::parse('2015-01-01'),
+            $period->endDate,
         );
     }
 
@@ -344,10 +368,12 @@ final class PeriodFactoryTest extends PeriodTestCase
         $period = Period::fromIsoYear(2_014);
         $interval = DatePoint::fromDateString('2014-06-25')->isoYear();
         $this->assertEquals(
-            CarbonImmutable::parse('2013-12-30'), $period->startDate
+            CarbonImmutable::parse('2013-12-30'),
+            $period->startDate,
         );
         $this->assertEquals(
-            CarbonImmutable::parse('2014-12-29'), $period->endDate
+            CarbonImmutable::parse('2014-12-29'),
+            $period->endDate,
         );
         $this->assertTrue($period->equals($interval));
     }
@@ -358,10 +384,12 @@ final class PeriodFactoryTest extends PeriodTestCase
 
         $period = DatePoint::fromDate($extendedDate)->day();
         $this->assertEquals(
-            CarbonImmutable::parse('2008-07-01T00:00:00+08:00'), $period->startDate
+            CarbonImmutable::parse('2008-07-01T00:00:00+08:00'),
+            $period->startDate,
         );
         $this->assertEquals(
-            CarbonImmutable::parse('2008-07-02T00:00:00+08:00'), $period->endDate
+            CarbonImmutable::parse('2008-07-02T00:00:00+08:00'),
+            $period->endDate,
         );
         $this->assertSame('+08:00', $period->startDate->format('P'));
         $this->assertSame('+08:00', $period->endDate->format('P'));
@@ -379,10 +407,12 @@ final class PeriodFactoryTest extends PeriodTestCase
         $today = new class('2008-07-01T22:35:17.123456+08:00') extends DateTimeImmutable {};
         $period = DatePoint::fromDate($today)->hour();
         $this->assertEquals(
-            CarbonImmutable::parse('2008-07-01T22:00:00+08:00'), $period->startDate
+            CarbonImmutable::parse('2008-07-01T22:00:00+08:00'),
+            $period->startDate,
         );
         $this->assertEquals(
-            CarbonImmutable::parse('2008-07-01T23:00:00+08:00'), $period->endDate
+            CarbonImmutable::parse('2008-07-01T23:00:00+08:00'),
+            $period->endDate,
         );
         $this->assertSame('+08:00', $period->startDate->format('P'));
         $this->assertSame('+08:00', $period->endDate->format('P'));
@@ -402,10 +432,12 @@ final class PeriodFactoryTest extends PeriodTestCase
         $today = new class('2008-07-01T22:35:17.123456+08:00') extends DateTimeImmutable {};
         $period = DatePoint::fromDate($today)->month();
         $this->assertEquals(
-            CarbonImmutable::parse('2008-07-01T00:00:00+08:00'), $period->startDate
+            CarbonImmutable::parse('2008-07-01T00:00:00+08:00'),
+            $period->startDate,
         );
         $this->assertEquals(
-            CarbonImmutable::parse('2008-08-01T00:00:00+08:00'), $period->endDate
+            CarbonImmutable::parse('2008-08-01T00:00:00+08:00'),
+            $period->endDate,
         );
         $this->assertSame('+08:00', $period->startDate->format('P'));
         $this->assertSame('+08:00', $period->endDate->format('P'));
@@ -416,10 +448,12 @@ final class PeriodFactoryTest extends PeriodTestCase
         $today = new class('2008-07-01T22:35:17.123456+08:00') extends DateTimeImmutable {};
         $period = DatePoint::fromDate($today)->year();
         $this->assertEquals(
-            CarbonImmutable::parse('2008-01-01T00:00:00+08:00'), $period->startDate
+            CarbonImmutable::parse('2008-01-01T00:00:00+08:00'),
+            $period->startDate,
         );
         $this->assertEquals(
-            CarbonImmutable::parse('2009-01-01T00:00:00+08:00'), $period->endDate
+            CarbonImmutable::parse('2009-01-01T00:00:00+08:00'),
+            $period->endDate,
         );
         $this->assertSame('+08:00', $period->startDate->format('P'));
         $this->assertSame('+08:00', $period->endDate->format('P'));
@@ -432,7 +466,7 @@ final class PeriodFactoryTest extends PeriodTestCase
         $this->assertSame('+00:00', $period->endDate->format('P'));
     }
 
-    #[DataProvider('provideCreateNewInstanceFromNotationCases')]
+    #[DataProvider('provideCreate_new_instance_from_notationCases')]
     public function test_create_new_instance_from_notation(string $notation, string $format, string $expected): void
     {
         $this->assertSame($expected, Period::fromIso80000($format, $notation)->toIso80000($format));
@@ -441,7 +475,7 @@ final class PeriodFactoryTest extends PeriodTestCase
     /**
      * @return iterable<string, array{notation:string, format:string, expected:string}>
      */
-    public static function provideCreateNewInstanceFromNotationCases(): iterable
+    public static function provideCreate_new_instance_from_notationCases(): iterable
     {
         yield 'date string' => [
             'notation' => '[2021-01-03,2021-01-04)',
@@ -465,7 +499,7 @@ final class PeriodFactoryTest extends PeriodTestCase
         ];
     }
 
-    #[DataProvider('provideFailsToCreateNewInstanceFromIso80000Cases')]
+    #[DataProvider('provideFails_to_create_new_instance_from_iso80000Cases')]
     public function test_fails_to_create_new_instance_from_iso80000(string $notation, string $format): void
     {
         $this->expectException(InvalidInterval::class);
@@ -473,19 +507,26 @@ final class PeriodFactoryTest extends PeriodTestCase
         Period::fromIso80000($format, $notation);
     }
 
-    public static function provideFailsToCreateNewInstanceFromIso80000Cases(): \Iterator
+    public static function provideFails_to_create_new_instance_from_iso80000Cases(): iterable
     {
         yield 'empty string' => ['', 'Y-m-d'];
+
         yield 'missing separator' => ['[2021-01-02 2021-01-03]', 'Y-m-d'];
+
         yield 'missing bounds' => ['2021-01-02,2021-01-03', 'Y-m-d'];
+
         yield 'too many bounds' => ['[2021-01-02,2021-)01-03]', 'Y-m-d'];
+
         yield 'too many separator' => ['[2021-01-02,2021-,01-03]', 'Y-m-d'];
+
         yield 'missing dates' => ['[2021-01-02,  ]', 'Y-m-d'];
+
         yield 'wrong format' => ['[2021-01-02, 2021-01-03]', 'Ymd'];
+
         yield 'wrong bourbaki' => [']2021-01-02,2021-01-03)', 'Y-m-d'];
     }
 
-    #[DataProvider('provideCreateNewInstanceFromBourbakiCases')]
+    #[DataProvider('provideCreate_new_instance_from_bourbakiCases')]
     public function test_create_new_instance_from_bourbaki(string $notation, string $format, string $expected): void
     {
         $this->assertSame($expected, Period::fromBourbaki($format, $notation)->toBourbaki($format));
@@ -494,7 +535,7 @@ final class PeriodFactoryTest extends PeriodTestCase
     /**
      * @return iterable<string, array{notation:string, format:string, expected:string}>
      */
-    public static function provideCreateNewInstanceFromBourbakiCases(): iterable
+    public static function provideCreate_new_instance_from_bourbakiCases(): iterable
     {
         yield 'date string' => [
             'notation' => '[2021-01-03,2021-01-04[',
@@ -518,7 +559,7 @@ final class PeriodFactoryTest extends PeriodTestCase
         ];
     }
 
-    #[DataProvider('provideFailsToCreateNewInstanceFromBourbakiCases')]
+    #[DataProvider('provideFails_to_create_new_instance_from_bourbakiCases')]
     public function test_fails_to_create_new_instance_from_bourbaki(string $notation, string $format): void
     {
         $this->expectException(InvalidInterval::class);
@@ -526,19 +567,26 @@ final class PeriodFactoryTest extends PeriodTestCase
         Period::fromBourbaki($format, $notation);
     }
 
-    public static function provideFailsToCreateNewInstanceFromBourbakiCases(): \Iterator
+    public static function provideFails_to_create_new_instance_from_bourbakiCases(): iterable
     {
         yield 'empty string' => ['', 'Y-m-d'];
+
         yield 'missing separator' => ['[2021-01-02 2021-01-03]', 'Y-m-d'];
+
         yield 'missing bounds' => ['2021-01-02,2021-01-03', 'Y-m-d'];
+
         yield 'too many bounds' => ['[2021-01-02,2021-[01-03]', 'Y-m-d'];
+
         yield 'too many separator' => ['[2021-01-02,2021-,01-03]', 'Y-m-d'];
+
         yield 'missing dates' => ['[2021-01-02,  ]', 'Y-m-d'];
+
         yield 'wrong format' => ['[2021-01-02, 2021-01-03]', 'Ymd'];
+
         yield 'wrong bourbaki' => ['[2021-01-02,2021-01-03)', 'Y-m-d'];
     }
 
-    #[DataProvider('provideCreateNewInstanceFromIsoNotationCases')]
+    #[DataProvider('provideCreate_new_instance_from_iso_notationCases')]
     public function test_create_new_instance_from_iso_notation(
         string $inputFormat,
         string $notation,
@@ -553,9 +601,9 @@ final class PeriodFactoryTest extends PeriodTestCase
     }
 
     /**
-     * @return \Iterator<string, array{inputFormat: string, notation: string, bounds: Bounds, outputFormat: string, expected: string}>
+     * @return Iterator<string, array{inputFormat: string, notation: string, bounds: Bounds, outputFormat: string, expected: string}>
      */
-    public static function provideCreateNewInstanceFromIsoNotationCases(): \Iterator
+    public static function provideCreate_new_instance_from_iso_notationCases(): iterable
     {
         yield 'same input/output format' => [
             'inputFormat' => 'Y-m-d',
@@ -564,6 +612,7 @@ final class PeriodFactoryTest extends PeriodTestCase
             'outputFormat' => 'Y-m-d',
             'expected' => '2021-03-25/2021-03-26',
         ];
+
         yield 'different input/output format' => [
             'inputFormat' => 'Y-m-d',
             'notation' => '2021-03-25/2021-03-26',
@@ -571,6 +620,7 @@ final class PeriodFactoryTest extends PeriodTestCase
             'outputFormat' => 'Y-n-d',
             'expected' => '2021-3-25/2021-3-26',
         ];
+
         yield 'same input/output format extended' => [
             'inputFormat' => 'Y-m-d',
             'notation' => '2021-03-25/26',
@@ -578,6 +628,7 @@ final class PeriodFactoryTest extends PeriodTestCase
             'outputFormat' => 'Y-m-d',
             'expected' => '2021-03-25/2021-03-26',
         ];
+
         yield 'different input/output format extended' => [
             'inputFormat' => 'Y-m-d',
             'notation' => '2021-03-25/03-26',
@@ -585,6 +636,7 @@ final class PeriodFactoryTest extends PeriodTestCase
             'outputFormat' => 'Y-n-d',
             'expected' => '2021-3-25/2021-3-26',
         ];
+
         yield 'different input/output format with interval duration after start' => [
             'inputFormat' => 'Y-m-d',
             'notation' => '2021-03-25/P1D',
@@ -592,6 +644,7 @@ final class PeriodFactoryTest extends PeriodTestCase
             'outputFormat' => 'Y-n-d',
             'expected' => '2021-3-25/2021-3-26',
         ];
+
         yield 'different input/output format with interval duration before end' => [
             'inputFormat' => 'Y-m-d',
             'notation' => 'P1D/2021-03-26',
@@ -601,7 +654,7 @@ final class PeriodFactoryTest extends PeriodTestCase
         ];
     }
 
-    #[DataProvider('provideFailsToCreateNewInstanceFromIsoNotationCases')]
+    #[DataProvider('provideFails_to_create_new_instance_from_iso_notationCases')]
     public function test_fails_to_create_new_instance_from_iso_notation(string $notation, string $format, Bounds $bounds): void
     {
         $this->expectException(InvalidInterval::class);
@@ -609,15 +662,22 @@ final class PeriodFactoryTest extends PeriodTestCase
         Period::fromIso8601($format, $notation, $bounds);
     }
 
-    public static function provideFailsToCreateNewInstanceFromIsoNotationCases(): \Iterator
+    public static function provideFails_to_create_new_instance_from_iso_notationCases(): iterable
     {
         yield 'empty string' => ['', 'Y-m-d', Bounds::IncludeAll];
+
         yield 'missing separator' => ['2021-01-02 2021-01-03', 'Y-m-d', Bounds::IncludeAll];
+
         yield 'too many separator' => ['2021-01-02/2021-/01-03', 'Y-m-d', Bounds::IncludeAll];
+
         yield 'missing dates' => ['2021-01-02/', 'Y-m-d', Bounds::IncludeAll];
+
         yield 'wrong format' => ['2021-01-02/2021-01-03', 'Ymd', Bounds::IncludeAll];
+
         yield 'invalid extended format delimiters are different' => ['2021-01-02/01:03', 'Ymd', Bounds::IncludeAll];
+
         yield 'invalid extended format start date is shorter than end date' => ['01/2021-01-02', 'Ymd', Bounds::IncludeAll];
+
         yield 'invalid date with wrong period' => ['PMD/2021-01-02', 'Ymd', Bounds::IncludeAll];
     }
 }

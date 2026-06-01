@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -44,6 +42,7 @@ use function property_exists;
  *
  * @author  Ignace Nyamagana Butera <nyamsprod@gmail.com>
  * @since   1.0.0
+ * @psalm-immutable
  */
 final readonly class Period implements JsonSerializable
 {
@@ -224,7 +223,7 @@ final readonly class Period implements JsonSerializable
         $startDate = CarbonImmutable::now()->setDate($year, 1, 1)->setTime(0, 0);
 
         return new self($startDate, $startDate->add(
-            new DateInterval('P1Y')
+            new DateInterval('P1Y'),
         ), $bounds);
     }
 
@@ -241,7 +240,7 @@ final readonly class Period implements JsonSerializable
         $startDate = CarbonImmutable::now()->setDate($year, $month, 1)->setTime(0, 0);
 
         return new self($startDate, $startDate->add(
-            new DateInterval('P6M')
+            new DateInterval('P6M'),
         ), $bounds);
     }
 
@@ -251,7 +250,7 @@ final readonly class Period implements JsonSerializable
         $startDate = CarbonImmutable::now()->setDate($year, $month, 1)->setTime(0, 0);
 
         return new self($startDate, $startDate->add(
-            new DateInterval('P3M')
+            new DateInterval('P3M'),
         ), $bounds);
     }
 
@@ -260,7 +259,7 @@ final readonly class Period implements JsonSerializable
         $startDate = CarbonImmutable::now()->setDate($year, $month, 1)->setTime(0, 0);
 
         return new self($startDate, $startDate->add(
-            new DateInterval('P1M')
+            new DateInterval('P1M'),
         ), $bounds);
     }
 
@@ -269,7 +268,7 @@ final readonly class Period implements JsonSerializable
         $startDate = CarbonImmutable::now()->setISODate($year, $week)->setTime(0, 0);
 
         return new self($startDate, $startDate->add(
-            new DateInterval('P7D')
+            new DateInterval('P7D'),
         ), $bounds);
     }
 
@@ -278,7 +277,7 @@ final readonly class Period implements JsonSerializable
         $startDate = CarbonImmutable::now()->setDate($year, $month, $day)->setTime(0, 0);
 
         return new self($startDate, $startDate->add(
-            new DateInterval('P1D')
+            new DateInterval('P1D'),
         ), $bounds);
     }
 
@@ -287,7 +286,7 @@ final readonly class Period implements JsonSerializable
      * @throws InvalidInterval If no instance can be generated from a DatePeriod object
      */
     #[Deprecated(message: 'use League\\Perio\\Period::fromRange()', since: 'league/period:5.2.1')]
-    #[\Deprecated(message: 'since version 5.2.1')]
+    #[Deprecated(message: 'since version 5.2.1')]
     public static function fromDateRange(DatePeriod $dateRange, Bounds $bounds = Bounds::IncludeStartExcludeEnd): self
     {
         return new self(
@@ -621,6 +620,7 @@ final readonly class Period implements JsonSerializable
         if ($this->bordersOnStart($timeSlot)) {
             return true;
         }
+
         return $this->bordersOnEnd($timeSlot);
     }
 
@@ -638,6 +638,7 @@ final readonly class Period implements JsonSerializable
         if ($this->meetsOnEnd($timeSlot)) {
             return true;
         }
+
         return $this->meetsOnStart($timeSlot);
     }
 
@@ -882,7 +883,7 @@ final readonly class Period implements JsonSerializable
     public function subtract(self ...$periods): Sequence
     {
         return new Sequence($this)->subtract(
-            new Sequence(...$periods)
+            new Sequence(...$periods),
         );
     }
 
@@ -1121,13 +1122,13 @@ final readonly class Period implements JsonSerializable
         $endDate = DatePoint::fromDate($this->endDate)->second()->endDate;
 
         if ($this->endDate->add(
-            new DateInterval('PT1S')
+            new DateInterval('PT1S'),
         ) === $endDate) {
             $endDate = $this->endDate;
         }
 
         return $this->newInstance(
-            new self($startDate, $endDate, $this->bounds)
+            new self($startDate, $endDate, $this->bounds),
         );
     }
 
@@ -1148,13 +1149,13 @@ final readonly class Period implements JsonSerializable
         $endDate = DatePoint::fromDate($this->endDate)->minute()->endDate;
 
         if ($this->endDate->add(
-            new DateInterval('PT1M')
+            new DateInterval('PT1M'),
         ) === $endDate) {
             $endDate = $this->endDate;
         }
 
         return $this->newInstance(
-            new self($startDate, $endDate, $this->bounds)
+            new self($startDate, $endDate, $this->bounds),
         );
     }
 
@@ -1175,13 +1176,13 @@ final readonly class Period implements JsonSerializable
         $endDate = DatePoint::fromDate($this->endDate)->hour()->endDate;
 
         if ($this->endDate->add(
-            new DateInterval('PT1H')
+            new DateInterval('PT1H'),
         ) === $endDate) {
             $endDate = $this->endDate;
         }
 
         return $this->newInstance(
-            new self($startDate, $endDate, $this->bounds)
+            new self($startDate, $endDate, $this->bounds),
         );
     }
 
@@ -1202,13 +1203,13 @@ final readonly class Period implements JsonSerializable
         $endDate = DatePoint::fromDate($this->endDate)->day()->endDate;
 
         if ($this->endDate->add(
-            new DateInterval('P1D')
+            new DateInterval('P1D'),
         ) === $endDate) {
             $endDate = $this->endDate;
         }
 
         return $this->newInstance(
-            new self($startDate, $endDate, $this->bounds)
+            new self($startDate, $endDate, $this->bounds),
         );
     }
 
@@ -1229,13 +1230,13 @@ final readonly class Period implements JsonSerializable
         $endDate = DatePoint::fromDate($this->endDate)->isoWeek()->endDate;
 
         if ($this->endDate->add(
-            new DateInterval('P7D')
+            new DateInterval('P7D'),
         ) === $endDate) {
             $endDate = $this->endDate;
         }
 
         return $this->newInstance(
-            new self($startDate, $endDate, $this->bounds)
+            new self($startDate, $endDate, $this->bounds),
         );
     }
 
@@ -1256,13 +1257,13 @@ final readonly class Period implements JsonSerializable
         $endDate = DatePoint::fromDate($this->endDate)->month()->endDate;
 
         if ($this->endDate->add(
-            new DateInterval('P1M')
+            new DateInterval('P1M'),
         ) === $endDate) {
             $endDate = $this->endDate;
         }
 
         return $this->newInstance(
-            new self($startDate, $endDate, $this->bounds)
+            new self($startDate, $endDate, $this->bounds),
         );
     }
 
@@ -1283,13 +1284,13 @@ final readonly class Period implements JsonSerializable
         $endDate = DatePoint::fromDate($this->endDate)->quarter()->endDate;
 
         if ($this->endDate->add(
-            new DateInterval('P3M')
+            new DateInterval('P3M'),
         ) === $endDate) {
             $endDate = $this->endDate;
         }
 
         return $this->newInstance(
-            new self($startDate, $endDate, $this->bounds)
+            new self($startDate, $endDate, $this->bounds),
         );
     }
 
@@ -1310,13 +1311,13 @@ final readonly class Period implements JsonSerializable
         $endDate = DatePoint::fromDate($this->endDate)->semester()->endDate;
 
         if ($this->endDate->add(
-            new DateInterval('P6M')
+            new DateInterval('P6M'),
         ) === $endDate) {
             $endDate = $this->endDate;
         }
 
         return $this->newInstance(
-            new self($startDate, $endDate, $this->bounds)
+            new self($startDate, $endDate, $this->bounds),
         );
     }
 
@@ -1337,13 +1338,13 @@ final readonly class Period implements JsonSerializable
         $endDate = DatePoint::fromDate($this->endDate)->year()->endDate;
 
         if ($this->endDate->add(
-            new DateInterval('P1Y')
+            new DateInterval('P1Y'),
         ) === $endDate) {
             $endDate = $this->endDate;
         }
 
         return $this->newInstance(
-            new self($startDate, $endDate, $this->bounds)
+            new self($startDate, $endDate, $this->bounds),
         );
     }
 
@@ -1368,7 +1369,7 @@ final readonly class Period implements JsonSerializable
         }
 
         return $this->newInstance(
-            new self($startDate, $endDate, $this->bounds)
+            new self($startDate, $endDate, $this->bounds),
         );
     }
 
@@ -1384,7 +1385,7 @@ final readonly class Period implements JsonSerializable
      * @return DatePeriod<DateTimeImmutable>
      */
     #[Deprecated(message: 'use League\\Perio\\Period::rangeForward()', since: 'league/period:5.2.0')]
-    #[\Deprecated(message: 'since version 5.2.0')]
+    #[Deprecated(message: 'since version 5.2.0')]
     public function dateRangeForward(self|Duration|DateInterval|string $timeDelta, InitialDatePresence $startDatePresence = InitialDatePresence::Included): DatePeriod
     {
         return new DatePeriod(
@@ -1403,7 +1404,7 @@ final readonly class Period implements JsonSerializable
      * @return Generator<int, DateTimeImmutable>
      */
     #[Deprecated(message: 'use League\\Perio\\Period::rangeBackwards()', since: 'league/period:5.2.0')]
-    #[\Deprecated(message: 'since version 5.2.0')]
+    #[Deprecated(message: 'since version 5.2.0')]
     public function dateRangeBackwards(self|Duration|DateInterval|string $timeDelta, InitialDatePresence $endDatePresence = InitialDatePresence::Included): Generator
     {
         $timeDelta = self::filterDuration($timeDelta);

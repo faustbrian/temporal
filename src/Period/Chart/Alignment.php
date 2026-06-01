@@ -15,6 +15,9 @@ use const STR_PAD_BOTH;
 use const STR_PAD_LEFT;
 use const STR_PAD_RIGHT;
 
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 enum Alignment
 {
     case Center;

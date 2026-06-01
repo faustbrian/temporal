@@ -16,7 +16,12 @@ use function mb_rtrim;
 use function mb_str_pad;
 use function mb_trim;
 use function preg_match;
+use function throw_if;
+use function throw_unless;
 
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 enum DurationNotation
 {
     case Iso8601;
@@ -206,9 +211,11 @@ enum DurationNotation
         if (!($minutes >= 0 && $minutes < 60)) {
             throw InvalidDuration::dueToMalformedMinute($minutes);
         }
+
         if (!($seconds >= 0 && $seconds < 60)) {
             throw InvalidDuration::dueToMalformedSecond($seconds);
         }
+
         if (!($microseconds >= 0 && $microseconds < 1_000_000)) {
             throw InvalidDuration::dueToMalformedMicrosecond($microseconds);
         }

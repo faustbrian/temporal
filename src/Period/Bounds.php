@@ -11,6 +11,7 @@ namespace Cline\Temporal\Period;
 
 use function mb_trim;
 use function preg_match;
+use function sprintf;
 
 /**
  * An Enum to handle interval bounds.

@@ -11,6 +11,9 @@ namespace Cline\Temporal\Time;
 
 use Throwable;
 
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 final class InvalidInterval extends TimeException
 {
     public static function dueToMalformedNotation(string $notation, IntervalNotation $source, ?Throwable $previous = null): self

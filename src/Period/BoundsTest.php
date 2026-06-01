@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -22,6 +20,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 final class BoundsTest extends TestCase
@@ -98,7 +97,7 @@ final class BoundsTest extends TestCase
         $this->assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::IncludeStartExcludeEnd], Bounds::parseBourbaki('[3,5['));
     }
 
-    #[DataProvider('provideFromNotationFailsCases')]
+    #[DataProvider('provideFrom_notation_failsCases')]
     public function test_from_notation_fails(string $notation): void
     {
         $this->expectException(InvalidInterval::class);
@@ -109,7 +108,7 @@ final class BoundsTest extends TestCase
     /**
      * @return iterable<string, array{notation:string}>
      */
-    public static function provideFromNotationFailsCases(): iterable
+    public static function provideFrom_notation_failsCases(): iterable
     {
         yield 'invalid notation' => ['notation' => 'foobar'];
 

@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -18,12 +16,12 @@
 
 namespace Cline\Temporal\Period\Chart;
 
-use Illuminate\Support\Facades\Date;
-use Carbon\CarbonImmutable;
 use ArrayIterator;
 use ArrayObject;
+use Carbon\CarbonImmutable;
 use Cline\Temporal\Period\Period;
 use Cline\Temporal\Period\Sequence;
+use Illuminate\Support\Facades\Date;
 use Iterator;
 use IteratorAggregate;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -34,6 +32,7 @@ use function iterator_to_array;
 use function json_encode;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 final class DatasetTest extends TestCase
@@ -52,7 +51,8 @@ final class DatasetTest extends TestCase
         $this->assertTrue($periodB->equals($arr[1][1][0]));
 
         $emptyDataset = Dataset::fromItems(
-            new Sequence(), $labelGenerator
+            new Sequence(),
+            $labelGenerator,
         );
         $this->assertCount(0, $emptyDataset);
         $this->assertTrue($emptyDataset->isEmpty());
@@ -61,7 +61,7 @@ final class DatasetTest extends TestCase
     /**
      * @param iterable<int, Period|Sequence> $input
      */
-    #[DataProvider('provideFromIterableConstructorCases')]
+    #[DataProvider('provideFrom_iterable_constructorCases')]
     public function test_from_iterable_constructor(iterable $input, int $expectedCount, bool $isEmpty, bool $boundaryIsNull): void
     {
         $dataset = Dataset::fromIterable($input);
@@ -71,9 +71,9 @@ final class DatasetTest extends TestCase
     }
 
     /**
-     * @return \Iterator<string, array{input: iterable<int, (Period | Sequence)>, expectedCount: int, isEmpty: bool, boundaryIsNull: bool}>
+     * @return Iterator<string, array{input: iterable<int, (Period|Sequence)>, expectedCount: int, isEmpty: bool, boundaryIsNull: bool}>
      */
-    public static function provideFromIterableConstructorCases(): \Iterator
+    public static function provideFrom_iterable_constructorCases(): iterable
     {
         yield 'empty structure' => [
             'input' => [],
@@ -81,18 +81,21 @@ final class DatasetTest extends TestCase
             'isEmpty' => true,
             'boundaryIsNull' => true,
         ];
+
         yield 'single array' => [
             'input' => [Period::fromDay(2_019, 3, 15)],
             'expectedCount' => 1,
             'isEmpty' => false,
             'boundaryIsNull' => false,
         ];
+
         yield 'using an iterator' => [
             'input' => new ArrayObject([Period::fromDay(2_019, 3, 15)]),
             'expectedCount' => 1,
             'isEmpty' => false,
             'boundaryIsNull' => false,
         ];
+
         yield 'using a direct sequence' => [
             'input' => new Sequence(
                 Period::fromDay(2_018, 9, 10),
@@ -102,6 +105,7 @@ final class DatasetTest extends TestCase
             'isEmpty' => false,
             'boundaryIsNull' => false,
         ];
+
         yield 'using a wrapped sequence' => [
             'input' => [new Sequence(
                 Period::fromDay(2_018, 9, 10),
@@ -117,10 +121,12 @@ final class DatasetTest extends TestCase
     {
         $dataset = new Dataset([
             ['A', new Sequence(Period::fromDate(
-                Date::parse('2018-01-01'), Date::parse('2018-01-15')
+                Date::parse('2018-01-01'),
+                Date::parse('2018-01-15'),
             ))],
             ['B', Period::fromDate(
-                Date::parse('2018-01-15'), Date::parse('2018-02-01')
+                Date::parse('2018-01-15'),
+                Date::parse('2018-02-01'),
             )],
         ]);
 
@@ -131,10 +137,12 @@ final class DatasetTest extends TestCase
     {
         $dataset = new Dataset([
             ['A', new Sequence(Period::fromDate(
-                CarbonImmutable::parse('2018-01-01'), CarbonImmutable::parse('2018-01-15')
+                CarbonImmutable::parse('2018-01-01'),
+                CarbonImmutable::parse('2018-01-15'),
             ))],
             ['B', new Sequence(Period::fromDate(
-                CarbonImmutable::parse('2018-01-15'), CarbonImmutable::parse('2018-02-01')
+                CarbonImmutable::parse('2018-01-15'),
+                CarbonImmutable::parse('2018-02-01'),
             ))],
         ]);
         $this->assertSame(['A', 'B'], $dataset->labels());
@@ -150,18 +158,22 @@ final class DatasetTest extends TestCase
     {
         $dataset = new Dataset([
             ['A', new Sequence(Period::fromDate(
-                CarbonImmutable::parse('2018-01-01'), CarbonImmutable::parse('2018-01-15')
+                CarbonImmutable::parse('2018-01-01'),
+                CarbonImmutable::parse('2018-01-15'),
             ))],
             ['B', new Sequence(Period::fromDate(
-                CarbonImmutable::parse('2018-01-15'), CarbonImmutable::parse('2018-02-01')
+                CarbonImmutable::parse('2018-01-15'),
+                CarbonImmutable::parse('2018-02-01'),
             ))],
         ]);
 
         $this->assertEquals($dataset, Dataset::fromItems($dataset->items(), new LatinLetter('A')));
         $this->assertEquals(
-            new Dataset(), Dataset::fromItems(
-                new Dataset()->items(), new DecimalNumber(42)
-            )
+            new Dataset(),
+            Dataset::fromItems(
+                new Dataset()->items(),
+                new DecimalNumber(42),
+            ),
         );
     }
 
@@ -176,14 +188,16 @@ final class DatasetTest extends TestCase
     public function test_json_encoding(): void
     {
         $this->assertSame('[]', json_encode(
-            new Dataset()
+            new Dataset(),
         ));
         $dataset = new Dataset([
             ['A', new Sequence(Period::fromDate(
-                Date::parse('2018-01-01'), Date::parse('2018-01-15')
+                Date::parse('2018-01-01'),
+                Date::parse('2018-01-15'),
             ))],
             ['B', new Sequence(Period::fromDate(
-                Date::parse('2018-01-15'), Date::parse('2018-02-01')
+                Date::parse('2018-01-15'),
+                Date::parse('2018-02-01'),
             ))],
         ]);
 
@@ -205,6 +219,8 @@ final class DatasetTest extends TestCase
 
         $this->expectException(TypeError::class);
 
-        Dataset::fromItems(new $items(), new LatinLetter('A'));
+        Dataset::fromItems(
+            new $items(), new LatinLetter('A')
+        );
     }
 }

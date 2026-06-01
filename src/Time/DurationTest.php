@@ -9,11 +9,13 @@
 
 namespace Cline\Temporal\Time;
 
-use Illuminate\Support\Facades\Date;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterval;
 use DateInterval;
 use DateTimeImmutable;
 use DateTimeZone;
+use Illuminate\Support\Facades\Date;
+use Iterator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -30,6 +32,7 @@ use function str_starts_with;
 use function unserialize;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 #[CoversClass(InvalidDuration::class)]
@@ -97,7 +100,7 @@ final class DurationTest extends TestCase
     public function test_microseconds_to_date_interval_with_date_reference(): void
     {
         $interval = Duration::of(hours: 27, minutes: 12, seconds: 5, microseconds: 123_456)->toDateInterval(
-            Date::now()
+            Date::now(),
         );
 
         $this->assertSame(1, $interval->d);
@@ -123,7 +126,7 @@ final class DurationTest extends TestCase
         $duration = Duration::of(weeks: 5, minutes: 32, seconds: 23, microseconds: 456)->negated();
         $pureInterval = $duration->toDateInterval();
         $relativeInterval = $duration->toDateInterval(
-            new DateTimeImmutable(datetime: '2024-01-27', timezone: new DateTimeZone('UTC'))
+            new DateTimeImmutable(datetime: '2024-01-27', timezone: new DateTimeZone('UTC')),
         );
 
         $this->assertFalse($pureInterval->days);
@@ -723,25 +726,34 @@ final class DurationTest extends TestCase
     }
 
     /**
-     * @return \Iterator<non-empty-string, array{int, Unit, int}>
+     * @return Iterator<non-empty-string, array{int, Unit, int}>
      */
-    public static function provideRound_toCases(): \Iterator
+    public static function provideRound_toCases(): iterable
     {
         // [input microseconds, precision, expected microseconds]
         // seconds
         yield 'round down seconds' => [1_499_999, Unit::Second, 1_000_000];
+
         yield 'round up seconds' => [1_500_000, Unit::Second, 2_000_000];
+
         yield 'exact seconds' => [2_000_000, Unit::Second, 2_000_000];
+
         // minutes
         yield 'round down minutes' => [89_000_000, Unit::Minute, 60_000_000];
+
         yield 'round up minutes' => [91_000_000, Unit::Minute, 120_000_000];
+
         // hours
         yield 'round hours' => [3_500_000_000, Unit::Hour, 3_600_000_000];
+
         // days
         yield 'round days' => [86_000_000_000, Unit::Day, 86_400_000_000];
+
         // negative values
         yield 'negative round up' => [-1_500_000, Unit::Second, -2_000_000];
+
         yield 'negative round down' => [-1_499_999, Unit::Second, -1_000_000];
+
         // micro boundary (identity case)
         yield 'micro unchanged' => [999, Unit::Microsecond, 999];
     }
@@ -751,7 +763,7 @@ final class DurationTest extends TestCase
      *
      * @throws InvalidTime
      */
-    #[DataProvider('provideMinOfCases')]
+    #[DataProvider('provideMin_ofCases')]
     public function test_min_of(array $durations, Duration $expected): void
     {
         $this->assertTrue(Duration::minOf(...$durations)->equals($expected));
@@ -759,9 +771,9 @@ final class DurationTest extends TestCase
 
     /**
      * @throws InvalidDuration
-     * @return \Iterator<non-empty-string, array{list<Duration>, Duration}>
+     * @return Iterator<non-empty-string, array{list<Duration>, Duration}>
      */
-    public static function provideMinOfCases(): \Iterator
+    public static function provideMin_ofCases(): iterable
     {
         yield 'simple case' => [
             [
@@ -771,6 +783,7 @@ final class DurationTest extends TestCase
             ],
             Duration::of(seconds: 5),
         ];
+
         yield 'mixed units' => [
             [
                 Duration::of(minutes: 1),
@@ -786,7 +799,7 @@ final class DurationTest extends TestCase
      *
      * @throws InvalidTime
      */
-    #[DataProvider('provideMaxOfCases')]
+    #[DataProvider('provideMax_ofCases')]
     public function test_max_of(array $durations, Duration $expected): void
     {
         $this->assertTrue(Duration::maxOf(...$durations)->equals($expected));
@@ -794,9 +807,9 @@ final class DurationTest extends TestCase
 
     /**
      * @throws InvalidDuration
-     * @return \Iterator<non-empty-string, array{list<Duration>, Duration}>
+     * @return Iterator<non-empty-string, array{list<Duration>, Duration}>
      */
-    public static function provideMaxOfCases(): \Iterator
+    public static function provideMax_ofCases(): iterable
     {
         yield 'simple case' => [
             [
@@ -816,9 +829,9 @@ final class DurationTest extends TestCase
 
     /**
      * @throws InvalidDuration
-     * @return \Iterator<non-empty-string, list<Duration>>
+     * @return Iterator<non-empty-string, list<Duration>>
      */
-    public static function provideClampCases(): \Iterator
+    public static function provideClampCases(): iterable
     {
         yield 'below range' => [
             Duration::of(seconds: 2),
@@ -826,18 +839,21 @@ final class DurationTest extends TestCase
             Duration::of(seconds: 10),
             Duration::of(seconds: 5),
         ];
+
         yield 'above range' => [
             Duration::of(seconds: 20),
             Duration::of(seconds: 5),
             Duration::of(seconds: 10),
             Duration::of(seconds: 10),
         ];
+
         yield 'inside range' => [
             Duration::of(seconds: 7),
             Duration::of(seconds: 5),
             Duration::of(seconds: 10),
             Duration::of(seconds: 7),
         ];
+
         yield 'edge boundaries' => [
             Duration::of(seconds: 5),
             Duration::of(seconds: 5),
@@ -846,36 +862,39 @@ final class DurationTest extends TestCase
         ];
     }
 
-    #[DataProvider('provideFromDateIntervalConvertsCorrectlyCases')]
+    #[DataProvider('provideFrom_date_interval_converts_correctlyCases')]
     public function test_from_date_interval_converts_correctly(DateInterval $interval, int $expectedMicroseconds): void
     {
         $this->assertSame($expectedMicroseconds, Duration::fromDateInterval($interval)->total(Unit::Microsecond));
     }
 
     /**
-     * @return \Iterator<non-empty-string, array{interval: \DateInterval, expectedMicroseconds: int}>
+     * @return Iterator<non-empty-string, array{interval: DateInterval, expectedMicroseconds: int}>
      */
-    public static function provideFromDateIntervalConvertsCorrectlyCases(): \Iterator
+    public static function provideFrom_date_interval_converts_correctlyCases(): iterable
     {
         yield 'simple positive' => [
             'interval' => new DateInterval('P1DT2H3M4S'),
-            'expectedMicroseconds' => ((86_400) + (2 * 3_600) + (3 * 60) + 4) * 1_000_000,
+            'expectedMicroseconds' => (86_400 + (2 * 3_600) + (3 * 60) + 4) * 1_000_000,
         ];
+
         yield 'negative interval' => [
             'interval' => self::diff('-PT1H30M'),
-            'expectedMicroseconds' => -((3_600) + (30 * 60)) * 1_000_000,
+            'expectedMicroseconds' => -(3_600 + (30 * 60)) * 1_000_000,
         ];
+
         yield 'with microseconds' => [
             'interval' => self::fromSpec('PT0S', 500_000),
             'expectedMicroseconds' => 500_000,
         ];
+
         yield 'days from diff (days populated)' => [
             'interval' => self::diff('P2D'),
             'expectedMicroseconds' => -2 * 86_400 * 1_000_000,
         ];
     }
 
-    #[DataProvider('provideFromDateIntervalThrowsForInvalidIntervalsCases')]
+    #[DataProvider('provideFrom_date_interval_throws_for_invalid_intervalsCases')]
     public function test_from_date_interval_throws_for_invalid_intervals(DateInterval $interval): void
     {
         $this->expectException(InvalidDuration::class);
@@ -884,16 +903,18 @@ final class DurationTest extends TestCase
     }
 
     /**
-     * @return \Iterator<non-empty-string, array{\DateInterval}>
+     * @return Iterator<non-empty-string, array{DateInterval}>
      */
-    public static function provideFromDateIntervalThrowsForInvalidIntervalsCases(): \Iterator
+    public static function provideFrom_date_interval_throws_for_invalid_intervalsCases(): iterable
     {
         yield 'has years' => [
             new DateInterval('P1Y'),
         ];
+
         yield 'has months' => [
             new DateInterval('P2M'),
         ];
+
         yield 'years and days mixed' => [
             new DateInterval('P1Y2DT3H'),
         ];
@@ -927,15 +948,20 @@ final class DurationTest extends TestCase
     }
 
     /**
-     * @return \Iterator<non-empty-string, array{0: non-empty-string, 1: int, 2?: int}>
+     * @return Iterator<non-empty-string, array{0: non-empty-string, 1: int, 2?: int}>
      */
-    public static function provideClock_factoryCases(): \Iterator
+    public static function provideClock_factoryCases(): iterable
     {
         yield 'zero' => ['00:00:00', 0];
+
         yield 'simple' => ['01:02:03', 3_723];
+
         yield 'midnight edge' => ['00:00:01', 1];
+
         yield 'large hours' => ['100:00:00', 360_000];
+
         yield 'microseconds' => ['01:02:03.500000', 3_723, 500];
+
         yield 'negative' => ['-01:00:00', -3_600];
     }
 
@@ -947,18 +973,26 @@ final class DurationTest extends TestCase
     }
 
     /**
-     * @return \Iterator<non-empty-string, array{string}>
+     * @return Iterator<non-empty-string, array{string}>
      */
-    public static function provideInvalid_clock_factoryCases(): \Iterator
+    public static function provideInvalid_clock_factoryCases(): iterable
     {
         yield 'mm:ss format' => ['12:34'];
+
         yield 'too many parts' => ['01:02:03:04'];
+
         yield 'missing seconds' => ['01:02'];
+
         yield 'invalid seconds' => ['01:02:60'];
+
         yield 'invalid minutes' => ['01:60:59'];
+
         yield 'invalid microseconds' => ['01:59:59.10000000'];
+
         yield 'letters' => ['aa:bb:cc'];
+
         yield 'empty' => [''];
+
         yield 'wrong separator' => ['01-02-03'];
     }
 
@@ -969,18 +1003,26 @@ final class DurationTest extends TestCase
     }
 
     /**
-     * @return \Iterator<non-empty-string, array{0: non-empty-string, 1: int, 2?: int}>
+     * @return Iterator<non-empty-string, array{0: non-empty-string, 1: int, 2?: int}>
      */
-    public static function provideCompact_factoryCases(): \Iterator
+    public static function provideCompact_factoryCases(): iterable
     {
         yield 'seconds only' => ['5s', 5];
+
         yield 'minutes seconds' => ['1m 30s', 90];
+
         yield 'hours' => ['2h', 7_200];
+
         yield 'full' => ['1w 2d 3h 4m 5s', 788_645];
+
         yield 'whitespace flexible' => ['1w   3h    5s', 604_800 + 3 * 3_600 + 5];
+
         yield 'microseconds' => ['1s 250µs',  1,  250];
+
         yield 'microseconds with u instead of micron' => ['1s 250us', 1,  250];
+
         yield 'negative' => ['-1h 30m', -5_400];
+
         yield 'zero' => ['0s', 0];
     }
 
@@ -992,27 +1034,35 @@ final class DurationTest extends TestCase
     }
 
     /**
-     * @return \Iterator<non-empty-string, array{string}>
+     * @return Iterator<non-empty-string, array{string}>
      */
-    public static function provideInvalid_compact_factoryCases(): \Iterator
+    public static function provideInvalid_compact_factoryCases(): iterable
     {
         yield 'empty string' => [''];
+
         yield 'wrong order' => ['3h 1w'];
+
         yield 'duplicate unit' => ['1w 2w'];
+
         yield 'clock format forbidden' => ['12:34:56'];
+
         yield 'partial clock forbidden' => ['12:34'];
+
         yield 'unknown unit' => ['10x'];
+
         yield 'letters only' => ['abc'];
+
         yield 'missing number' => ['h 10m'];
+
         yield 'bad spacing unit' => ['10 ms'];
     }
 
-    private static function diff(string $spec): DateInterval
+    private static function diff(string $spec): CarbonInterval
     {
         $now = CarbonImmutable::now();
 
         return $now->add(
-            new DateInterval(mb_ltrim($spec, '-'))
+            new DateInterval(mb_ltrim($spec, '-')),
         )->diff($now);
     }
 

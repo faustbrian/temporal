@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -27,6 +25,7 @@ use JsonSerializable;
 
 use const ARRAY_FILTER_USE_BOTH;
 
+use function array_any;
 use function array_filter;
 use function array_splice;
 use function array_unshift;
@@ -186,7 +185,7 @@ final class Sequence implements ArrayAccess, Countable, IteratorAggregate, JsonS
      */
     public function some(Closure $predicate): bool
     {
-        return array_any($this->periods, fn($interval, $offset): bool => true === $predicate($interval, $offset));
+        return array_any($this->periods, fn ($interval, $offset): bool => true === $predicate($interval, $offset));
     }
 
     /**

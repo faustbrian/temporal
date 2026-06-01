@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -29,12 +27,14 @@ use function mb_str_pad;
 use function mb_strlen;
 use function mb_substr;
 use function preg_match;
+use function throw_if;
 
 /**
  * League Period Duration.
  *
  * @author  Ignace Nyamagana Butera <nyamsprod@gmail.com>
  * @since   4.2.0
+ * @psalm-immutable
  */
 final readonly class Duration
 {
@@ -100,7 +100,7 @@ final readonly class Duration
         }
 
         return new self(
-            new DateInterval($duration)
+            new DateInterval($duration),
         );
     }
 

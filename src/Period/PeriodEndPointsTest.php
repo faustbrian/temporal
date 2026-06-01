@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -18,11 +16,12 @@
 
 namespace Cline\Temporal\Period;
 
-use Illuminate\Support\Facades\Date;
 use Carbon\CarbonImmutable;
 use DateInterval;
+use Illuminate\Support\Facades\Date;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 final class PeriodEndPointsTest extends PeriodTestCase
@@ -31,7 +30,8 @@ final class PeriodEndPointsTest extends PeriodTestCase
     {
         $expected = Date::parse('2012-03-02');
         $interval = Period::fromDate(
-            Date::parse('2014-01-13'), Date::parse('2014-01-20')
+            Date::parse('2014-01-13'),
+            Date::parse('2014-01-20'),
         );
         $newInterval = $interval->startingOn($expected);
 
@@ -44,10 +44,11 @@ final class PeriodEndPointsTest extends PeriodTestCase
     {
         $this->expectException(InvalidInterval::class);
         $interval = Period::fromDate(
-            Date::parse('2014-01-13'), Date::parse('2014-01-20')
+            Date::parse('2014-01-13'),
+            Date::parse('2014-01-20'),
         );
         $interval->startingOn(
-            Date::parse('2015-03-02')
+            Date::parse('2015-03-02'),
         );
     }
 
@@ -55,7 +56,8 @@ final class PeriodEndPointsTest extends PeriodTestCase
     {
         $expected = Date::parse('2015-03-02');
         $interval = Period::fromDate(
-            Date::parse('2014-01-13'), Date::parse('2014-01-20')
+            Date::parse('2014-01-13'),
+            Date::parse('2014-01-20'),
         );
         $newInterval = $interval->endingOn($expected);
         $this->assertSame($newInterval->endDate->getTimestamp(), $expected->getTimestamp());
@@ -67,35 +69,40 @@ final class PeriodEndPointsTest extends PeriodTestCase
     {
         $this->expectException(InvalidInterval::class);
         $interval = Period::fromDate(
-            Date::parse('2014-01-13'), Date::parse('2014-01-20')
+            Date::parse('2014-01-13'),
+            Date::parse('2014-01-20'),
         );
         $interval->endingOn(
-            Date::parse('2012-03-02')
+            Date::parse('2012-03-02'),
         );
     }
 
     public function test_expand(): void
     {
         $interval = Period::fromDate(
-            Date::parse('2012-02-02'), Date::parse('2012-02-03')
+            Date::parse('2012-02-02'),
+            Date::parse('2012-02-03'),
         )->expand(
-            new DateInterval('P1D')
+            new DateInterval('P1D'),
         );
         $this->assertEquals(
-            CarbonImmutable::parse('2012-02-01'), $interval->startDate
+            CarbonImmutable::parse('2012-02-01'),
+            $interval->startDate,
         );
         $this->assertEquals(
-            CarbonImmutable::parse('2012-02-04'), $interval->endDate
+            CarbonImmutable::parse('2012-02-04'),
+            $interval->endDate,
         );
     }
 
     public function test_expand_retuns_same_instance(): void
     {
         $interval = Period::fromDate(
-            Date::parse('2012-02-02'), Date::parse('2012-02-03')
+            Date::parse('2012-02-02'),
+            Date::parse('2012-02-03'),
         );
         $this->assertSame($interval->expand(
-            new DateInterval('PT0S')
+            new DateInterval('PT0S'),
         ), $interval);
     }
 
@@ -105,13 +112,16 @@ final class PeriodEndPointsTest extends PeriodTestCase
         $dateInterval->invert = 1;
 
         $interval = Period::fromDate(
-            Date::parse('2012-02-02'), Date::parse('2012-02-03')
+            Date::parse('2012-02-02'),
+            Date::parse('2012-02-03'),
         )->expand($dateInterval);
         $this->assertEquals(
-            CarbonImmutable::parse('2012-02-02 12:00:00'), $interval->startDate
+            CarbonImmutable::parse('2012-02-02 12:00:00'),
+            $interval->startDate,
         );
         $this->assertEquals(
-            CarbonImmutable::parse('2012-02-02 12:00:00'), $interval->endDate
+            CarbonImmutable::parse('2012-02-02 12:00:00'),
+            $interval->endDate,
         );
     }
 
@@ -121,32 +131,36 @@ final class PeriodEndPointsTest extends PeriodTestCase
         $dateInterval = new DateInterval('P1D');
         $dateInterval->invert = 1;
         Period::fromDate(
-            Date::parse('2012-02-02'), Date::parse('2012-02-03')
+            Date::parse('2012-02-02'),
+            Date::parse('2012-02-03'),
         )->expand($dateInterval);
     }
 
     public function test_move(): void
     {
         $interval = Period::fromDate(
-            Date::parse('2016-01-01 15:32:12'), Date::parse('2016-01-15 12:00:01')
+            Date::parse('2016-01-01 15:32:12'),
+            Date::parse('2016-01-15 12:00:01'),
         );
         $moved = $interval->move(
-            new DateInterval('P1D')
+            new DateInterval('P1D'),
         );
         $this->assertFalse($interval->equals($moved));
         $this->assertTrue($interval->move(
-            new DateInterval('PT0S')
+            new DateInterval('PT0S'),
         )->equals($interval));
     }
 
     public function test_move_support_string_intervals(): void
     {
         $interval = Period::fromDate(
-            Date::parse('2016-01-01 15:32:12'), Date::parse('2016-01-15 12:00:01')
+            Date::parse('2016-01-01 15:32:12'),
+            Date::parse('2016-01-15 12:00:01'),
         );
         $advanced = $interval->move(DateInterval::createFromDateString('1 DAY'));
         $alt = Period::fromDate(
-            Date::parse('2016-01-02 15:32:12'), Date::parse('2016-01-16 12:00:01')
+            Date::parse('2016-01-02 15:32:12'),
+            Date::parse('2016-01-16 12:00:01'),
         );
         $this->assertTrue($alt->equals($advanced));
     }
@@ -154,10 +168,12 @@ final class PeriodEndPointsTest extends PeriodTestCase
     public function test_move_with_inverted_interval(): void
     {
         $orig = Period::fromDate(
-            Date::parse('2016-01-01 15:32:12'), Date::parse('2016-01-15 12:00:01')
+            Date::parse('2016-01-01 15:32:12'),
+            Date::parse('2016-01-15 12:00:01'),
         );
         $alt = Period::fromDate(
-            Date::parse('2016-01-02 15:32:12'), Date::parse('2016-01-16 12:00:01')
+            Date::parse('2016-01-02 15:32:12'),
+            Date::parse('2016-01-16 12:00:01'),
         );
         $duration = new DateInterval('P1D');
         $duration->invert = 1;
@@ -167,10 +183,12 @@ final class PeriodEndPointsTest extends PeriodTestCase
     public function test_move_with_inverted_string_interval(): void
     {
         $orig = Period::fromDate(
-            Date::parse('2016-01-01 15:32:12'), Date::parse('2016-01-15 12:00:01')
+            Date::parse('2016-01-01 15:32:12'),
+            Date::parse('2016-01-15 12:00:01'),
         );
         $alt = Period::fromDate(
-            Date::parse('2016-01-02 15:32:12'), Date::parse('2016-01-16 12:00:01')
+            Date::parse('2016-01-02 15:32:12'),
+            Date::parse('2016-01-16 12:00:01'),
         );
         $this->assertTrue($orig->equals($alt->move(DateInterval::createFromDateString('-1 DAY'))));
     }
@@ -178,10 +196,12 @@ final class PeriodEndPointsTest extends PeriodTestCase
     public function test_with_duration_after_start(): void
     {
         $expected = Period::fromDate(
-            Date::parse('2014-03-01'), CarbonImmutable::parse('2014-04-01')
+            Date::parse('2014-03-01'),
+            CarbonImmutable::parse('2014-04-01'),
         );
         $period = Period::fromDate(
-            CarbonImmutable::parse('2014-03-01'), Date::parse('2014-03-15')
+            CarbonImmutable::parse('2014-03-01'),
+            Date::parse('2014-03-15'),
         );
         $this->assertEquals($expected, $period->withDurationAfterStart(DateInterval::createFromDateString('1 MONTH')));
     }
@@ -190,7 +210,8 @@ final class PeriodEndPointsTest extends PeriodTestCase
     {
         $this->expectException(InvalidInterval::class);
         $period = Period::fromDate(
-            Date::parse('2014-03-01'), Date::parse('2014-03-15')
+            Date::parse('2014-03-01'),
+            Date::parse('2014-03-15'),
         );
         $interval = new DateInterval('P1D');
         $interval->invert = 1;
@@ -201,10 +222,12 @@ final class PeriodEndPointsTest extends PeriodTestCase
     public function test_with_duration_before_end(): void
     {
         $expected = Period::fromDate(
-            CarbonImmutable::parse('2014-02-01'), Date::parse('2014-03-01')
+            CarbonImmutable::parse('2014-02-01'),
+            Date::parse('2014-03-01'),
         );
         $period = Period::fromDate(
-            CarbonImmutable::parse('2014-02-15'), Date::parse('2014-03-01')
+            CarbonImmutable::parse('2014-02-15'),
+            Date::parse('2014-03-01'),
         );
         $this->assertEquals($expected, $period->withDurationBeforeEnd(DateInterval::createFromDateString('1 MONTH')));
     }
@@ -213,7 +236,8 @@ final class PeriodEndPointsTest extends PeriodTestCase
     {
         $this->expectException(InvalidInterval::class);
         $period = Period::fromDate(
-            CarbonImmutable::parse('2014-02-15'), CarbonImmutable::parse('2014-03-01')
+            CarbonImmutable::parse('2014-02-15'),
+            CarbonImmutable::parse('2014-03-01'),
         );
         $interval = new DateInterval('P1D');
         $interval->invert = 1;
@@ -226,7 +250,8 @@ final class PeriodEndPointsTest extends PeriodTestCase
         $period = Period::fromMonth(2_014, 3);
         $altPeriod = Period::fromMonth(2_014, 4);
         $expected = Period::after(
-            CarbonImmutable::parse('2014-03-01'), DateInterval::createFromDateString('2 MONTHS')
+            CarbonImmutable::parse('2014-03-01'),
+            DateInterval::createFromDateString('2 MONTHS'),
         );
         $this->assertEquals($expected, $period->merge($altPeriod));
         $this->assertEquals($expected, $altPeriod->merge($period));
@@ -242,7 +267,8 @@ final class PeriodEndPointsTest extends PeriodTestCase
     public function test_move_end_date(): void
     {
         $orig = Period::after(
-            CarbonImmutable::parse('2012-01-01'), DateInterval::createFromDateString('2 MONTH')
+            CarbonImmutable::parse('2012-01-01'),
+            DateInterval::createFromDateString('2 MONTH'),
         );
         $period = $orig->moveEndDate(DateInterval::createFromDateString('-1 MONTH'));
         $this->assertSame(1, $orig->durationCompare($period));
@@ -284,7 +310,8 @@ final class PeriodEndPointsTest extends PeriodTestCase
     {
         $this->expectException(InvalidInterval::class);
         Period::after(
-            CarbonImmutable::parse('2012-01-01'), DateInterval::createFromDateString('1 MONTH')
+            CarbonImmutable::parse('2012-01-01'),
+            DateInterval::createFromDateString('1 MONTH'),
         )->moveStartDate(DateInterval::createFromDateString('3 MONTHS'));
     }
 
@@ -394,10 +421,10 @@ final class PeriodEndPointsTest extends PeriodTestCase
 
         $snapToSeconds = $period->snapToQuarter();
         $startDate = DatePoint::fromDate(
-            CarbonImmutable::parse('2021-07-18 12:12:12.123456')
+            CarbonImmutable::parse('2021-07-18 12:12:12.123456'),
         )->quarter()->startDate->format('Y-m-d H:i:s.u');
         $endDate = DatePoint::fromDate(
-            CarbonImmutable::parse('2021-07-23 12:12:12.435672')
+            CarbonImmutable::parse('2021-07-23 12:12:12.435672'),
         )->quarter()->endDate->format('Y-m-d H:i:s.u');
 
         $this->assertSame($startDate, $snapToSeconds->startDate->format('Y-m-d H:i:s.u'));
@@ -416,10 +443,10 @@ final class PeriodEndPointsTest extends PeriodTestCase
 
         $snapToSeconds = $period->snapToSemester();
         $startDate = DatePoint::fromDate(
-            CarbonImmutable::parse('2021-07-18 12:12:12.123456')
+            CarbonImmutable::parse('2021-07-18 12:12:12.123456'),
         )->semester()->startDate->format('Y-m-d H:i:s.u');
         $endDate = DatePoint::fromDate(
-            CarbonImmutable::parse('2021-07-23 12:12:12.435672')
+            CarbonImmutable::parse('2021-07-23 12:12:12.435672'),
         )->semester()->endDate->format('Y-m-d H:i:s.u');
 
         $this->assertSame($startDate, $snapToSeconds->startDate->format('Y-m-d H:i:s.u'));
@@ -438,10 +465,10 @@ final class PeriodEndPointsTest extends PeriodTestCase
 
         $snapToSeconds = $period->snapToIsoWeek();
         $startDate = DatePoint::fromDate(
-            CarbonImmutable::parse('2021-07-18 12:12:12.123456')
+            CarbonImmutable::parse('2021-07-18 12:12:12.123456'),
         )->isoWeek()->startDate->format('Y-m-d H:i:s.u');
         $endDate = DatePoint::fromDate(
-            CarbonImmutable::parse('2021-07-23 12:12:12.435672')
+            CarbonImmutable::parse('2021-07-23 12:12:12.435672'),
         )->isoWeek()->endDate->format('Y-m-d H:i:s.u');
 
         $this->assertSame($startDate, $snapToSeconds->startDate->format('Y-m-d H:i:s.u'));
@@ -460,10 +487,10 @@ final class PeriodEndPointsTest extends PeriodTestCase
 
         $snapToSeconds = $period->snapToIsoYear();
         $startDate = DatePoint::fromDate(
-            CarbonImmutable::parse('2021-07-18 12:12:12.123456')
+            CarbonImmutable::parse('2021-07-18 12:12:12.123456'),
         )->isoYear()->startDate->format('Y-m-d H:i:s.u');
         $endDate = DatePoint::fromDate(
-            CarbonImmutable::parse('2021-07-23 12:12:12.435672')
+            CarbonImmutable::parse('2021-07-23 12:12:12.435672'),
         )->isoYear()->endDate->format('Y-m-d H:i:s.u');
 
         $this->assertSame($startDate, $snapToSeconds->startDate->format('Y-m-d H:i:s.u'));

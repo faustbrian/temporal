@@ -20,8 +20,11 @@ use TypeError;
 use UnitEnum;
 use ValueError;
 
+use function array_all;
+use function array_any;
 use function array_column;
 use function array_key_last;
+use function array_last;
 use function array_map;
 use function array_pop;
 use function array_shift;
@@ -32,13 +35,16 @@ use function is_string;
 use function max;
 use function mb_strtolower;
 use function min;
+use function sprintf;
+use function throw_unless;
 use function usort;
 
 /**
  * @phpstan-import-type NativeInterval from Interval
  *
- * @implements IteratorAggregate<Interval>
  * @psalm-immutable
+ * @author Brian Faust <brian@cline.sh>
+ * @implements IteratorAggregate<Interval>
  */
 final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSerializable
 {
@@ -282,9 +288,11 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
             if ($offset < 0) {
                 $offset += $nbIntervals;
             }
+
             if (0 > $offset) {
                 continue;
             }
+
             if ($nbIntervals <= $offset) {
                 continue;
             }
@@ -304,7 +312,7 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
      */
     public function any(callable $callback): bool
     {
-        return array_any($this->intervals, fn($interval, $key): bool => true === $callback($interval, $key));
+        return array_any($this->intervals, fn ($interval, $key): bool => true === $callback($interval, $key));
     }
 
     /**
@@ -380,7 +388,7 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
      */
     public function each(callable $callback): bool
     {
-        return array_all($this->intervals, fn($interval, $key): bool => false !== $callback($interval, $key));
+        return array_all($this->intervals, fn ($interval, $key): bool => false !== $callback($interval, $key));
     }
 
     /**

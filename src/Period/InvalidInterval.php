@@ -13,6 +13,11 @@ use DatePeriod;
 use InvalidArgumentException;
 use Throwable;
 
+use function sprintf;
+
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 final class InvalidInterval extends InvalidArgumentException implements IntervalError
 {
     private function __construct(string $message = '', int $code = 0, ?Throwable $previous = null)

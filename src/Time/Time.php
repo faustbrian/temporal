@@ -31,9 +31,12 @@ use function mb_trim;
 use function preg_match;
 use function preg_quote;
 use function str_replace;
+use function throw_if;
+use function throw_unless;
 
 /**
  * @psalm-immutable
+ * @author Brian Faust <brian@cline.sh>
  */
 final readonly class Time implements JsonSerializable
 {
@@ -103,12 +106,15 @@ final readonly class Time implements JsonSerializable
         if (!($hour >= 0 && $hour < 24)) {
             throw InvalidTime::dueToMalformedHour($hour);
         }
+
         if (!($minute >= 0 && $minute < 60)) {
             throw InvalidTime::dueToMalformedMinute($minute);
         }
+
         if (!($second >= 0 && $second < 60)) {
             throw InvalidTime::dueToMalformedSecond($second);
         }
+
         if (!($microsecond >= 0 && $microsecond < 1_000_000)) {
             throw InvalidTime::dueToMalformedMicrosecond($microsecond);
         }
@@ -127,7 +133,7 @@ final readonly class Time implements JsonSerializable
     public static function now(DateTimeZone|string|null $timezone = null): self
     {
         return self::fromDate(
-            new DateTimeImmutable(timezone: self::filterTimezone($timezone))
+            new DateTimeImmutable(timezone: self::filterTimezone($timezone)),
         );
     }
 
@@ -259,7 +265,7 @@ final readonly class Time implements JsonSerializable
                 timeType: $timeType,
                 timezone: $timezone,
             )->format($this->applyTo(
-                new DateTimeImmutable(timezone: $timezone)
+                new DateTimeImmutable(timezone: $timezone),
             ));
         } catch (Throwable $throwable) {
             throw new TimeException('Unable to convert to locale "'.$locale.'" the current time; Please verify your locale.', $throwable->getCode(), previous: $throwable);
@@ -335,6 +341,7 @@ final readonly class Time implements JsonSerializable
         }
 
         $value = $this->value + $duration->total(Unit::Microsecond);
+
         if (!is_int($value)) {
             throw InvalidDuration::dueToOverflow();
         }

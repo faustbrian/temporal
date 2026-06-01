@@ -15,6 +15,7 @@ use function date_default_timezone_get;
 use function date_default_timezone_set;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 abstract class PeriodTestCase extends TestCase

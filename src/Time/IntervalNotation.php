@@ -21,6 +21,9 @@ use function number_format;
 use function preg_match;
 use function str_starts_with;
 
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 enum IntervalNotation
 {
     case Bourbaki;
@@ -113,7 +116,7 @@ enum IntervalNotation
         $start ??= is_string($end) ? '00:00' : 0;
         $end ??= is_string($start) ? '00:00' : 0;
 
-        if (!(get_debug_type($start) === get_debug_type($end) || is_string($start) || null !== $unitOfDay)) {
+        if (!(get_debug_type($start) === get_debug_type($end) || is_string($start) || $unitOfDay instanceof Unit)) {
             throw InvalidInterval::dueToMalformedNotation($notation, $this);
         }
 

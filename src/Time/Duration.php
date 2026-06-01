@@ -24,9 +24,12 @@ use function array_shift;
 use function array_sum;
 use function intdiv;
 use function is_int;
+use function throw_if;
+use function throw_unless;
 
 /**
  * @psalm-immutable
+ * @author Brian Faust <brian@cline.sh>
  */
 final readonly class Duration implements JsonSerializable
 {
@@ -214,7 +217,7 @@ final readonly class Duration implements JsonSerializable
 
         $interval->invert = -1 === $this->sign ? 1 : 0;
 
-        if (!$relativeTo instanceof \DateTimeInterface) {
+        if (!$relativeTo instanceof DateTimeInterface) {
             return $interval;
         }
 
@@ -280,6 +283,7 @@ final readonly class Duration implements JsonSerializable
     {
         $other[] = $this;
         $value = array_sum(array_column($other, 'value'));
+
         if (!is_int($value)) {
             throw InvalidDuration::dueToOverflow();
         } /* @phpstan-ignore-line */

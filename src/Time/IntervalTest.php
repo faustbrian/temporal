@@ -12,6 +12,7 @@ namespace Cline\Temporal\Time;
 use DateInterval;
 use DateTimeImmutable;
 use DateTimeZone;
+use Iterator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -25,6 +26,7 @@ use function serialize;
 use function unserialize;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 #[CoversClass(IntervalSet::class)]
@@ -649,15 +651,20 @@ final class IntervalTest extends TestCase
     }
 
     /**
-     * @return \Iterator<non-empty-string, array{non-empty-string, non-empty-string}>
+     * @return Iterator<non-empty-string, array{non-empty-string, non-empty-string}>
      */
-    public static function provideFrom_iso8601Cases(): \Iterator
+    public static function provideFrom_iso8601Cases(): iterable
     {
         yield 'valid simple with start date' => ['10:00:00/PT1H', '[10:00:00,11:00:00)'];
+
         yield 'valid with spaces' => [' 10:00:00/PT1H ', '[10:00:00,11:00:00)'];
+
         yield 'valid simple with end date' => ['PT1H/11:00:00', '[10:00:00,11:00:00)'];
+
         yield 'valid with end date and space' => [' PT1H/11:00:00 ', '[10:00:00,11:00:00)'];
+
         yield 'valid with start and end time' => ['10:00:00/11:00:00', '[10:00:00,11:00:00)'];
+
         yield 'valid with start and end time with space' => [' 10:00:00 / 11:00:00 ', '[10:00:00,11:00:00)'];
     }
 
@@ -675,16 +682,22 @@ final class IntervalTest extends TestCase
     }
 
     /**
-     * @return \Iterator<non-empty-string, array{string}>
+     * @return Iterator<non-empty-string, array{string}>
      */
-    public static function provideFrom_iso8601_invalidCases(): \Iterator
+    public static function provideFrom_iso8601_invalidCases(): iterable
     {
         yield 'missing slash' => ['10:00:00PT1H'];
+
         yield 'empty string' => [''];
+
         yield 'invalid start time' => ['invalid/PT1H'];
+
         yield 'invalid end duration' => ['10:00:00/invalid'];
+
         yield 'extra segments' => ['10:00:00/PT1H/PT2H'];
+
         yield 'invalid end time' => ['PT2H/invalid'];
+
         yield 'invalid start duration' => ['Pinvalid/09:00:00'];
     }
 
@@ -701,13 +714,16 @@ final class IntervalTest extends TestCase
     }
 
     /**
-     * @return \Iterator<non-empty-string, array{non-empty-string, non-empty-string}>
+     * @return Iterator<non-empty-string, array{non-empty-string, non-empty-string}>
      */
-    public static function provideFrom_iso80000Cases(): \Iterator
+    public static function provideFrom_iso80000Cases(): iterable
     {
         yield 'full range' => ['[10:00:00,12:00:00)', '10:00:00/PT2H'];
+
         yield 'open start' => ['[,12:00:00)', '00:00:00/PT12H'];
+
         yield 'open end' => ['[10:00:00,)', '10:00:00/PT14H'];
+
         yield 'with spaces' => ['[ 10:00:00 , 12:00:00 )', '10:00:00/PT2H'];
     }
 
@@ -725,14 +741,18 @@ final class IntervalTest extends TestCase
     }
 
     /**
-     * @return \Iterator<non-empty-string, array{string}>
+     * @return Iterator<non-empty-string, array{string}>
      */
-    public static function provideFrom_iso80000_invalidCases(): \Iterator
+    public static function provideFrom_iso80000_invalidCases(): iterable
     {
         yield 'unsupported boudaries' => ['[10:00:00,12:00:00]'];
+
         yield 'missing at least one boundary value' => ['[,)'];
+
         yield 'missing brackets' => ['10:00:00,12:00:00'];
+
         yield 'invalid format' => ['[invalid]'];
+
         yield 'invalid start' => ['[invalid,12:00:00)'];
     }
 
@@ -749,13 +769,16 @@ final class IntervalTest extends TestCase
     }
 
     /**
-     * @return \Iterator<non-empty-string, array{non-empty-string, non-empty-string}>
+     * @return Iterator<non-empty-string, array{non-empty-string, non-empty-string}>
      */
-    public static function provideFrom_bourakiCases(): \Iterator
+    public static function provideFrom_bourakiCases(): iterable
     {
         yield 'full range' => ['[10:00:00,12:00:00[', '10:00:00/PT2H'];
+
         yield 'open start' => ['[,12:00:00[', '00:00:00/PT12H'];
+
         yield 'open end' => ['[10:00:00,[', '10:00:00/PT14H'];
+
         yield 'with spaces' => ['[ 10:00:00 , 12:00:00 [', '10:00:00/PT2H'];
     }
 
@@ -775,14 +798,18 @@ final class IntervalTest extends TestCase
     }
 
     /**
-     * @return \Iterator<non-empty-string, array{string, (class-string | null)}>
+     * @return Iterator<non-empty-string, array{string, (null|class-string)}>
      */
-    public static function provideFrom_bourbaki_invalidCases(): \Iterator
+    public static function provideFrom_bourbaki_invalidCases(): iterable
     {
         yield 'unsupported boudaries' => ['[10:00:00,12:00:00', TimeException::class];
+
         yield 'missing at least one boundary value' => ['[,[', TimeException::class];
+
         yield 'missing brackets' => ['10:00:00,12:00:00', TimeException::class];
+
         yield 'invalid format' => ['[invalid', TimeException::class];
+
         yield 'invalid start' => ['[invalid,12:00:00[', TimeException::class];
     }
 
@@ -816,30 +843,34 @@ final class IntervalTest extends TestCase
     /**
      * @throws InvalidTime
      *
-     * @return \Iterator<non-empty-string, array{Interval, Time, list<non-empty-string>}>
+     * @return Iterator<non-empty-string, array{Interval, Time, list<non-empty-string>}>
      */
-    public static function provideSplit_atCases(): \Iterator
+    public static function provideSplit_atCases(): iterable
     {
         yield 'collapsed interval returns empty set' => [
             Interval::between(Time::at(hour: 10), Time::at(hour: 10)),
             Time::at(hour: 10),
             [],
         ];
+
         yield 'split inside interval' => [
             Interval::between(Time::at(hour: 10), Time::noon()),
             Time::at(hour: 11),
             ['10:00:00/PT1H', '11:00:00/PT1H'],
         ];
+
         yield 'split at start returns original interval' => [
             Interval::between(Time::at(hour: 10), Time::noon()),
             Time::at(hour: 10),
             ['10:00:00/PT2H'],
         ];
+
         yield 'split at end returns original interval' => [
             Interval::between(Time::at(hour: 10), Time::noon()),
             Time::noon(),
             ['10:00:00/PT2H'],
         ];
+
         yield 'split outside interval returns empty set' => [
             Interval::between(Time::at(hour: 10), Time::noon()),
             Time::at(hour: 13),
@@ -904,13 +935,14 @@ final class IntervalTest extends TestCase
         $timeZoneName = 'Africa/Brazzaville';
 
         $interval = Interval::between(Time::noon(), Time::at(18))->toNative(
-            new $class('2025-03-02 23:12:59', new DateTimeZone($timeZoneName))
+            new $class('2025-03-02 23:12:59', new DateTimeZone($timeZoneName)),
         );
         $this->assertInstanceOf($class::class, $interval['startDate']);
         $this->assertSame($interval['startDate']->getTimezone()->getName(), $timeZoneName);
         $this->assertSame('2025-03-02 12:00:00', $interval['startDate']->format('Y-m-d H:i:s'));
         $this->assertEquals(
-            new DateInterval('PT6H'), $interval['interval']
+            new DateInterval('PT6H'),
+            $interval['interval'],
         );
     }
 

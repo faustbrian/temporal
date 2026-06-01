@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -22,6 +20,7 @@ use Carbon\CarbonImmutable;
 use DateInterval;
 use DateTimeImmutable;
 use Generator;
+use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 use function array_map;
@@ -33,6 +32,7 @@ use function iterator_count;
 use function iterator_to_array;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 final class PeriodDurationTest extends PeriodTestCase
@@ -47,7 +47,7 @@ final class PeriodDurationTest extends PeriodTestCase
         $this->assertSame(86_400, Period::fromDate('2012-02-01', '2012-02-02')->timeDuration());
     }
 
-    #[DataProvider('provideGetDatePeriodCases')]
+    #[DataProvider('provideGet_date_periodCases')]
     public function test_get_date_period(DateInterval|int|string $duration, InitialDatePresence $option, int $count): void
     {
         if (is_string($duration)) {
@@ -61,20 +61,26 @@ final class PeriodDurationTest extends PeriodTestCase
     }
 
     /**
-     * @return \Iterator<string, array{(\DateInterval | int | string), InitialDatePresence, int}>
+     * @return Iterator<string, array{(DateInterval|int|string), InitialDatePresence, int}>
      */
-    public static function provideGetDatePeriodCases(): \Iterator
+    public static function provideGet_date_periodCases(): iterable
     {
         yield 'useDateInterval' => [new DateInterval('PT1H'), InitialDatePresence::Included, 24];
+
         yield 'useString' => ['2 HOUR', InitialDatePresence::Included, 12];
+
         yield 'useInt' => [9_600, InitialDatePresence::Included, 9];
+
         yield 'exclude start date use DateInterval' => [new DateInterval('PT1H'), InitialDatePresence::Excluded, 23];
+
         yield 'exclude start date use String' => ['2 HOUR', InitialDatePresence::Excluded, 11];
+
         yield 'exclude start date use Int' => [9_600, InitialDatePresence::Excluded, 8];
+
         yield 'exclude start date use Float' => [14_400, InitialDatePresence::Excluded, 5];
     }
 
-    #[DataProvider('provideGetDatePeriodBackwardsCases')]
+    #[DataProvider('provideGet_date_period_backwardsCases')]
     public function test_get_date_period_backwards(DateInterval|int|string $duration, InitialDatePresence $option, int $count): void
     {
         if (is_int($duration)) {
@@ -87,16 +93,22 @@ final class PeriodDurationTest extends PeriodTestCase
     }
 
     /**
-     * @return \Iterator<string, array{(\DateInterval | int | string), InitialDatePresence, int}>
+     * @return Iterator<string, array{(DateInterval|int|string), InitialDatePresence, int}>
      */
-    public static function provideGetDatePeriodBackwardsCases(): \Iterator
+    public static function provideGet_date_period_backwardsCases(): iterable
     {
         yield 'useDateInterval' => [new DateInterval('PT1H'), InitialDatePresence::Included, 24];
+
         yield 'useString' => ['2 HOUR', InitialDatePresence::Included, 12];
+
         yield 'useInt' => [9_600, InitialDatePresence::Included, 9];
+
         yield 'exclude start date useDateInterval' => [new DateInterval('PT1H'), InitialDatePresence::Excluded, 23];
+
         yield 'exclude start date useString' => ['2 HOUR', InitialDatePresence::Excluded, 11];
+
         yield 'exclude start date useInt' => [9_600, InitialDatePresence::Excluded, 8];
+
         yield 'exclude start date useFloat' => [14_400, InitialDatePresence::Excluded, 5];
     }
 
@@ -189,32 +201,35 @@ final class PeriodDurationTest extends PeriodTestCase
         ];
     }
 
-    #[DataProvider('provideDurationCompareCases')]
+    #[DataProvider('provideDuration_compareCases')]
     public function test_duration_compare(Period $interval1, Period $interval2, int $expected): void
     {
         $this->assertSame($expected, $interval1->durationCompare($interval2));
     }
 
     /**
-     * @return \Iterator<string, array{Period, Period, int}>
+     * @return Iterator<string, array{Period, Period, int}>
      */
-    public static function provideDurationCompareCases(): \Iterator
+    public static function provideDuration_compareCases(): iterable
     {
         yield 'duration less than' => [
             Period::fromDate('2012-01-01', '2012-01-15'),
             Period::fromDate('2013-01-01', '2013-01-16'),
             -1,
         ];
+
         yield 'duration greater than' => [
             Period::fromDate('2012-01-01', '2012-01-15'),
             Period::fromDate('2012-01-01', '2012-01-07'),
             1,
         ];
+
         yield 'duration equals with microsecond' => [
             Period::fromDate('2012-01-01 00:00:00', '2012-01-03 00:00:00.123456'),
             Period::fromDate('2012-02-02 00:00:00', '2012-02-04 00:00:00.123456'),
             0,
         ];
+
         yield 'duration with DST' => [
             Period::fromDate('2014-03-01', '2014-04-01'),
             Period::fromDate('2014-03-01', '2014-04-01'),
@@ -276,7 +291,7 @@ final class PeriodDurationTest extends PeriodTestCase
 
         /** @var Generator<Period> $range */
         $range = $period->splitForward(
-            new DateInterval('PT1H')
+            new DateInterval('PT1H'),
         );
 
         $this->assertSame(24, iterator_count($range));
@@ -286,7 +301,7 @@ final class PeriodDurationTest extends PeriodTestCase
     {
         $period = Period::fromDate('2012-01-12', '2012-01-13');
         $range = $period->splitForward(
-            new DateInterval('PT1H')
+            new DateInterval('PT1H'),
         );
 
         /** @var null|Period $total */
@@ -312,7 +327,7 @@ final class PeriodDurationTest extends PeriodTestCase
         $range = [];
 
         foreach ($period->splitForward(
-            new DateInterval('P1Y')
+            new DateInterval('P1Y'),
         ) as $innerPeriod) {
             $range[] = $innerPeriod;
         }
@@ -344,7 +359,7 @@ final class PeriodDurationTest extends PeriodTestCase
             $list[] = $innerPeriod;
         }
 
-        $result = array_map(fn(Period $range): array => [
+        $result = array_map(fn (Period $range): array => [
             'start' => $range->startDate->format('Y-m-d H:i:s'),
             'end' => $range->endDate->format('Y-m-d H:i:s'),
         ], $list);
@@ -372,13 +387,13 @@ final class PeriodDurationTest extends PeriodTestCase
         $last = null;
 
         foreach ($period->splitBackwards(
-            new DateInterval('PT10H')
+            new DateInterval('PT10H'),
         ) as $innerPeriod) {
             $last = $innerPeriod;
         }
 
         $this->assertInstanceOf(Period::class, $last);
-        $this->assertEquals(14_400, $last->timeDuration());
+        $this->assertSame(14_400, $last->timeDuration());
     }
 
     public function test_split_daylight_savings_day_into_hours_end_interval(): void
@@ -399,7 +414,7 @@ final class PeriodDurationTest extends PeriodTestCase
 
         /** @var Generator<Period> $splits */
         $splits = $period->splitBackwards(
-            new DateInterval('PT30M')
+            new DateInterval('PT30M'),
         );
 
         $this->assertSame(10, iterator_count($splits));

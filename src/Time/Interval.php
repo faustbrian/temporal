@@ -17,12 +17,14 @@ use JsonSerializable;
 use function array_filter;
 use function max;
 use function min;
+use function throw_if;
 use function usort;
 
 /**
  * Represents a start-inclusive, end-exclusive interval between two times on a 24-hour circular clock.
  * @phpstan-type NativeInterval array{startDate: DateTimeImmutable, interval: DateInterval}
  * @psalm-immutable
+ * @author Brian Faust <brian@cline.sh>
  */
 final readonly class Interval implements JsonSerializable
 {
@@ -419,6 +421,7 @@ final readonly class Interval implements JsonSerializable
         if ($this->includes($other->start)) {
             return true;
         }
+
         return $other->includes($this->start);
     }
 
@@ -427,6 +430,7 @@ final readonly class Interval implements JsonSerializable
         if ($this->end->equals($other->start)) {
             return true;
         }
+
         return $other->end->equals($this->start);
     }
 

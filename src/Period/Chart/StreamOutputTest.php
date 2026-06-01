@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -30,6 +28,7 @@ use function rewind;
 use function stream_get_contents;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 final class StreamOutputTest extends TestCase
@@ -55,19 +54,20 @@ final class StreamOutputTest extends TestCase
         $this->assertStringContainsString($expected, $data);
     }
 
-    public static function provideWritelnCases(): \Iterator
+    public static function provideWritelnCases(): iterable
     {
         yield 'empty message' => [
             'message' => '',
             'expected' => '',
         ];
+
         yield 'simple message' => [
             'message' => "I'm the king of the world",
             'expected' => chr(27).'[34m'."I'm the king of the world".chr(27).'[0m'.PHP_EOL,
         ];
     }
 
-    #[DataProvider('provideWritelnUnknownCases')]
+    #[DataProvider('provideWriteln_unknownCases')]
     public function test_writeln_unknown(string $message, string $expected): void
     {
         $stream = $this->setStream();
@@ -82,12 +82,13 @@ final class StreamOutputTest extends TestCase
         $this->assertStringContainsString($expected, $data);
     }
 
-    public static function provideWritelnUnknownCases(): \Iterator
+    public static function provideWriteln_unknownCases(): iterable
     {
         yield 'empty message' => [
             'message' => '',
             'expected' => '',
         ];
+
         yield 'simple message' => [
             'message' => "I'm the king of the world",
             'expected' => "I'm the king of the world".PHP_EOL,

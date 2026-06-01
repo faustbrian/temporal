@@ -9,6 +9,11 @@
 
 namespace Cline\Temporal\Time;
 
+use function sprintf;
+
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 final class InvalidTime extends TimeException
 {
     public static function dueToMalformedHour(int $hour): self

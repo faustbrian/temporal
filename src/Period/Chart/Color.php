@@ -9,6 +9,9 @@
 
 namespace Cline\Temporal\Period\Chart;
 
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 enum Color: string
 {
     case Reset = 'reset';

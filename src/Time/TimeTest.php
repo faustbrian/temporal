@@ -13,6 +13,7 @@ use Carbon\CarbonImmutable;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
+use Iterator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -23,6 +24,7 @@ use function serialize;
 use function unserialize;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 #[CoversClass(InvalidTime::class)]
@@ -503,9 +505,9 @@ final class TimeTest extends TestCase
     }
 
     /**
-     * @return \Iterator<non-empty-string, array{int, Unit, int<1, max>, int<1, max>}>
+     * @return Iterator<non-empty-string, array{int, Unit, int<1, max>, int<1, max>}>
      */
-    public static function provideTruncate_and_roundCases(): \Iterator
+    public static function provideTruncate_and_roundCases(): iterable
     {
         // [input microseconds, precision, expected truncate, expected round]
         yield 'seconds exact' => [
@@ -515,6 +517,7 @@ final class TimeTest extends TestCase
             10_000_000,
             10_000_000,
         ];
+
         yield 'seconds truncate down' => [
             10_499_999,
             Unit::Second,
@@ -522,6 +525,7 @@ final class TimeTest extends TestCase
             10_000_000,
             11_000_000,
         ];
+
         yield 'seconds round up' => [
             10_500_000,
             Unit::Second,
@@ -529,6 +533,7 @@ final class TimeTest extends TestCase
             11_000_000,
             11_000_000,
         ];
+
         yield 'minutes round up' => [
             3_150_000_000, // 52m30s
             Unit::Minute,
@@ -536,6 +541,7 @@ final class TimeTest extends TestCase
             3_180_000_000, // 53m round
             3_180_000_000, // 53m round
         ];
+
         yield 'milliseconds' => [
             1_499,
             Unit::Millisecond,
@@ -550,7 +556,7 @@ final class TimeTest extends TestCase
      *
      * @throws InvalidTime
      */
-    #[DataProvider('provideMinOfCases')]
+    #[DataProvider('provideMin_ofCases')]
     public function test_min_of(array $times, Time $expected): void
     {
         $this->assertTrue(Time::minOf(...$times)->equals($expected));
@@ -559,9 +565,9 @@ final class TimeTest extends TestCase
     /**
      * @throws InvalidTime
      *
-     * @return \Iterator<non-empty-string, array{list<Time>, Time}>
+     * @return Iterator<non-empty-string, array{list<Time>, Time}>
      */
-    public static function provideMinOfCases(): \Iterator
+    public static function provideMin_ofCases(): iterable
     {
         yield 'simple order' => [
             [
@@ -571,6 +577,7 @@ final class TimeTest extends TestCase
             ],
             Time::at(hour: 5),
         ];
+
         yield 'already sorted' => [
             [
                 Time::at(hour: 1),
@@ -579,6 +586,7 @@ final class TimeTest extends TestCase
             ],
             Time::at(hour: 1),
         ];
+
         yield 'single value' => [
             [
                 Time::at(hour: 7),
@@ -592,7 +600,7 @@ final class TimeTest extends TestCase
      *
      * @throws InvalidTime
      */
-    #[DataProvider('provideMaxOfCases')]
+    #[DataProvider('provideMax_ofCases')]
     public function test_max_of(array $times, Time $expected): void
     {
         $this->assertTrue(Time::maxOf(...$times)->equals($expected));
@@ -601,9 +609,9 @@ final class TimeTest extends TestCase
     /**
      * @throws InvalidTime
      *
-     * @return \Iterator<non-empty-string, array{list<Time>, Time}>
+     * @return Iterator<non-empty-string, array{list<Time>, Time}>
      */
-    public static function provideMaxOfCases(): \Iterator
+    public static function provideMax_ofCases(): iterable
     {
         yield 'simple order' => [
             [
@@ -613,6 +621,7 @@ final class TimeTest extends TestCase
             ],
             Time::at(hour: 10),
         ];
+
         yield 'reverse order' => [
             [
                 Time::at(hour: 23),
@@ -633,9 +642,9 @@ final class TimeTest extends TestCase
 
     /**
      * @throws InvalidTime
-     * @return \Iterator<non-empty-string, list<Time>>
+     * @return Iterator<non-empty-string, list<Time>>
      */
-    public static function provideClampCases(): \Iterator
+    public static function provideClampCases(): iterable
     {
         yield 'below range' => [
             Time::at(hour: 2),
@@ -643,12 +652,14 @@ final class TimeTest extends TestCase
             Time::at(hour: 10),
             Time::at(hour: 5),
         ];
+
         yield 'above range' => [
             Time::at(hour: 12),
             Time::at(hour: 5),
             Time::at(hour: 10),
             Time::at(hour: 10),
         ];
+
         yield 'inside range' => [
             Time::at(hour: 7),
             Time::at(hour: 5),

@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -19,6 +17,7 @@
 namespace Cline\Temporal\Period\Chart;
 
 use InvalidArgumentException;
+use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -26,6 +25,7 @@ use const STDERR;
 use const STDOUT;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 final class GanttChartConfigTest extends TestCase
@@ -65,13 +65,16 @@ final class GanttChartConfigTest extends TestCase
     }
 
     /**
-     * @return \Iterator<string, array{int, int}>
+     * @return Iterator<string, array{int, int}>
      */
-    public static function provideWidthCases(): \Iterator
+    public static function provideWidthCases(): iterable
     {
         yield '0 size' => [0, 10];
+
         yield 'negative size' => [-23, 10];
+
         yield 'basic usage' => [23, 23];
+
         yield 'default value' => [60, 60];
     }
 
@@ -112,22 +115,34 @@ final class GanttChartConfigTest extends TestCase
     }
 
     /**
-     * @return \Iterator<(int | string), array{string, string}>
+     * @return Iterator<(int|string), array{string, string}>
      */
-    public static function providerChars(): \Iterator
+    public static function providerChars(): iterable
     {
         yield ['-', '-'];
+
         yield ['=', '='];
+
         yield ['[', '['];
+
         yield [']', ']'];
+
         yield [')', ')'];
+
         yield ['(', '('];
+
         yield [' ', ' '];
+
         yield ['#', '#'];
+
         yield ["\t", "\t"];
+
         yield ['€', '€'];
+
         yield ['█', '█'];
+
         yield [' ', ' '];
+
         yield ['\uD83D\uDE00', '😀'];
     }
 
@@ -138,11 +153,12 @@ final class GanttChartConfigTest extends TestCase
     }
 
     /**
-     * @return \Iterator<(int | string), array{Color, Color}>
+     * @return Iterator<(int|string), array{Color, Color}>
      */
-    public static function provideColorsCases(): \Iterator
+    public static function provideColorsCases(): iterable
     {
         yield [Color::Reset, Color::Reset];
+
         yield [Color::White, Color::White];
     }
 
@@ -151,7 +167,7 @@ final class GanttChartConfigTest extends TestCase
         $this->assertSame($this->config, $this->config->colors());
     }
 
-    #[DataProvider('provideWithHeadBlockThrowsInvalidArgumentExceptionCases')]
+    #[DataProvider('provideWith_head_block_throws_invalid_argument_exceptionCases')]
     public function test_with_head_block_throws_invalid_argument_exception(string $input): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -159,11 +175,12 @@ final class GanttChartConfigTest extends TestCase
     }
 
     /**
-     * @return \Iterator<(int | string), array{string}>
+     * @return Iterator<(int|string), array{string}>
      */
-    public static function provideWithHeadBlockThrowsInvalidArgumentExceptionCases(): \Iterator
+    public static function provideWith_head_block_throws_invalid_argument_exceptionCases(): iterable
     {
         yield ['coucou'];
+
         yield ['\uD83D\uDE00\uD83D\uDE00'];
     }
 
@@ -179,16 +196,18 @@ final class GanttChartConfigTest extends TestCase
         $this->assertSame($expected, $this->config->gapSize($gap)->gapSize);
     }
 
-    public static function providerGaps(): \Iterator
+    public static function providerGaps(): iterable
     {
         yield 'single gap' => [
             'gap' => 1,
             'expected' => 1,
         ];
+
         yield 'empty gap' => [
             'gap' => 0,
             'expected' => 0,
         ];
+
         yield 'sequence with invalid chars' => [
             'gap' => -42,
             'expected' => 1,
@@ -201,12 +220,13 @@ final class GanttChartConfigTest extends TestCase
         $this->assertSame($expected, $this->config->labelAlignment($padding)->labelAlignment);
     }
 
-    public static function providePaddingCases(): \Iterator
+    public static function providePaddingCases(): iterable
     {
         yield 'default' => [
             'padding' => Alignment::Left,
             'expected' => Alignment::Left,
         ];
+
         yield 'changing wit a defined config' => [
             'padding' => Alignment::Right,
             'expected' => Alignment::Right,
@@ -223,7 +243,7 @@ final class GanttChartConfigTest extends TestCase
     public function test_with_output_always_returns_a_new_instance(): void
     {
         $newConfig = $this->config->output(
-            new StreamOutput(STDOUT, Terminal::Posix)
+            new StreamOutput(STDOUT, Terminal::Posix),
         );
         $this->assertNotSame($this->config, $newConfig);
         $this->assertEquals($newConfig->output, $this->config->output);
@@ -233,7 +253,7 @@ final class GanttChartConfigTest extends TestCase
     {
         $this->assertEquals(
             GanttChartConfig::fromOutput(
-                new StreamOutput(STDERR, Terminal::Posix)
+                new StreamOutput(STDERR, Terminal::Posix),
             ),
             GanttChartConfig::fromStream(STDERR),
         );

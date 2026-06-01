@@ -9,6 +9,9 @@
 
 namespace Cline\Temporal\Time;
 
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 enum Bound
 {
     case Start;

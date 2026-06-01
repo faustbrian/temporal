@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -26,6 +24,7 @@ use const STR_PAD_LEFT;
 use const STR_PAD_RIGHT;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 final class AlignmentTest extends TestCase

@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -18,14 +16,16 @@
 
 namespace Cline\Temporal\Period;
 
+use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 final class PeriodBoundsTest extends PeriodTestCase
 {
-    #[DataProvider('providePeriodBoundsCases')]
+    #[DataProvider('providePeriod_boundsCases')]
     public function test_period_bounds(
         Period $interval,
         Bounds $rangeType,
@@ -42,9 +42,9 @@ final class PeriodBoundsTest extends PeriodTestCase
     }
 
     /**
-     * @return \Iterator<string, array{interval: Period, rangeType: Bounds, startIncluded: bool, startExcluded: bool, endIncluded: bool, endExcluded: bool}>
+     * @return Iterator<string, array{interval: Period, rangeType: Bounds, startIncluded: bool, startExcluded: bool, endIncluded: bool, endExcluded: bool}>
      */
-    public static function providePeriodBoundsCases(): \Iterator
+    public static function providePeriod_boundsCases(): iterable
     {
         yield 'left open right close' => [
             'interval' => Period::fromDay(2_012, 8, 12),
@@ -54,6 +54,7 @@ final class PeriodBoundsTest extends PeriodTestCase
             'endIncluded' => false,
             'endExcluded' => true,
         ];
+
         yield 'left close right open' => [
             'interval' => Period::around('2012-08-12', '1 HOUR', Bounds::ExcludeStartIncludeEnd),
             'rangeType' => Bounds::ExcludeStartIncludeEnd,
@@ -62,6 +63,7 @@ final class PeriodBoundsTest extends PeriodTestCase
             'endIncluded' => true,
             'endExcluded' => false,
         ];
+
         yield 'left open right open' => [
             'interval' => Period::after('2012-08-12', '1 DAY', Bounds::IncludeAll),
             'rangeType' => Bounds::IncludeAll,
@@ -70,6 +72,7 @@ final class PeriodBoundsTest extends PeriodTestCase
             'endIncluded' => true,
             'endExcluded' => false,
         ];
+
         yield 'left close right close' => [
             'interval' => Period::before('2012-08-12', '1 WEEK', Bounds::ExcludeAll),
             'rangeType' => Bounds::ExcludeAll,

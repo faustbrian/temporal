@@ -1,9 +1,7 @@
 <?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -18,10 +16,10 @@
 
 namespace Cline\Temporal\Period\Chart;
 
-use Illuminate\Support\Facades\Date;
 use Carbon\CarbonImmutable;
 use Cline\Temporal\Period\Period;
 use Cline\Temporal\Period\Sequence;
+use Illuminate\Support\Facades\Date;
 use PHPUnit\Framework\TestCase;
 
 use const STDOUT;
@@ -31,6 +29,7 @@ use function rewind;
 use function stream_get_contents;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 final class GanttChartTest extends TestCase
@@ -44,14 +43,14 @@ final class GanttChartTest extends TestCase
     {
         $this->stream = $this->setStream();
         $this->graph = new GanttChart(
-            new GanttChartConfig(output: new StreamOutput($this->stream, Terminal::Posix), colors: [Color::Red])
+            new GanttChartConfig(output: new StreamOutput($this->stream, Terminal::Posix), colors: [Color::Red]),
         );
     }
 
     public function test_display_empty_dataset(): void
     {
         $this->graph->stroke(
-            new Dataset()
+            new Dataset(),
         );
         rewind($this->stream);
         $data = stream_get_contents($this->stream);
@@ -63,13 +62,15 @@ final class GanttChartTest extends TestCase
     {
         $this->graph->stroke(
             new Dataset([
-            ['A', Period::fromDate(
-                Date::parse('2018-01-01'), Date::parse('2018-01-15')
-            )],
-            ['B', Period::fromDate(
-                Date::parse('2018-01-15'), Date::parse('2018-02-01')
-            )],
-        ])
+                ['A', Period::fromDate(
+                    Date::parse('2018-01-01'),
+                    Date::parse('2018-01-15'),
+                )],
+                ['B', Period::fromDate(
+                    Date::parse('2018-01-15'),
+                    Date::parse('2018-02-01'),
+                )],
+            ]),
         );
 
         rewind($this->stream);
@@ -85,10 +86,12 @@ final class GanttChartTest extends TestCase
     {
         $dataset = new Dataset([
             ['A', new Sequence(Period::fromDate(
-                CarbonImmutable::parse('2018-01-01'), CarbonImmutable::parse('2018-01-15')
+                CarbonImmutable::parse('2018-01-01'),
+                CarbonImmutable::parse('2018-01-15'),
             ))],
             ['B', new Sequence(Period::fromDate(
-                CarbonImmutable::parse('2018-01-15'), CarbonImmutable::parse('2018-02-01')
+                CarbonImmutable::parse('2018-01-15'),
+                CarbonImmutable::parse('2018-02-01'),
             ))],
         ]);
 
@@ -124,8 +127,8 @@ final class GanttChartTest extends TestCase
     {
         $graph = new GanttChart(
             new GanttChartConfig(
-                new StreamOutput(STDOUT, Terminal::Posix)
-            )
+                new StreamOutput(STDOUT, Terminal::Posix),
+            ),
         );
 
         $this->assertSame([Color::Reset], $graph->config->colors);

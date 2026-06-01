@@ -10,8 +10,12 @@
 namespace Cline\Temporal\Time;
 
 use function mb_strpos;
+use function sprintf;
 use function str_contains;
 
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 final class InvalidDuration extends TimeException
 {
     public static function dueToOverflow(): self

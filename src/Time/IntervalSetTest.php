@@ -25,6 +25,7 @@ use function serialize;
 use function unserialize;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 #[CoversClass(IntervalNotation::class)]
@@ -73,7 +74,7 @@ final class IntervalSetTest extends TestCase
         $this->assertNotInstanceOf(Interval::class, $set->nth(-3));
 
         $this->expectExceptionObject(
-            new TimeException('Invalid offset (-3) given to '.IntervalSet::class.'.')
+            new TimeException('Invalid offset (-3) given to '.IntervalSet::class.'.'),
         );
         $set->get(-3);
     }
@@ -153,7 +154,7 @@ final class IntervalSetTest extends TestCase
         $this->assertFalse($replaceNeg->has($b));
 
         $this->expectExceptionObject(
-            new TimeException('Invalid offset (3) given to '.IntervalSet::class.'.')
+            new TimeException('Invalid offset (3) given to '.IntervalSet::class.'.'),
         );
         $set->replace(3, $c);
     }
@@ -259,7 +260,7 @@ final class IntervalSetTest extends TestCase
         $b = Interval::between(Time::at(10)->add(Duration::of(hours: 10)), Time::at(20)->add(Duration::of(hours: 10)));
 
         $result = new IntervalSet($a)->difference(
-            new IntervalSet($b)
+            new IntervalSet($b),
         );
 
         $this->assertCount(1, $result);
@@ -273,7 +274,7 @@ final class IntervalSetTest extends TestCase
         $b = Interval::between(Time::at(13), Time::at(17));
 
         $result = new IntervalSet($a)->difference(
-            new IntervalSet($b)
+            new IntervalSet($b),
         );
 
         $this->assertCount(2, $result);
@@ -293,7 +294,7 @@ final class IntervalSetTest extends TestCase
         $b = Interval::between(Time::at(5), Time::at(15));
 
         $result = new IntervalSet($a)->difference(
-            new IntervalSet($b)
+            new IntervalSet($b),
         );
 
         $this->assertCount(1, $result);
@@ -308,7 +309,7 @@ final class IntervalSetTest extends TestCase
         $b = Interval::between(Time::at(15), Time::at(23)->add(Duration::of(hours: 2)));
 
         $result = new IntervalSet($a)->difference(
-            new IntervalSet($b)
+            new IntervalSet($b),
         );
 
         $this->assertCount(1, $result);
@@ -322,7 +323,7 @@ final class IntervalSetTest extends TestCase
         $a = Interval::between(Time::at(10), Time::at(20));
 
         $result = new IntervalSet($a)->difference(
-            new IntervalSet($a)
+            new IntervalSet($a),
         );
 
         $this->assertTrue($result->isEmpty());
@@ -334,7 +335,7 @@ final class IntervalSetTest extends TestCase
         $b = Interval::between(Time::at(5), Time::at(2)->add(Duration::of(hours: 1)));
 
         $result = new IntervalSet($a)->difference(
-            new IntervalSet($b)
+            new IntervalSet($b),
         );
 
         $this->assertTrue($result->isEmpty());
@@ -542,7 +543,7 @@ final class IntervalSetTest extends TestCase
         $timeZoneName = 'Africa/Brazzaville';
 
         $converted = Business::shifts()->allNative(
-            new $class('2025-03-02 23:12:59', new DateTimeZone($timeZoneName))
+            new $class('2025-03-02 23:12:59', new DateTimeZone($timeZoneName)),
         );
         $this->assertCount(5, $converted);
 
@@ -551,7 +552,8 @@ final class IntervalSetTest extends TestCase
         $this->assertSame($interval['startDate']->getTimezone()->getName(), $timeZoneName);
         $this->assertSame('2025-03-02 12:00:00', $interval['startDate']->format('Y-m-d H:i:s'));
         $this->assertEquals(
-            new DateInterval('PT6H'), $interval['interval']
+            new DateInterval('PT6H'),
+            $interval['interval'],
         );
     }
 
@@ -576,18 +578,18 @@ final class IntervalSetTest extends TestCase
     public function test_union_on_empty_set(): void
     {
         $this->assertTrue(
-            new IntervalSet()->union()->isEmpty()
+            new IntervalSet()->union()->isEmpty(),
         );
     }
 
     public function test_difference_on_empty_set(): void
     {
         $this->assertTrue(
-            new IntervalSet()->difference()->isEmpty()
+            new IntervalSet()->difference()->isEmpty(),
         );
         $this->assertEquals(Business::shifts(), Business::shifts()->difference());
         $this->assertTrue(
-            new IntervalSet()->difference(Business::shifts())->isEmpty()
+            new IntervalSet()->difference(Business::shifts())->isEmpty(),
         );
     }
 
@@ -646,7 +648,8 @@ final class IntervalSetTest extends TestCase
         $set = new IntervalSet();
 
         $this->assertEquals(
-            new IntervalSet(Interval::fullDay()), $set->complement()
+            new IntervalSet(Interval::fullDay()),
+            $set->complement(),
         );
     }
 
@@ -721,14 +724,14 @@ final class IntervalSetTest extends TestCase
     {
         $set = new IntervalSet();
         $this->assertSame($set, $set->intersect(
-            new IntervalSet()
+            new IntervalSet(),
         ));
         $this->assertSame($set, $set->intersect());
 
         $setBis = new IntervalSet(Interval::between(Time::at(3), Time::at(7)));
         $this->assertSame($setBis, $setBis->intersect());
         $this->assertSame($setBis, $setBis->intersect(
-            new IntervalSet()
+            new IntervalSet(),
         ));
     }
 
@@ -862,6 +865,9 @@ final class IntervalSetTest extends TestCase
     }
 }
 
+/**
+ * @author Brian Faust <brian@cline.sh>
+ */
 enum Business
 {
     case Morning;

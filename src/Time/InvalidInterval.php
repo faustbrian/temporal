@@ -1,23 +1,15 @@
-<?php declare(strict_types=1);
+<?php
 
-/**
- * Copyright (C) Brian Faust
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
+declare(strict_types=1);
 
 namespace Cline\Temporal\Time;
 
 use Throwable;
 
-/**
- * @author Brian Faust <brian@cline.sh>
- */
-final class InvalidInterval extends TimeException
+class InvalidInterval extends TimeException
 {
-    public static function dueToMalformedNotation(string $notation, IntervalNotation $source, ?Throwable $previous = null): self
+    public static function dueToMalformedNotation(string $format, IntervalNotation $source, ?Throwable $previous = null): self
     {
-        return new self('"'.$notation.'" is an invalid or unsupported '.$source->name.' notation.', previous: $previous);
+        return new self('"'.$format.'" is an invalid or unsupported '.$source->name.' format.', previous: $previous);
     }
 }

@@ -1,21 +1,12 @@
-<?php declare(strict_types=1);
+<?php
 
-/**
- * Copyright (C) Brian Faust
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
+declare(strict_types=1);
 
 namespace Cline\Temporal\Time;
 
 use function intdiv;
-use function is_float;
 use function round;
 
-/**
- * @author Brian Faust <brian@cline.sh>
- */
 enum Unit
 {
     case Week;
@@ -27,18 +18,13 @@ enum Unit
     case Microsecond;
 
     private const int MICRO_PER_MILLI = 1_000;
-
     private const int MICRO_PER_SECOND = 1_000 * self::MICRO_PER_MILLI;
-
     private const int MICRO_PER_MINUTE = 60 * self::MICRO_PER_SECOND;
-
     private const int MICRO_PER_HOUR = 60 * self::MICRO_PER_MINUTE;
-
     private const int MICRO_PER_DAY = 24 * self::MICRO_PER_HOUR;
-
     private const int MICRO_PER_WEEK = 7 * self::MICRO_PER_DAY;
 
-    public function microseconds(): int
+    public function inMicroseconds(): int
     {
         return match ($this) {
             Unit::Week => self::MICRO_PER_WEEK,
@@ -51,13 +37,13 @@ enum Unit
         };
     }
 
-    public function round(int $valueInMicro, RoundingMode $mode = RoundingMode::Round): int
+    public function round(int $valueInMicro, RoundingMode $mode = RoundingMode::Nearest): int
     {
-        $unit = $this->microseconds();
+        $unit = $this->inMicroseconds();
 
         $precision = match ($mode) {
             RoundingMode::Floor => 0,
-            RoundingMode::Round => intdiv($unit, 2),
+            RoundingMode::Nearest => intdiv($unit, 2),
             RoundingMode::Ceil => $unit - 1,
         };
 
@@ -66,30 +52,28 @@ enum Unit
 
     public function toMicroseconds(int|float $value): int
     {
-        $res = $this->microseconds() * $value;
-
-        return is_float($res) ? (int) round($res) : $res;
+        return (int) round($this->inMicroseconds() * $value);
     }
 
     public function whole(int $value): int
     {
-        return intdiv($value, $this->microseconds());
+        return intdiv($value, $this->inMicroseconds());
     }
 
     public function remainder(int $value): int
     {
-        return $value % $this->microseconds();
+        return $value % $this->inMicroseconds();
     }
 
     public function divide(int $value): int|float
     {
-        return $value / $this->microseconds();
+        return $value / $this->inMicroseconds();
     }
 
     public function wrap(int $valueInMicro): int
     {
-        $unit = $this->microseconds();
+        $unit = $this->inMicroseconds();
 
-        return (($valueInMicro % $unit) + $unit) % $unit;
+        return ($valueInMicro % $unit + $unit) % $unit;
     }
 }

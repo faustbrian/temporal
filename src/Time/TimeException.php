@@ -14,4 +14,4 @@ use Exception;
 /**
  * @author Brian Faust <brian@cline.sh>
  */
-abstract class TimeException extends Exception {}
+class TimeException extends Exception {}

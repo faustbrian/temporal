@@ -1,11 +1,6 @@
-<?php declare(strict_types=1);
+<?php
 
-/**
- * Copyright (C) Brian Faust
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
+declare(strict_types=1);
 
 namespace Cline\Temporal\Time;
 
@@ -14,34 +9,24 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use JsonSerializable;
 
+use function array_column;
+use function array_reduce;
+use function array_shift;
+use function array_sum;
+use function intdiv;
+use function is_int;
+
 use const PHP_INT_MAX;
 use const PHP_INT_MIN;
 
-use function abs;
-use function array_reduce;
-use function array_shift;
-use function intdiv;
-use function throw_if;
-use function throw_unless;
-
-/**
- * @psalm-immutable
- * @author Brian Faust <brian@cline.sh>
- */
 final readonly class Duration implements JsonSerializable
 {
     public int $hours;
-
     public int $minutes;
-
     public int $seconds;
-
     public int $microseconds;
-
     public int $sign;
-
     public int $daysCount;
-
     public int $weeksCount;
 
     /**
@@ -49,15 +34,12 @@ final readonly class Duration implements JsonSerializable
      *
      * @throws InvalidDuration
      */
-    private function __construct(
-        private int $value,
-    ) {
-        if (!($value > PHP_INT_MIN + 1 && $value < PHP_INT_MAX)) {
-            throw InvalidDuration::dueToOverflow();
-        }
+    private function __construct(private int $value)
+    {
+        ($value > PHP_INT_MIN + 1 && $value < PHP_INT_MAX) || throw InvalidDuration::dueToOverflow();
 
-        $this->sign = $this->value <=> 0;
-        $microseconds = abs($this->value);
+        $this->sign = $this->value <=> 0 ;
+        $microseconds = 0 > $this->value ? -$this->value : $this->value;
         $this->weeksCount = Unit::Week->whole($microseconds);
         $this->daysCount = Unit::Day->whole($microseconds);
         $this->hours = Unit::Hour->whole($microseconds);
@@ -69,37 +51,15 @@ final readonly class Duration implements JsonSerializable
     }
 
     /**
-     * @return array{0: array{microseconds: int}, 1:array{}}
-     */
-    public function __serialize(): array
-    {
-        /** @var int $value */
-        $value = $this->total(Unit::Microsecond);
-
-        return [['microseconds' => $value], []];
-    }
-
-    /**
-     * @param array{0: array{microseconds: int}, 1:array{}} $data
+     * @param non-negative-int $weeks
+     * @param non-negative-int $days
+     * @param non-negative-int $hours
+     * @param non-negative-int $minutes
+     * @param non-negative-int $seconds
+     * @param non-negative-int $milliseconds
+     * @param non-negative-int $microseconds
      *
      * @throws InvalidDuration
-     */
-    public function __unserialize(array $data): void
-    {
-        [$properties] = $data;
-        $time = new self($properties['microseconds']);
-        $this->value = $time->value;
-        $this->hours = $time->hours;
-        $this->minutes = $time->minutes;
-        $this->seconds = $time->seconds;
-        $this->microseconds = $time->microseconds;
-        $this->daysCount = $time->daysCount;
-        $this->weeksCount = $time->weeksCount;
-        $this->sign = $time->sign;
-    }
-
-    /**
-     * @throws InvalidDuration if the value can not be inverted
      */
     public static function of(
         int $weeks = 0,
@@ -110,13 +70,30 @@ final readonly class Duration implements JsonSerializable
         int $milliseconds = 0,
         int $microseconds = 0,
     ): self {
+        /* @phpstan-ignore-next-line */
+        (0 <= $weeks && 0 <= $days && 0 <= $hours && 0 <= $minutes && 0 <= $seconds && 0 <= $milliseconds && 0 <= $microseconds) || throw new InvalidDuration('No duration part can be expressed with a negative number.');
+
         return new self(self::toMicroseconds(
             days: ($weeks * 7) + $days,
             hours: $hours,
             minutes: $minutes,
             seconds: $seconds,
-            microseconds: Unit::Millisecond->toMicroseconds($milliseconds) + $microseconds,
+            microseconds: Unit::Millisecond->toMicroseconds($milliseconds) + $microseconds
         ));
+    }
+
+    private static function toMicroseconds(
+        int $days,
+        int $hours,
+        int $minutes,
+        int|float $seconds,
+        int $microseconds
+    ): int {
+        return Unit::Day->toMicroseconds($days)
+            + Unit::Hour->toMicroseconds($hours)
+            + Unit::Minute->toMicroseconds($minutes)
+            + Unit::Second->toMicroseconds($seconds)
+            + $microseconds;
     }
 
     /**
@@ -124,8 +101,8 @@ final readonly class Duration implements JsonSerializable
      */
     public static function fromDateInterval(DateInterval $interval): self
     {
-        throw_unless(false !== $interval->days || 0 === $interval->y && 0 === $interval->m, InvalidDuration::class, 'fromDateInterval() does not handle non deterministic DateInterval properties like months and years.');
-        throw_unless(0.0 <= $interval->f && 1.0 > $interval->f, InvalidDuration::class, 'Invalid fractional seconds in DateInterval.');
+        false !== $interval->days || (0 === $interval->y && 0 === $interval->m) || throw new InvalidDuration('fromDateInterval() does not handle non deterministic DateInterval properties like months and years.');
+        (0.0 <= $interval->f && 1.0 > $interval->f) || throw new InvalidDuration('Invalid fractional seconds in DateInterval.');
 
         $microseconds = self::toMicroseconds(
             days: false === $interval->days ? $interval->d : $interval->days,
@@ -141,9 +118,9 @@ final readonly class Duration implements JsonSerializable
     /**
      * @throws InvalidDuration
      */
-    public static function fromNotation(string $value, DurationNotation $notation): self
+    public static function fromNotation(string $value, DurationNotation $format): self
     {
-        return $notation->decode($value);
+        return $format->decode($value);
     }
 
     /**
@@ -175,7 +152,7 @@ final readonly class Duration implements JsonSerializable
      */
     public static function minOf(self ...$durations): self
     {
-        throw_if([] === $durations, InvalidDuration::class, 'minOf() expects at least one duration');
+        [] !== $durations || throw new InvalidDuration('minOf() expects at least one duration');
         $min = array_shift($durations);
 
         return array_reduce($durations, fn (self $min, self $item): self => $item->isShorterThan($min) ? $item : $min, $min);
@@ -186,7 +163,7 @@ final readonly class Duration implements JsonSerializable
      */
     public static function maxOf(self ...$durations): self
     {
-        throw_if([] === $durations, InvalidDuration::class, 'maxOf() expects at least one duration');
+        [] !== $durations || throw new InvalidDuration('maxOf() expects at least one duration');
         $max = array_shift($durations);
 
         return array_reduce($durations, fn (self $max, self $item): self => $item->isLongerThan($max) ? $item : $max, $max);
@@ -195,9 +172,9 @@ final readonly class Duration implements JsonSerializable
     /**
      * @return non-empty-string
      */
-    public function toNotation(DurationNotation $notation = DurationNotation::Iso8601): string
+    public function toNotation(DurationNotation $format = DurationNotation::Iso8601): string
     {
-        return $notation->encode($this);
+        return $format->encode($this);
     }
 
     public function toDateInterval(?DateTimeInterface $relativeTo = null): DateInterval
@@ -207,14 +184,11 @@ final readonly class Duration implements JsonSerializable
         $interval->h = $this->hours % 24;
         $interval->i = $this->minutes;
         $interval->s = $this->seconds;
-
         if (0 !== $this->microseconds) {
             $interval->f = Unit::Second->divide($this->microseconds);
         }
-
         $interval->invert = -1 === $this->sign ? 1 : 0;
-
-        if (!$relativeTo instanceof DateTimeInterface) {
+        if (null === $relativeTo) {
             return $interval;
         }
 
@@ -241,9 +215,14 @@ final readonly class Duration implements JsonSerializable
     /**
      * Returns true when the duration is zero, false otherwise.
      */
-    public function isEmpty(): bool
+    public function isZero(): bool
     {
         return 0 === $this->value;
+    }
+
+    public function isEmpty(): bool
+    {
+        return $this->isZero();
     }
 
     /**
@@ -265,9 +244,9 @@ final readonly class Duration implements JsonSerializable
     /**
      * @throws InvalidDuration
      */
-    public function roundTo(Unit $precision, RoundingMode $roundingMode = RoundingMode::Round): self
+    public function roundTo(Unit $precision, RoundingMode $roundingMode = RoundingMode::Nearest): self
     {
-        $micro = abs($this->value);
+        $micro = -1 === $this->sign ? -$this->value : $this->value;
         $rounded = $precision->round($micro, $roundingMode);
 
         return $micro === $rounded ? $this : new self($this->sign * $rounded);
@@ -279,24 +258,53 @@ final readonly class Duration implements JsonSerializable
     public function sum(self ...$other): self
     {
         $other[] = $this;
-        $value = 0;
-
-        foreach ($other as $duration) {
-            if (
-                ($duration->value > 0 && $value > (PHP_INT_MAX - 1) - $duration->value)
-                || ($duration->value < 0 && $value < (PHP_INT_MIN + 2) - $duration->value)
-            ) {
-                throw InvalidDuration::dueToOverflow();
-            }
-
-            $value += $duration->value;
-        }
+        $value = array_sum(array_column($other, 'value'));
+        is_int($value) || throw InvalidDuration::dueToOverflow(); /* @phpstan-ignore-line */
 
         return $this->value === $value ? $this : new self($value);
     }
 
     /**
-     * @throws InvalidDuration if the value can not be inverted
+     * @param non-negative-int $weeks
+     * @param non-negative-int $days
+     * @param non-negative-int $hours
+     * @param non-negative-int $minutes
+     * @param non-negative-int $seconds
+     * @param non-negative-int $milliseconds
+     * @param non-negative-int $microseconds
+     *
+     * @throws InvalidDuration
+     */
+    public function increase(
+        int $weeks = 0,
+        int $days = 0,
+        int $hours = 0,
+        int $minutes = 0,
+        int $seconds = 0,
+        int $milliseconds = 0,
+        int $microseconds = 0
+    ): self {
+        return $this->sum(self::of(
+            weeks: $weeks,
+            days: $days,
+            hours: $hours,
+            minutes: $minutes,
+            seconds: $seconds,
+            milliseconds: $milliseconds,
+            microseconds: $microseconds
+        ));
+    }
+
+    /**
+     * @param non-negative-int $weeks
+     * @param non-negative-int $days
+     * @param non-negative-int $hours
+     * @param non-negative-int $minutes
+     * @param non-negative-int $seconds
+     * @param non-negative-int $milliseconds
+     * @param non-negative-int $microseconds
+     *
+     * @throws InvalidDuration
      */
     public function increment(
         int $weeks = 0,
@@ -307,7 +315,7 @@ final readonly class Duration implements JsonSerializable
         int $milliseconds = 0,
         int $microseconds = 0,
     ): self {
-        return $this->sum(self::of(
+        return $this->increase(
             weeks: $weeks,
             days: $days,
             hours: $hours,
@@ -315,7 +323,69 @@ final readonly class Duration implements JsonSerializable
             seconds: $seconds,
             milliseconds: $milliseconds,
             microseconds: $microseconds,
-        ));
+        );
+    }
+
+    /**
+     * @param non-negative-int $weeks
+     * @param non-negative-int $days
+     * @param non-negative-int $hours
+     * @param non-negative-int $minutes
+     * @param non-negative-int $seconds
+     * @param non-negative-int $milliseconds
+     * @param non-negative-int $microseconds
+     *
+     * @throws InvalidDuration
+     */
+    public function decrease(
+        int $weeks = 0,
+        int $days = 0,
+        int $hours = 0,
+        int $minutes = 0,
+        int $seconds = 0,
+        int $milliseconds = 0,
+        int $microseconds = 0
+    ): self {
+        return $this->sum(self::of(
+            weeks: $weeks,
+            days: $days,
+            hours: $hours,
+            minutes: $minutes,
+            seconds: $seconds,
+            milliseconds: $milliseconds,
+            microseconds: $microseconds
+        )->negated());
+    }
+
+    /**
+     * @param non-negative-int $weeks
+     * @param non-negative-int $days
+     * @param non-negative-int $hours
+     * @param non-negative-int $minutes
+     * @param non-negative-int $seconds
+     * @param non-negative-int $milliseconds
+     * @param non-negative-int $microseconds
+     *
+     * @throws InvalidDuration
+     */
+    public function decrement(
+        int $weeks = 0,
+        int $days = 0,
+        int $hours = 0,
+        int $minutes = 0,
+        int $seconds = 0,
+        int $milliseconds = 0,
+        int $microseconds = 0,
+    ): self {
+        return $this->decrease(
+            weeks: $weeks,
+            days: $days,
+            hours: $hours,
+            minutes: $minutes,
+            seconds: $seconds,
+            milliseconds: $milliseconds,
+            microseconds: $microseconds,
+        );
     }
 
     /**
@@ -340,7 +410,6 @@ final readonly class Duration implements JsonSerializable
     {
         return 0 <= $this->compareTo($other);
     }
-
     public function isShorterThan(self $other): bool
     {
         return 0 > $this->compareTo($other);
@@ -356,7 +425,7 @@ final readonly class Duration implements JsonSerializable
      */
     public function clamp(self $min, self $max): self
     {
-        throw_unless($max->isLongerThanOrEqual($min), InvalidDuration::class, 'The maximum duration must be longer or equal to the minimum duration.');
+        $max->isLongerThanOrEqual($min) || throw new InvalidDuration('The maximum duration must be longer or equal to the minimum duration.');
 
         return match (true) {
             $this->isShorterThan($min) => $min,
@@ -370,14 +439,11 @@ final readonly class Duration implements JsonSerializable
      */
     public function multipliedBy(int $factor): self
     {
-        if (
-            ($factor > 0 && ($this->value > intdiv(PHP_INT_MAX - 1, $factor) || $this->value < intdiv(PHP_INT_MIN + 2, $factor)))
-            || ($factor < 0 && ($this->value > intdiv(PHP_INT_MIN + 2, $factor) || $this->value < intdiv(PHP_INT_MAX - 1, $factor)))
-        ) {
-            throw InvalidDuration::dueToOverflow();
-        }
+        $result = $this->value * $factor;
 
-        return new self($this->value * $factor);
+        is_int($result) || throw InvalidDuration::dueToOverflow(); /* @phpstan-ignore-line */
+
+        return new self($result);
     }
 
     /**
@@ -389,22 +455,38 @@ final readonly class Duration implements JsonSerializable
      */
     public function dividedBy(int $factor): self
     {
-        throw_if(0 === $factor, InvalidDuration::class, 'Unable to divide by zero.');
+        0 !== $factor || throw new InvalidDuration('Unable to divide by zero.');
 
         return new self(intdiv($this->value, $factor));
     }
 
-    private static function toMicroseconds(
-        int $days,
-        int $hours,
-        int $minutes,
-        int|float $seconds,
-        int $microseconds,
-    ): int {
-        return Unit::Day->toMicroseconds($days)
-            + Unit::Hour->toMicroseconds($hours)
-            + Unit::Minute->toMicroseconds($minutes)
-            + Unit::Second->toMicroseconds($seconds)
-            + $microseconds;
+    /**
+     * @return array{0: array{microseconds: int}, 1:array{}}
+     */
+    public function __serialize(): array
+    {
+        /** @var int $value */
+        $value = $this->total(Unit::Microsecond);
+
+        return [['microseconds' => $value], []];
+    }
+
+    /**
+     * @param array{0: array{microseconds: int}, 1: array{}} $data
+     *
+     * @throws InvalidDuration
+     */
+    public function __unserialize(array $data): void
+    {
+        [$properties] = $data;
+        $time = new self($properties['microseconds']);
+        $this->value = $time->value;
+        $this->hours = $time->hours;
+        $this->minutes = $time->minutes;
+        $this->seconds = $time->seconds;
+        $this->microseconds = $time->microseconds;
+        $this->daysCount = $time->daysCount;
+        $this->weeksCount = $time->weeksCount;
+        $this->sign = $time->sign;
     }
 }

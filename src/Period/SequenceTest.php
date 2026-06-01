@@ -143,7 +143,9 @@ final class SequenceTest extends PeriodTestCase
     public function test_filter_returns_new_instance(): void
     {
         $sequence = new Sequence(Period::fromDay(2_012, 6, 23), DatePoint::fromDateString('2012-06-12')->day());
-        $newCollection = $sequence->filter(fn (Period $period): bool => $period->startDate === CarbonImmutable::parse('2012-06-23'));
+        $newCollection = $sequence->filter(
+            fn (Period $period): bool => $period->startDate->format('Y-m-d H:i:s.uP') === CarbonImmutable::parse('2012-06-23')->format('Y-m-d H:i:s.uP'),
+        );
 
         $this->assertNotEquals($newCollection, $sequence);
         $this->assertCount(1, $newCollection);

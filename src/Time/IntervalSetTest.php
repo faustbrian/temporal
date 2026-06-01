@@ -74,7 +74,7 @@ final class IntervalSetTest extends TestCase
         $this->assertNotInstanceOf(Interval::class, $set->nth(-3));
 
         $this->expectExceptionObject(
-            new TimeException('Invalid offset (-3) given to '.IntervalSet::class.'.'),
+            InvalidIntervalSetOffset::forOffset(-3),
         );
         $set->get(-3);
     }
@@ -154,7 +154,7 @@ final class IntervalSetTest extends TestCase
         $this->assertFalse($replaceNeg->has($b));
 
         $this->expectExceptionObject(
-            new TimeException('Invalid offset (3) given to '.IntervalSet::class.'.'),
+            InvalidIntervalSetOffset::forOffset(3),
         );
         $set->replace(3, $c);
     }

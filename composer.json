@@ -52,6 +52,6 @@
         "test:refactor": "rector --dry-run",
         "test:type-coverage": "pest --parallel --min=80 --type-coverage",
         "test:types": "phpstan",
-        "test:unit": "pest --parallel --min=80 --coverage"
+        "test:unit": "@php vendor/bin/pest --parallel --min=80 --coverage"
     }
 }

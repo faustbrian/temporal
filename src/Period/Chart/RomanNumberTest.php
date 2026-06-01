@@ -41,6 +41,9 @@ final class RomanNumberTest extends TestCase
         $this->assertSame($isUpper, $lettercase->isUpper());
     }
 
+    /**
+     * @return iterable<string, array{nbLabels: int, label: int, lettercase: LetterCase, expected: array<string>, isUpper: bool}>
+     */
     public static function provideGet_labelsCases(): iterable
     {
         yield 'empty labels' => [

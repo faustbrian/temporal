@@ -137,6 +137,9 @@ final class DurationTest extends TestCase
         $this->assertSame($expected, $this->formatDuration(Duration::fromIsoString($input)));
     }
 
+    /**
+     * @return iterable<string, array{input: string, expected: string}>
+     */
     public static function provideInterval_with_fractionCases(): iterable
     {
         yield 'IsoString with fraction v1' => [
@@ -163,6 +166,9 @@ final class DurationTest extends TestCase
         Duration::fromChronoString($input);
     }
 
+    /**
+     * @return iterable<string, array{0: string}>
+     */
     public static function provideCreate_from_chrono_string_failsCases(): iterable
     {
         yield 'invalid string' => ['foobar'];
@@ -178,6 +184,9 @@ final class DurationTest extends TestCase
         $this->assertSame($expected, $this->formatDuration($duration));
     }
 
+    /**
+     * @return iterable<string, array{chronometer: string, expected: string}>
+     */
     public static function provideCreate_from_chrono_string_succeedsCases(): iterable
     {
         yield 'minute and seconds' => [
@@ -261,6 +270,9 @@ final class DurationTest extends TestCase
         $this->assertSame($expected, $this->formatDuration($duration->adjustedTo($date)));
     }
 
+    /**
+     * @return iterable<string, array{input: string, reference_date: int|string|DateTimeInterface, expected: string}>
+     */
     public static function provideAdjusted_toCases(): iterable
     {
         yield 'nothing to carry over' => [

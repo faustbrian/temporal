@@ -581,7 +581,7 @@ final class SequenceTest extends PeriodTestCase
     {
         $sequence = new Sequence();
         $sequence[] = Period::fromMonth(2_018, 1);
-        $this->assertArrayHasKey(0, $sequence);
+        $this->assertArrayHasKey(0, $sequence->toList());
         $this->assertEquals(Period::fromMonth(2_018, 1), $sequence[0]);
         $sequence[0] = Period::fromMonth(2_017, 1);
         $this->assertNotEquals(Period::fromMonth(2_018, 1), $sequence[0]);

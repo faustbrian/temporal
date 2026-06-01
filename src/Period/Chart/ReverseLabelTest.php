@@ -39,6 +39,9 @@ final class ReverseLabelTest extends TestCase
         $this->assertSame($expected, iterator_to_array($generator->generate($nbLabels), false));
     }
 
+    /**
+     * @return iterable<string, array{nbLabels: int, letter: string, expected: array<string>}>
+     */
     public static function provideGet_labelsCases(): iterable
     {
         yield 'empty labels' => [

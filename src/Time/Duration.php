@@ -282,11 +282,12 @@ final readonly class Duration implements JsonSerializable
     public function sum(self ...$other): self
     {
         $other[] = $this;
+        /** @var int|float $value */
         $value = array_sum(array_column($other, 'value'));
 
         if (!is_int($value)) {
             throw InvalidDuration::dueToOverflow();
-        } /* @phpstan-ignore-line */
+        }
 
         return $this->value === $value ? $this : new self($value);
     }
@@ -366,11 +367,12 @@ final readonly class Duration implements JsonSerializable
      */
     public function multipliedBy(int $factor): self
     {
+        /** @var int|float $result */
         $result = $this->value * $factor;
 
         if (!is_int($result)) {
             throw InvalidDuration::dueToOverflow();
-        } /* @phpstan-ignore-line */
+        }
 
         return new self($result);
     }

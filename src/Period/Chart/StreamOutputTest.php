@@ -18,6 +18,7 @@ namespace Cline\Temporal\Period\Chart;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use TypeError;
 
 use const PHP_EOL;
@@ -36,7 +37,10 @@ final class StreamOutputTest extends TestCase
     public function test_create_stream_with_invalid_parameter(): void
     {
         $this->expectException(TypeError::class);
-        new StreamOutput(__DIR__.'/data/foo.csv', Terminal::Posix);
+        /** @var mixed $stream */
+        $stream = __DIR__.'/data/foo.csv';
+
+        new StreamOutput($stream, Terminal::Posix);
     }
 
     #[DataProvider('provideWritelnCases')]
@@ -54,6 +58,9 @@ final class StreamOutputTest extends TestCase
         $this->assertStringContainsString($expected, $data);
     }
 
+    /**
+     * @return iterable<string, array{message: string, expected: string}>
+     */
     public static function provideWritelnCases(): iterable
     {
         yield 'empty message' => [
@@ -82,6 +89,9 @@ final class StreamOutputTest extends TestCase
         $this->assertStringContainsString($expected, $data);
     }
 
+    /**
+     * @return iterable<string, array{message: string, expected: string}>
+     */
     public static function provideWriteln_unknownCases(): iterable
     {
         yield 'empty message' => [
@@ -100,6 +110,12 @@ final class StreamOutputTest extends TestCase
      */
     private function setStream()
     {
-        return fopen('php://memory', 'r+b');
+        $stream = fopen('php://memory', 'r+b');
+
+        if (false === $stream) {
+            throw new RuntimeException('Unable to create memory stream.');
+        }
+
+        return $stream;
     }
 }

@@ -203,6 +203,7 @@ enum DurationNotation
     private function fromChrono(string $duration): Duration
     {
         throw_if(1 !== preg_match(self::REGEXP_CHRONO, $duration, $parts), InvalidDuration::class, 'Unknown or bad format `'.$duration.'`.');
+        $parts += ['hours' => '0', 'minutes' => '0', 'seconds' => '0', 'microseconds' => '0', 'sign' => ''];
 
         $minutes = (int) $parts['minutes'];
         $seconds = (int) $parts['seconds'];
@@ -241,16 +242,17 @@ enum DurationNotation
         $notation = mb_trim($notation);
 
         throw_unless('' !== $notation && 1 === preg_match(self::REGEXP_COMPACT, $notation, $parts), InvalidDuration::class, 'Unknown or bad format `'.$notation.'`.');
+        $parts += ['weeks' => '0', 'days' => '0', 'hours' => '0', 'minutes' => '0', 'seconds' => '0', 'microseconds' => '0', 'sign' => ''];
 
         $microseconds = self::toMicroseconds(
-            days: (((int) ($parts['weeks'] ?? 0) * 7) + (int) ($parts['days'] ?? 0)),
-            hours: (int) ($parts['hours'] ?? 0),
-            minutes: (int) ($parts['minutes'] ?? 0),
-            seconds: (int) ($parts['seconds'] ?? 0),
-            microseconds: (int) ($parts['microseconds'] ?? 0),
+            days: (((int) $parts['weeks'] * 7) + (int) $parts['days']),
+            hours: (int) $parts['hours'],
+            minutes: (int) $parts['minutes'],
+            seconds: (int) $parts['seconds'],
+            microseconds: (int) $parts['microseconds'],
         );
 
-        return Duration::of(microseconds: '-' === ($parts['sign'] ?? '') ? -$microseconds : $microseconds);
+        return Duration::of(microseconds: '-' === $parts['sign'] ? -$microseconds : $microseconds);
     }
 
     /**
@@ -272,15 +274,16 @@ enum DurationNotation
         if (1 !== preg_match(self::REGEXP_ISO8601, $notation, $parts)) {
             throw InvalidDuration::dueToMalformedIso8601($notation);
         }
+        $parts += ['weeks' => '0', 'days' => '0', 'hours' => '0', 'minutes' => '0', 'seconds' => '0', 'sign' => ''];
 
         $microseconds = self::toMicroseconds(
-            days: (((int) ($parts['weeks'] ?? 0) * 7) + (int) ($parts['days'] ?? 0)),
-            hours: (int) ($parts['hours'] ?? 0),
-            minutes: (int) ($parts['minutes'] ?? 0),
-            seconds: (float) ($parts['seconds'] ?? 0),
+            days: (((int) $parts['weeks'] * 7) + (int) $parts['days']),
+            hours: (int) $parts['hours'],
+            minutes: (int) $parts['minutes'],
+            seconds: (float) $parts['seconds'],
             microseconds: 0,
         );
 
-        return Duration::of(microseconds: '-' === ($parts['sign'] ?? '') ? -$microseconds : $microseconds);
+        return Duration::of(microseconds: '-' === $parts['sign'] ? -$microseconds : $microseconds);
     }
 }

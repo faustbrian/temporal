@@ -507,6 +507,9 @@ final class PeriodFactoryTest extends PeriodTestCase
         Period::fromIso80000($format, $notation);
     }
 
+    /**
+     * @return iterable<string, array{0: string, 1: string}>
+     */
     public static function provideFails_to_create_new_instance_from_iso80000Cases(): iterable
     {
         yield 'empty string' => ['', 'Y-m-d'];
@@ -567,6 +570,9 @@ final class PeriodFactoryTest extends PeriodTestCase
         Period::fromBourbaki($format, $notation);
     }
 
+    /**
+     * @return iterable<string, array{0: string, 1: string}>
+     */
     public static function provideFails_to_create_new_instance_from_bourbakiCases(): iterable
     {
         yield 'empty string' => ['', 'Y-m-d'];
@@ -662,6 +668,9 @@ final class PeriodFactoryTest extends PeriodTestCase
         Period::fromIso8601($format, $notation, $bounds);
     }
 
+    /**
+     * @return iterable<string, array{0: string, 1: string, 2: Bounds}>
+     */
     public static function provideFails_to_create_new_instance_from_iso_notationCases(): iterable
     {
         yield 'empty string' => ['', 'Y-m-d', Bounds::IncludeAll];

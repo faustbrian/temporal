@@ -136,6 +136,7 @@ final readonly class Duration
     public static function fromChronoString(string $duration): self
     {
         throw_if(1 !== preg_match(self::REGEXP_CHRONOMETER, $duration, $matches), InvalidArgumentException::class, 'Unknown or bad format `'.$duration.'`.');
+        $matches += ['hour' => '0', 'minute' => '0', 'second' => '0', 'fraction' => null, 'sign' => '+'];
 
         return self::fromUnits([
             'hour' => '' === $matches['hour'] ? '0' : $matches['hour'],
@@ -154,6 +155,7 @@ final readonly class Duration
     public static function fromTimeString(string $duration): self
     {
         throw_if(1 !== preg_match(self::REGEXP_TIME_FORMAT, $duration, $matches), InvalidArgumentException::class, 'Unknown or bad format ('.$duration.')');
+        $matches += ['hour' => '0', 'minute' => '0', 'second' => '0', 'fraction' => null, 'sign' => '+'];
 
         return self::fromUnits([
             'hour' => $matches['hour'],

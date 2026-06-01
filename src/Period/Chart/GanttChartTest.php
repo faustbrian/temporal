@@ -21,6 +21,7 @@ use Cline\Temporal\Period\Period;
 use Cline\Temporal\Period\Sequence;
 use Illuminate\Support\Facades\Date;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 use const STDOUT;
 
@@ -139,6 +140,12 @@ final class GanttChartTest extends TestCase
      */
     private function setStream()
     {
-        return fopen('php://memory', 'r+b');
+        $stream = fopen('php://memory', 'r+b');
+
+        if (false === $stream) {
+            throw new RuntimeException('Unable to create memory stream.');
+        }
+
+        return $stream;
     }
 }

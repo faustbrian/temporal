@@ -196,6 +196,9 @@ final class GanttChartConfigTest extends TestCase
         $this->assertSame($expected, $this->config->gapSize($gap)->gapSize);
     }
 
+    /**
+     * @return iterable<string, array{gap: int, expected: int}>
+     */
     public static function providerGaps(): iterable
     {
         yield 'single gap' => [
@@ -220,6 +223,9 @@ final class GanttChartConfigTest extends TestCase
         $this->assertSame($expected, $this->config->labelAlignment($padding)->labelAlignment);
     }
 
+    /**
+     * @return iterable<string, array{padding: Alignment, expected: Alignment}>
+     */
     public static function providePaddingCases(): iterable
     {
         yield 'default' => [

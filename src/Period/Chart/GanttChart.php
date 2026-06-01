@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,7 +9,12 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Period\Chart;
 
@@ -22,7 +27,7 @@ use function ceil;
 use function count;
 use function floor;
 use function implode;
-use function str_pad;
+use function mb_str_pad;
 use function str_repeat;
 
 /**
@@ -31,17 +36,18 @@ use function str_repeat;
 final class GanttChart implements Chart
 {
     private float $start = 0;
+
     private float $unit = 1;
-    /** @var array<string>  */
+
+    /** @var array<string> */
     private array $emptyLineCharacters;
 
     public function __construct(
-        public readonly GanttChartConfig $config = new GanttChartConfig()
-    ) {
-    }
+        public readonly GanttChartConfig $config = new GanttChartConfig(),
+    ) {}
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      *
      * The generated Gantt Bar can be represented like the following but depends on the configuration used
      *
@@ -62,13 +68,14 @@ final class GanttChart implements Chart
         $colorCodeCount = count($colorCodeIndexes);
         $output = $this->config->output;
         $this->emptyLineCharacters = array_fill(0, $this->config->width, $this->config->spaceCharacter);
+
         foreach ($dataset as $offset => [$label, $sequence]) {
             $output->writeln(
                 $leftMargin
-                .str_pad((string) $label, $labelMaxLength, ' ', $padding)
+                .mb_str_pad((string) $label, $labelMaxLength, ' ', $padding)
                 .$gap
                 .$this->sequenceToLine($sequence),
-                $colorCodeIndexes[$offset % $colorCodeCount]
+                $colorCodeIndexes[$offset % $colorCodeCount],
             );
         }
     }
@@ -81,10 +88,13 @@ final class GanttChart implements Chart
         $this->start = 0;
         $this->unit = 1;
         $length = $dataset->length();
-        if (null !== $length) {
-            $this->start = $length->startDate->getTimestamp();
-            $this->unit = $this->config->width / $length->timeDuration();
+
+        if (!$length instanceof Period) {
+            return;
         }
+
+        $this->start = $length->startDate->getTimestamp();
+        $this->unit = $this->config->width / $length->timeDuration();
     }
 
     /**

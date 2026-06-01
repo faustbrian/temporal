@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,7 +9,12 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Period\Chart;
 
@@ -22,22 +27,15 @@ use function preg_match;
  *
  * @see LabelGenerator
  */
-final class AffixLabel implements LabelGenerator
+final readonly class AffixLabel implements LabelGenerator
 {
     public function __construct(
-        public readonly LabelGenerator $labelGenerator,
-        public readonly string $labelPrefix = '',
-        public readonly string $labelSuffix = ''
+        public LabelGenerator $labelGenerator,
+        public string $labelPrefix = '',
+        public string $labelSuffix = '',
     ) {
         $this->filterAffix($this->labelPrefix);
         $this->filterAffix($this->labelSuffix);
-    }
-
-    private function filterAffix(string $str): void
-    {
-        if (1 === preg_match("/[\r\n]/", $str)) {
-            throw UnableToDrawChart::dueToInvalidLabel($str, $this);
-        }
     }
 
     public function generate(int $nbLabels): Iterator
@@ -50,6 +48,13 @@ final class AffixLabel implements LabelGenerator
     public function format(string $label): string
     {
         return $this->decorate($this->labelGenerator->format($label));
+    }
+
+    private function filterAffix(string $str): void
+    {
+        if (1 === preg_match("/[\r\n]/", $str)) {
+            throw UnableToDrawChart::dueToInvalidLabel($str, $this);
+        }
     }
 
     private function decorate(string $string): string

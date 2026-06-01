@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,39 +9,45 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Period\Chart;
 
 use Closure;
 use TypeError;
 
+use const PHP_EOL;
+
+use function array_map;
+use function array_reduce;
 use function chr;
 use function fflush;
 use function fwrite;
+use function get_resource_type;
 use function implode;
+use function is_resource;
 use function preg_replace;
 use function preg_replace_callback;
+use function strtr;
 
-use const PHP_EOL;
-
-final class StreamOutput implements Output
+final readonly class StreamOutput implements Output
 {
-    private const REGEXP_POSIX_PLACEHOLDER = '/(\s+)/msi';
-
-    /** @var resource */
-    private $stream;
+    private const string REGEXP_POSIX_PLACEHOLDER = '/(\s+)/msi';
 
     /**
      * @param mixed $stream stream resource
      */
-    public function __construct(mixed $stream, public readonly Terminal $terminal)
-    {
-        if (!is_resource($stream) || 'stream' !== get_resource_type($stream)) {
-            throw new TypeError('Argument passed must be a stream resource.');
-        }
-
-        $this->stream = $stream;
+    public function __construct(
+        /** @var resource */
+        private mixed $stream,
+        public Terminal $terminal,
+    ) {
+        throw_if(!is_resource($stream) || 'stream' !== get_resource_type($stream), TypeError::class, 'Argument passed must be a stream resource.');
     }
 
     public function writeln(string $message, Color $color = Color::None): void
@@ -58,7 +64,7 @@ final class StreamOutput implements Output
         return match (true) {
             Color::None === $color,
             Terminal::Posix !== $this->terminal => $characters,
-            default => "<<$color->value>>$characters<<".Color::Reset->value.'>>',
+            default => sprintf('<<%s>>%s<<', $color->value, $characters).Color::Reset->value.'>>',
         };
     }
 
@@ -71,8 +77,9 @@ final class StreamOutput implements Output
             return $str;
         }
 
-        /** @var string|null $regexp */
+        /** @var null|string $regexp */
         static $regexp;
+
         if (null === $regexp) {
             $regexp = ',<<\s*((('.implode('|', array_map(fn (Color $c): string => $c->value, Color::cases())).')(\s*))+)>>,Umsi';
         }
@@ -86,10 +93,11 @@ final class StreamOutput implements Output
     private function formatter(): Closure
     {
         static $formatter;
+
         if (!$formatter instanceof Closure) {
             $formatter = fn (array $matches): string => chr(27).'['.strtr(
                 (string) preg_replace(self::REGEXP_POSIX_PLACEHOLDER, ';', (string) $matches[1]),
-                array_reduce(Color::cases(), fn (array $carry, Color $color): array => [...$carry, ...[$color->value => $color->posix()]], [])
+                array_reduce(Color::cases(), fn (array $carry, Color $color): array => [...$carry, ...[$color->value => $color->posix()]], []),
             ).'m';
         }
 

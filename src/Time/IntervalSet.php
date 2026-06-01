@@ -1,6 +1,11 @@
-<?php
+<?php declare(strict_types=1);
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Time;
 
@@ -21,22 +26,25 @@ use function array_map;
 use function array_pop;
 use function array_shift;
 use function count;
+use function enum_exists;
 use function in_array;
 use function is_string;
 use function max;
+use function mb_strtolower;
 use function min;
-use function strtolower;
 use function usort;
 
 /**
  * @phpstan-import-type NativeInterval from Interval
  *
  * @implements IteratorAggregate<Interval>
+ * @psalm-immutable
  */
 final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSerializable
 {
     /** @var list<Interval> */
     private array $intervals;
+
     private Duration $duration;
 
     /**
@@ -44,7 +52,27 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
      */
     public function __construct(Interval|self ...$intervals)
     {
-        $this->intervals = self::flatten(...$intervals);
+        $this->intervals = $this->flatten(...$intervals);
+        $this->duration = Duration::zero()->sum(...array_column($this->intervals, 'duration'));
+    }
+
+    /**
+     * @return array{0: array{intervals: list<Interval>}, 1: array{}}
+     */
+    public function __serialize(): array
+    {
+        return [['intervals' => $this->intervals], []];
+    }
+
+    /**
+     * @param array{0: array{intervals: list<Interval>}, 1: array{}} $data
+     *
+     * @throws InvalidDuration
+     */
+    public function __unserialize(array $data): void
+    {
+        [$properties] = $data;
+        $this->intervals = $properties['intervals'];
         $this->duration = Duration::zero()->sum(...array_column($this->intervals, 'duration'));
     }
 
@@ -63,7 +91,7 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
      */
     public function jsonSerialize(): array
     {
-        return $this->all();
+        return $this->intervals;
     }
 
     /**
@@ -90,7 +118,7 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
     ): array {
         return array_map(
             static fn (Interval $interval): string => $interval->toNotation($notation, $unitOfDay),
-            $this->intervals
+            $this->intervals,
         );
     }
 
@@ -191,6 +219,7 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
     {
         for ($offset = count($this->intervals) - 1; $offset >= 0; --$offset) {
             $interval = $this->intervals[$offset];
+
             if (true === $predicate($interval, $offset)) {
                 return $interval;
             }
@@ -204,7 +233,7 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
      */
     public function push(Interval|self ...$interval): self
     {
-        $res = self::flatten(...$interval);
+        $res = $this->flatten(...$interval);
 
         return [] === $res ? $this : new self(...$this->intervals, ...$res);
     }
@@ -229,7 +258,7 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
             $offset += count($this->intervals);
         }
 
-        isset($this->intervals[$offset]) || throw new TimeException('Invalid offset ('.$offset.') given to '.self::class.'.');
+        throw_unless(isset($this->intervals[$offset]), TimeException::class, 'Invalid offset ('.$offset.') given to '.self::class.'.');
 
         $intervals = $this->intervals;
         $intervals[$offset] = $interval;
@@ -248,12 +277,15 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
 
         $nbIntervals = count($this->intervals);
         $normalized = [];
+
         foreach ($offsets as $offset) {
             if ($offset < 0) {
                 $offset += $nbIntervals;
             }
-
-            if (0 > $offset || $nbIntervals <= $offset) {
+            if (0 > $offset) {
+                continue;
+            }
+            if ($nbIntervals <= $offset) {
                 continue;
             }
 
@@ -268,33 +300,11 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
     }
 
     /**
-     * @return list<Interval>
-     */
-    private static function flatten(Interval|self ...$intervals): array
-    {
-        $res = [];
-        foreach ($intervals as $item) {
-            $found = $item instanceof Interval ? [$item] : $item->intervals;
-            foreach ($found as $interval) {
-                $res[] = $interval;
-            }
-        }
-
-        return $res;
-    }
-
-    /**
      * @param callable(Interval, int=): bool $callback
      */
     public function any(callable $callback): bool
     {
-        foreach ($this->intervals as $key => $interval) {
-            if (true === $callback($interval, $key)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($this->intervals, fn($interval, $key): bool => true === $callback($interval, $key));
     }
 
     /**
@@ -333,10 +343,13 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
     public function filter(callable $callback): self
     {
         $data = [];
+
         foreach ($this->intervals as $key => $interval) {
-            if (true === $callback($interval, $key)) {
-                $data[] = $interval;
+            if (true !== $callback($interval, $key)) {
+                continue;
             }
+
+            $data[] = $interval;
         }
 
         return $data === $this->intervals ? $this : new self(...$data);
@@ -347,7 +360,7 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
      * @template TReduceReturnType
      *
      * @param callable(TReduceInitial|TReduceReturnType, Interval, int=): TReduceReturnType $callback
-     * @param TReduceInitial $initial
+     * @param TReduceInitial                                                                $initial
      *
      * @return TReduceInitial|TReduceReturnType
      */
@@ -367,19 +380,13 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
      */
     public function each(callable $callback): bool
     {
-        foreach ($this->intervals as $key => $interval) {
-            if (false === $callback($interval, $key)) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all($this->intervals, fn($interval, $key): bool => false !== $callback($interval, $key));
     }
 
     /**
      * @throws InvalidDuration|InvalidInterval
      */
-    public function gaps(): IntervalSet
+    public function gaps(): self
     {
         if ($this->isEmpty()) {
             return $this;
@@ -387,15 +394,16 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
 
         $result = [];
         $previous = null;
+
         foreach ($this->union()->sorted() as $interval) {
-            if (null !== $previous && $interval->start->isAfter($previous->end)) {
+            if ($previous instanceof Interval && $interval->start->isAfter($previous->end)) {
                 $result[] = Interval::between($previous->end, $interval->start);
             }
 
             $previous = $interval;
         }
 
-        return new IntervalSet(...$result);
+        return new self(...$result);
     }
 
     /**
@@ -408,12 +416,14 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
         }
 
         $other = new self(...$others);
+
         if ($other->isEmpty()) {
             return $this;
         }
 
         $differences = [];
         $otherIntervals = $other->union()->intervals;
+
         foreach ($this->union()->intervals as $interval) {
             if (IntervalType::Collapsed === $interval->type) {
                 continue;
@@ -431,9 +441,11 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
                 $bStart = $otherInterval->linearStart;
                 $bEnd = $otherInterval->linearEnd;
                 $next = [];
+
                 foreach ($current as [$start, $end]) {
                     if ($bEnd <= $start || $bStart >= $end) {
                         $next[] = [$start, $end];
+
                         continue;
                     }
 
@@ -441,12 +453,15 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
                         $next[] = [$start, $bStart];
                     }
 
-                    if ($bEnd < $end) {
-                        $next[] = [$bEnd, $end];
+                    if ($bEnd >= $end) {
+                        continue;
                     }
+
+                    $next[] = [$bEnd, $end];
                 }
 
                 $current = $next;
+
                 if ([] === $current) {
                     break;
                 }
@@ -459,12 +474,12 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
             ...array_map(
                 static fn (array $span): Interval => Interval::fromLinearSpan($span[0], $span[1]),
                 $differences,
-            )
+            ),
         );
     }
 
     /**
-     * @throws InvalidInterval|InvalidDuration
+     * @throws InvalidDuration|InvalidInterval
      */
     public function intersect(self|Interval ...$others): self
     {
@@ -473,23 +488,28 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
         }
 
         $other = new self(...$others);
+
         if ($other->isEmpty()) {
             return $this;
         }
 
         $intersections = [];
         $bSpans = $other->union()->intervals;
+
         foreach ($this->union()->intervals as $aInterval) {
             foreach ($bSpans as $bInterval) {
                 $start = max($aInterval->linearStart, $bInterval->linearStart);
                 $end = min($aInterval->linearEnd, $bInterval->linearEnd);
-                if ($start < $end) {
-                    $intersections[] = Interval::fromLinearSpan($start, $end);
+
+                if ($start >= $end) {
+                    continue;
                 }
+
+                $intersections[] = Interval::fromLinearSpan($start, $end);
             }
         }
 
-        return (new self(...$intersections))->union();
+        return new self(...$intersections)->union();
     }
 
     /**
@@ -497,26 +517,30 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
      */
     public function complement(): self
     {
-        return (new IntervalSet(Interval::fullDay()))->difference($this)->union();
+        return new self(Interval::fullDay())->difference($this)->union();
     }
 
     /**
-     * @throws InvalidInterval|InvalidDuration
+     * @throws InvalidDuration|InvalidInterval
      */
     public function union(Interval|self ...$others): self
     {
         $set = $this->push(...$others)->sorted();
+
         if (1 >= count($set)) {
             return $set;
         }
 
         $merged = [];
+
         foreach ($set->intervals as $span) {
             if ([] !== $merged) {
                 $lastIndex = array_key_last($merged);
                 $prevSpan = $merged[$lastIndex];
+
                 if ($span->linearStart <= $prevSpan->linearEnd) {
                     $merged[$lastIndex] = Interval::fromLinearSpan($prevSpan->linearStart, max($prevSpan->linearEnd, $span->linearEnd));
+
                     continue;
                 }
             }
@@ -526,7 +550,8 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
 
         if (count($merged) >= 2) {
             $first = $merged[0];
-            $last = $merged[array_key_last($merged)];
+            $last = array_last($merged);
+
             if ($first->overlaps($last)) {
                 array_shift($merged);
                 array_pop($merged);
@@ -538,7 +563,7 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
         return new self(...$merged);
     }
 
-    /***
+    /**
      * @param callable(Interval, Interval): int $callback
      *
      * @throws InvalidDuration
@@ -568,7 +593,25 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
      */
     public function sorted(Bound $sortBound = Bound::Start, UnitEnum|string $sortDirection = 'asc'): self
     {
-        return $this->sortedUsing(self::filterCompare($sortBound, self::filterSortDirection($sortDirection)));
+        return $this->sortedUsing($this->filterCompare($sortBound, $this->filterSortDirection($sortDirection)));
+    }
+
+    /**
+     * @return list<Interval>
+     */
+    private function flatten(Interval|self ...$intervals): array
+    {
+        $res = [];
+
+        foreach ($intervals as $item) {
+            $found = $item instanceof Interval ? [$item] : $item->intervals;
+
+            foreach ($found as $interval) {
+                $res[] = $interval;
+            }
+        }
+
+        return $res;
     }
 
     /**
@@ -576,14 +619,15 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
      *
      * @return Closure(Interval, Interval): int
      */
-    private static function filterCompare(Bound $bound, string $sortDirection): Closure
+    private function filterCompare(Bound $bound, string $sortDirection): Closure
     {
         $primary = match ($bound) {
-            Bound::Start => static fn (Interval $x, Interval $y) => $x->linearStart <=> $y->linearStart,
-            Bound::End => static fn (Interval $x, Interval $y) => $x->linearEnd <=> $y->linearEnd,
+            Bound::Start => static fn (Interval $x, Interval $y): int => $x->linearStart <=> $y->linearStart,
+            Bound::End => static fn (Interval $x, Interval $y): int => $x->linearEnd <=> $y->linearEnd,
         };
 
-        $primary = 'asc' === $sortDirection ? $primary : static fn (Interval $x, Interval $y) => $primary($y, $x);
+        $primary = 'asc' === $sortDirection ? $primary : static fn (Interval $x, Interval $y): int => $primary($y, $x);
+
         $secondary = static fn (Interval $x, Interval $y): int => $x->duration->compareTo($y->duration);
 
         return static function (Interval $x, Interval $y) use ($primary, $secondary): int {
@@ -596,43 +640,23 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
     /**
      * @return 'asc'|'desc'
      */
-    private static function filterSortDirection(UnitEnum|string $sortDirection): string
+    private function filterSortDirection(UnitEnum|string $sortDirection): string
     {
         if (enum_exists('\SortDirection') && $sortDirection instanceof SortDirection) {
             return match ($sortDirection) {
                 SortDirection::Ascending => 'asc',
                 SortDirection::Descending => 'desc',
-                default => throw new ValueError("Unknown sort direction '$sortDirection->name'"),
+                default => throw new ValueError(sprintf("Unknown sort direction '%s'", $sortDirection->name)),
             };
         }
 
-        is_string($sortDirection) || throw new TypeError('Argument ($sortDirection) must be of type SortDirection, '.$sortDirection::class.' given,');
-        $sortDirection = strtolower($sortDirection);
+        throw_unless(is_string($sortDirection), TypeError::class, 'Argument ($sortDirection) must be of type SortDirection, '.$sortDirection::class.' given,');
+        $sortDirection = mb_strtolower($sortDirection);
 
         return match ($sortDirection) {
             'asc', 'ascending' => 'asc',
             'desc', 'descending' => 'desc',
-            default => throw new ValueError("Unknown sort direction '$sortDirection'")
+            default => throw new ValueError(sprintf("Unknown sort direction '%s'", $sortDirection)),
         };
-    }
-
-    /**
-     * @return array{0: array{intervals: list<Interval>}, 1: array{}}
-     */
-    public function __serialize(): array
-    {
-        return [['intervals' => $this->intervals], []];
-    }
-
-    /**
-     * @param array{0: array{intervals: list<Interval>}, 1: array{}} $data
-     *
-     * @throws InvalidDuration
-     */
-    public function __unserialize(array $data): void
-    {
-        [$properties] = $data;
-        $this->intervals = $properties['intervals'];
-        $this->duration = Duration::zero()->sum(...array_column($this->intervals, 'duration'));
     }
 }

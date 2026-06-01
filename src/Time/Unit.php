@@ -1,6 +1,11 @@
-<?php
+<?php declare(strict_types=1);
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Time;
 
@@ -19,10 +24,15 @@ enum Unit
     case Microsecond;
 
     private const int MICRO_PER_MILLI = 1_000;
+
     private const int MICRO_PER_SECOND = 1_000 * self::MICRO_PER_MILLI;
+
     private const int MICRO_PER_MINUTE = 60 * self::MICRO_PER_SECOND;
+
     private const int MICRO_PER_HOUR = 60 * self::MICRO_PER_MINUTE;
+
     private const int MICRO_PER_DAY = 24 * self::MICRO_PER_HOUR;
+
     private const int MICRO_PER_WEEK = 7 * self::MICRO_PER_DAY;
 
     public function microseconds(): int

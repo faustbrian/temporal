@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,12 +9,8 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 /**
- * League.Period (https://period.thephpleague.com).
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -25,26 +21,33 @@ namespace Cline\Temporal\Period\Chart;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
+use const STR_PAD_BOTH;
+use const STR_PAD_LEFT;
+use const STR_PAD_RIGHT;
+
+/**
+ * @internal
+ */
 final class AlignmentTest extends TestCase
 {
-    public function testItCanBeConstructFromPadding(): void
+    public function test_it_can_be_construct_from_padding(): void
     {
-        self::assertSame(Alignment::Left, Alignment::fromPadding(STR_PAD_LEFT));
-        self::assertSame(Alignment::Right, Alignment::fromPadding(STR_PAD_RIGHT));
-        self::assertSame(Alignment::Center, Alignment::fromPadding(STR_PAD_BOTH));
+        $this->assertSame(Alignment::Left, Alignment::fromPadding(STR_PAD_LEFT));
+        $this->assertSame(Alignment::Right, Alignment::fromPadding(STR_PAD_RIGHT));
+        $this->assertSame(Alignment::Center, Alignment::fromPadding(STR_PAD_BOTH));
     }
 
-    public function testItWillFailOnUnknownPadding(): void
+    public function test_it_will_fail_on_unknown_padding(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
         Alignment::fromPadding(42);
     }
 
-    public function testItCanBeConvertedToPadding(): void
+    public function test_it_can_be_converted_to_padding(): void
     {
-        self::assertSame(STR_PAD_LEFT, Alignment::Left->toPadding());
-        self::assertSame(STR_PAD_RIGHT, Alignment::Right->toPadding());
-        self::assertSame(STR_PAD_BOTH, Alignment::Center->toPadding());
+        $this->assertSame(STR_PAD_LEFT, Alignment::Left->toPadding());
+        $this->assertSame(STR_PAD_RIGHT, Alignment::Right->toPadding());
+        $this->assertSame(STR_PAD_BOTH, Alignment::Center->toPadding());
     }
 }

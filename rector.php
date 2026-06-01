@@ -11,7 +11,7 @@ use Rector\CodingStyle\Rector\ClassLike\NewlineBetweenClassLikeStmtsRector;
 use RectorLaravel\Rector\MethodCall\ContainerBindConcreteWithClosureOnlyRector;
 use Rector\DeadCode\Rector\Stmt\RemoveUnreachableStatementRector;
 return Factory::create(
-    paths: [__DIR__.'/tests'],
+    paths: [__DIR__.'/src', __DIR__.'/tests'],
     skip: [
         RemoveUnreachableStatementRector::class => [__DIR__.'/tests'],
         ContainerBindConcreteWithClosureOnlyRector::class,

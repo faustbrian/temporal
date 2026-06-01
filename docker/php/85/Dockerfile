@@ -1,7 +1,8 @@
 FROM php:8.5-cli
 WORKDIR /usr/src/myapp
 
-RUN apt-get update && apt-get install zip unzip git curl -y \
+RUN apt-get update && apt-get install zip unzip git curl libicu-dev -y \
+    && docker-php-ext-install intl \
     && pecl install pcov \
     && docker-php-ext-enable pcov \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \

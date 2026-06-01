@@ -1,9 +1,7 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -44,7 +42,7 @@ final class InvalidInterval extends InvalidArgumentException implements Interval
 
     public static function dueToUnsupportedVersion(string $method, string $phpVersion): self
     {
-        return new self("The `$method` is available starting with `$phpVersion`.");
+        return new self(sprintf('The `%s` is available starting with `%s`.', $method, $phpVersion));
     }
 
     public static function dueToUnknownNotation(string $expectedFormat, string $notation): self

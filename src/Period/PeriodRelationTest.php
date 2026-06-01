@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,12 +9,8 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 /**
- * League.Period (https://period.thephpleague.com).
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -22,953 +18,1056 @@ declare(strict_types=1);
 
 namespace Cline\Temporal\Period;
 
+use Illuminate\Support\Facades\Date;
+use Carbon\CarbonImmutable;
 use DateInterval;
-use DateTime;
-use DateTimeImmutable;
 use DateTimeInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
+
 use function count;
 
+/**
+ * @internal
+ */
 final class PeriodRelationTest extends PeriodTestCase
 {
-    #[DataProvider('isBeforeProvider')]
-    public function testIsBefore(Period $interval, DateTimeInterface|Period|string $input, bool $expected): void
+    #[DataProvider('provideIsBeforeCases')]
+    public function test_is_before(Period $interval, DateTimeInterface|Period|string $input, bool $expected): void
     {
-        self::assertSame($expected, $interval->isBefore($input));
+        $this->assertSame($expected, $interval->isBefore($input));
     }
 
     /**
-     * @return array<string, array{interval:Period, input:DateTimeInterface|Period|string, expected:bool}>
+     * @return \Iterator<string, array{interval: Period, input: (Period | \DateTimeInterface | string), expected: bool}>
      */
-    public static function isBeforeProvider(): array
+    public static function provideIsBeforeCases(): \Iterator
     {
-        return [
-            'range exclude end date success' => [
-                'interval' => Period::fromMonth(2012, 1),
-                'input' => '2015-01-01',
-                'expected' => true,
-            ],
-            'range exclude end date fails' => [
-                'interval' => Period::fromMonth(2012, 1),
-                'input' => new DateTime('2010-01-01'),
-                'expected' => false,
-            ],
-            'range exclude end date abuts date fails' => [
-                'interval' => Period::fromMonth(2012, 1),
-                'input' => new DateTime('2012-01-01'),
-                'expected' => false,
-            ],
-            'range exclude start date success' => [
-                'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
-                'input' => new DateTimeImmutable('2015-01-01'),
-                'expected' => true,
-            ],
-            'range exclude start date fails' => [
-                'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
-                'input' => new DateTime('2010-01-01'),
-                'expected' => false,
-            ],
-            'range exclude start date abuts date success' => [
-                'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
-                'input' => new DateTime('2012-02-01'),
-                'expected' => false,
-            ],
-            'exclude end date is before interval' => [
-                'interval' => Period::fromMonth(2012, 1),
-                'input' => Period::fromMonth(2011, 1),
-                'expected' => false,
-            ],
-            'exclude end date is not before interval' => [
-                'interval' => Period::fromMonth(2012, 1),
-                'input' => Period::fromMonth(2013, 1),
-                'expected' => true,
-            ],
-            'exclude end date abuts interval start date' => [
-                'interval' => Period::fromMonth(2012, 1),
-                'input' => Period::fromMonth(2012, 2),
-                'expected' => true,
-            ],
-            'exclude start date is before interval' => [
-                'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
-                'input' => Period::fromMonth(2012, 2),
-                'expected' => false,
-            ],
-            'exclude start date is not before interval' => [
-                'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
-                'input' => Period::fromMonth(2012, 3),
-                'expected' => true,
-            ],
-            'exclude start date abuts interval start date' => [
-                'interval' => Period::after('2011-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
-                'input' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
-                'expected' => true,
-            ],
+        yield 'range exclude end date success' => [
+            'interval' => Period::fromMonth(2_012, 1),
+            'input' => '2015-01-01',
+            'expected' => true,
+        ];
+        yield 'range exclude end date fails' => [
+            'interval' => Period::fromMonth(2_012, 1),
+            'input' => Date::parse('2010-01-01'),
+            'expected' => false,
+        ];
+        yield 'range exclude end date abuts date fails' => [
+            'interval' => Period::fromMonth(2_012, 1),
+            'input' => Date::parse('2012-01-01'),
+            'expected' => false,
+        ];
+        yield 'range exclude start date success' => [
+            'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
+            'input' => CarbonImmutable::parse('2015-01-01'),
+            'expected' => true,
+        ];
+        yield 'range exclude start date fails' => [
+            'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
+            'input' => Date::parse('2010-01-01'),
+            'expected' => false,
+        ];
+        yield 'range exclude start date abuts date success' => [
+            'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
+            'input' => Date::parse('2012-02-01'),
+            'expected' => false,
+        ];
+        yield 'exclude end date is before interval' => [
+            'interval' => Period::fromMonth(2_012, 1),
+            'input' => Period::fromMonth(2_011, 1),
+            'expected' => false,
+        ];
+        yield 'exclude end date is not before interval' => [
+            'interval' => Period::fromMonth(2_012, 1),
+            'input' => Period::fromMonth(2_013, 1),
+            'expected' => true,
+        ];
+        yield 'exclude end date abuts interval start date' => [
+            'interval' => Period::fromMonth(2_012, 1),
+            'input' => Period::fromMonth(2_012, 2),
+            'expected' => true,
+        ];
+        yield 'exclude start date is before interval' => [
+            'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
+            'input' => Period::fromMonth(2_012, 2),
+            'expected' => false,
+        ];
+        yield 'exclude start date is not before interval' => [
+            'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
+            'input' => Period::fromMonth(2_012, 3),
+            'expected' => true,
+        ];
+        yield 'exclude start date abuts interval start date' => [
+            'interval' => Period::after('2011-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
+            'input' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
+            'expected' => true,
         ];
     }
 
-    #[DataProvider('isAfterProvider')]
-    public function testIsAfter(Period $interval, DateTimeInterface|Period|string $input, bool $expected): void
+    #[DataProvider('provideIsAfterCases')]
+    public function test_is_after(Period $interval, DateTimeInterface|Period|string $input, bool $expected): void
     {
-        self::assertSame($expected, $interval->isAfter($input));
+        $this->assertSame($expected, $interval->isAfter($input));
     }
 
     /**
-     * @return array<string, array{interval:Period, input:DateTimeInterface|Period|string, expected:bool}>
+     * @return \Iterator<string, array{interval: Period, input: (Period | \DateTimeInterface | string), expected: bool}>
      */
-    public static function isAfterProvider(): array
+    public static function provideIsAfterCases(): \Iterator
     {
-        return [
-            'range exclude end date success' => [
-                'interval' => Period::fromMonth(2012, 1),
-                'input' => '2010-01-01',
-                'expected' => true,
-            ],
-            'range exclude end date fails' => [
-                'interval' => Period::fromMonth(2012, 1),
-                'input' => new DateTime('2015-01-01'),
-                'expected' => false,
-            ],
-            'range exclude end date abuts date fails' => [
-                'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
-                'input' => new DateTimeImmutable('2012-02-01'),
-                'expected' => false,
-            ],
-            'range exclude start date success' => [
-                'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
-                'input' => new DateTime('2012-01-01'),
-                'expected' => true,
-            ],
-            'exclude end date is before interval' => [
-                'interval' => Period::fromMonth(2012, 1),
-                'input' => Period::fromMonth(2011, 1),
-                'expected' => true,
-            ],
-            'exclude end date is not before interval' => [
-                'interval' => Period::fromMonth(2013, 1),
-                'input' => Period::fromMonth(2012, 1),
-                'expected' => true,
-            ],
-            'exclude end date abuts interval start date' => [
-                'interval' => Period::fromMonth(2012, 2),
-                'input' => Period::fromMonth(2012, 1),
-                'expected' => true,
-            ],
-            'exclude start date is before interval' => [
-                'interval' => Period::fromMonth(2012, 2),
-                'input' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
-                'expected' => false,
-            ],
-            'exclude start date is not before interval' => [
-                'interval' => Period::fromMonth(2012, 3),
-                'input' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
-                'expected' => true,
-            ],
-            'exclude start date abuts interval start date' => [
-                'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
-                'input' => Period::after('2011-12-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
-                'expected' => true,
-            ],
-            'exclude start date abuts interval start date -2-' => [
-                'interval' => Period::fromMonth(2012, 1),
-                'input' => Period::fromMonth(2012, 2),
-                'expected' => false,
-            ],
+        yield 'range exclude end date success' => [
+            'interval' => Period::fromMonth(2_012, 1),
+            'input' => '2010-01-01',
+            'expected' => true,
+        ];
+        yield 'range exclude end date fails' => [
+            'interval' => Period::fromMonth(2_012, 1),
+            'input' => Date::parse('2015-01-01'),
+            'expected' => false,
+        ];
+        yield 'range exclude end date abuts date fails' => [
+            'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
+            'input' => CarbonImmutable::parse('2012-02-01'),
+            'expected' => false,
+        ];
+        yield 'range exclude start date success' => [
+            'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
+            'input' => Date::parse('2012-01-01'),
+            'expected' => true,
+        ];
+        yield 'exclude end date is before interval' => [
+            'interval' => Period::fromMonth(2_012, 1),
+            'input' => Period::fromMonth(2_011, 1),
+            'expected' => true,
+        ];
+        yield 'exclude end date is not before interval' => [
+            'interval' => Period::fromMonth(2_013, 1),
+            'input' => Period::fromMonth(2_012, 1),
+            'expected' => true,
+        ];
+        yield 'exclude end date abuts interval start date' => [
+            'interval' => Period::fromMonth(2_012, 2),
+            'input' => Period::fromMonth(2_012, 1),
+            'expected' => true,
+        ];
+        yield 'exclude start date is before interval' => [
+            'interval' => Period::fromMonth(2_012, 2),
+            'input' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
+            'expected' => false,
+        ];
+        yield 'exclude start date is not before interval' => [
+            'interval' => Period::fromMonth(2_012, 3),
+            'input' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
+            'expected' => true,
+        ];
+        yield 'exclude start date abuts interval start date' => [
+            'interval' => Period::after('2012-01-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
+            'input' => Period::after('2011-12-01', '1 MONTH', Bounds::ExcludeStartIncludeEnd),
+            'expected' => true,
+        ];
+        yield 'exclude start date abuts interval start date -2-' => [
+            'interval' => Period::fromMonth(2_012, 1),
+            'input' => Period::fromMonth(2_012, 2),
+            'expected' => false,
         ];
     }
 
-    #[DataProvider('abutsDataProvider')]
-    public function testAbuts(Period $interval, Period $arg, bool $expected): void
+    #[DataProvider('provideAbutsCases')]
+    public function test_abuts(Period $interval, Period $arg, bool $expected): void
     {
-        self::assertSame($expected, $interval->abuts($arg));
+        $this->assertSame($expected, $interval->abuts($arg));
     }
 
     /**
-     * @return array<string, array{0:Period, 1:Period, 2:bool}>
+     * @return \Iterator<string, array{Period, Period, bool}>
      */
-    public static function abutsDataProvider(): array
+    public static function provideAbutsCases(): \Iterator
     {
-        return [
-            'test abuts returns true with equal datepoints by defaut' => [
-                Period::fromDate('2012-01-01', '2012-02-01'),
-                Period::fromDate('2012-02-01', '2012-05-01'),
-                true,
-            ],
-            'test abuts returns fase without equal datepoints' => [
-                Period::fromDate('2012-01-01', '2012-02-01'),
-                Period::fromDate('2012-01-01', '2012-03-01'),
-                false,
-            ],
-            'test abuts returns true with equal datepoints by if boundary is inclusif (1)' => [
-                Period::fromDate('2012-01-01', '2012-02-01', Bounds::IncludeAll),
-                Period::fromDate('2012-02-01', '2012-05-01', Bounds::IncludeAll),
-                false,
-            ],
-            'test abuts returns true with equal datepoints by if boundary is inclusif (2)' => [
-                Period::fromDate('2012-02-01', '2012-05-01', Bounds::IncludeAll),
-                Period::fromDate('2012-01-01', '2012-02-01', Bounds::IncludeAll),
-                false,
-            ],
+        yield 'test abuts returns true with equal datepoints by defaut' => [
+            Period::fromDate('2012-01-01', '2012-02-01'),
+            Period::fromDate('2012-02-01', '2012-05-01'),
+            true,
+        ];
+        yield 'test abuts returns fase without equal datepoints' => [
+            Period::fromDate('2012-01-01', '2012-02-01'),
+            Period::fromDate('2012-01-01', '2012-03-01'),
+            false,
+        ];
+        yield 'test abuts returns true with equal datepoints by if boundary is inclusif (1)' => [
+            Period::fromDate('2012-01-01', '2012-02-01', Bounds::IncludeAll),
+            Period::fromDate('2012-02-01', '2012-05-01', Bounds::IncludeAll),
+            false,
+        ];
+        yield 'test abuts returns true with equal datepoints by if boundary is inclusif (2)' => [
+            Period::fromDate('2012-02-01', '2012-05-01', Bounds::IncludeAll),
+            Period::fromDate('2012-01-01', '2012-02-01', Bounds::IncludeAll),
+            false,
         ];
     }
 
-    #[DataProvider('overlapsDataProvider')]
-    public function testOverlaps(Period $interval, Period $arg, bool $expected): void
+    #[DataProvider('provideOverlapsCases')]
+    public function test_overlaps(Period $interval, Period $arg, bool $expected): void
     {
-        self::assertSame($expected, $interval->overlaps($arg));
+        $this->assertSame($expected, $interval->overlaps($arg));
     }
 
     /**
-     * @return array<string, array{0:Period, 1:Period, 2:bool}>
+     * @return \Iterator<string, array{Period, Period, bool}>
      */
-    public static function overlapsDataProvider(): array
+    public static function provideOverlapsCases(): \Iterator
     {
-        return [
-            'overlaps returns false with gapped intervals' => [
-                Period::fromDate('2014-03-01', '2014-04-01'),
-                Period::fromDate('2013-04-01', '2013-05-01'),
-                false,
-            ],
-            'overlaps returns false with abuts intervals' => [
-                Period::fromDate('2014-03-01', '2014-04-01'),
-                Period::fromDate('2014-04-01', '2014-05-01'),
-                false,
-            ],
-            'overlaps returns' => [
-                Period::fromDate('2014-03-01', '2014-04-01'),
-                Period::fromDate('2014-03-15', '2014-04-07'),
-                true,
-            ],
-            'overlaps returns with equals intervals' => [
-                Period::fromDate('2014-03-01', '2014-04-01'),
-                Period::fromDate('2014-03-01', '2014-04-01'),
-                true,
-            ],
-            'overlaps returns with contained intervals' => [
-                Period::fromDate('2014-03-01', '2014-04-01'),
-                Period::fromDate('2014-03-13', '2014-03-15'),
-                true,
-            ],
-            'overlaps returns with contained intervals backwards' => [
-                Period::fromDate('2014-03-13', '2014-03-15'),
-                Period::fromDate('2014-03-01', '2014-04-01'),
-                true,
-            ],
+        yield 'overlaps returns false with gapped intervals' => [
+            Period::fromDate('2014-03-01', '2014-04-01'),
+            Period::fromDate('2013-04-01', '2013-05-01'),
+            false,
+        ];
+        yield 'overlaps returns false with abuts intervals' => [
+            Period::fromDate('2014-03-01', '2014-04-01'),
+            Period::fromDate('2014-04-01', '2014-05-01'),
+            false,
+        ];
+        yield 'overlaps returns' => [
+            Period::fromDate('2014-03-01', '2014-04-01'),
+            Period::fromDate('2014-03-15', '2014-04-07'),
+            true,
+        ];
+        yield 'overlaps returns with equals intervals' => [
+            Period::fromDate('2014-03-01', '2014-04-01'),
+            Period::fromDate('2014-03-01', '2014-04-01'),
+            true,
+        ];
+        yield 'overlaps returns with contained intervals' => [
+            Period::fromDate('2014-03-01', '2014-04-01'),
+            Period::fromDate('2014-03-13', '2014-03-15'),
+            true,
+        ];
+        yield 'overlaps returns with contained intervals backwards' => [
+            Period::fromDate('2014-03-13', '2014-03-15'),
+            Period::fromDate('2014-03-01', '2014-04-01'),
+            true,
         ];
     }
 
-    #[DataProvider('containsDataProvider')]
-    public function testContains(Period $interval, DateTimeInterface|Period|string $arg, bool $expected): void
+    #[DataProvider('provideContainsCases')]
+    public function test_contains(Period $interval, DateTimeInterface|Period|string $arg, bool $expected): void
     {
-        self::assertSame($expected, $interval->contains($arg));
+        $this->assertSame($expected, $interval->contains($arg));
 
-        if ($arg instanceof Period) {
-            self::assertSame($expected, $arg->isDuring($interval));
+        if (!$arg instanceof Period) {
+            return;
         }
+
+        $this->assertSame($expected, $arg->isDuring($interval));
     }
 
     /**
-     * @return array<string, array{0:Period, 1:Period|DateTimeInterface|string, 2:bool}>
+     * @return \Iterator<string, array{Period, (Period | \DateTimeInterface | string), bool}>
      */
-    public static function containsDataProvider(): array
+    public static function provideContainsCases(): \Iterator
     {
-        return [
-            'contains returns true with a DateTimeInterface object' => [
-                Period::fromDate('2014-03-10', '2014-03-15'),
-                new DateTime('2014-03-12'),
-                true,
-            ],
-            'contains returns true with a Period object' => [
-                Period::fromDate('2014-01-01', '2014-06-01'),
-                Period::fromDate('2014-01-01', '2014-04-01'),
-                true,
-            ],
-            'contains returns true with a Period object (2)' => [
-                Period::fromDate('2014-03-01', '2014-06-01', Bounds::ExcludeStartIncludeEnd),
-                Period::fromDate('2014-05-01', '2014-06-01', Bounds::ExcludeStartIncludeEnd),
-                true,
-            ],
-            'contains returns true with a Period object (3)' => [
-                Period::fromDate('2014-03-01', '2014-06-01', Bounds::ExcludeAll),
-                Period::fromDate('2014-05-01', '2014-06-01', Bounds::ExcludeAll),
-                true,
-            ],
-            'contains returns true with a Period object (4)' => [
-                Period::fromDate('2014-03-01', '2014-06-01', Bounds::IncludeAll),
-                Period::fromDate('2014-05-01', '2014-06-01', Bounds::IncludeAll),
-                true,
-            ],
-            'contains returns false with a DateTimeInterface object' => [
-                Period::fromDate('2014-03-13', '2014-03-15'),
-                new DateTime('2015-03-12'),
-                false,
-            ],
-            'contains returns false with a DateTimeInterface object after the interval' => [
-                Period::fromDate('2014-03-13', '2014-03-15'),
-                new DateTime('2012-03-12'),
-                false,
-            ],
-            'contains returns false with a DateTimeInterface object before the interval' => [
-                Period::fromDate('2014-03-13', '2014-03-15'),
-                new DateTime('2014-04-01'),
-                false,
-            ],
-            'contains returns false with abuts interval' => [
-                Period::fromDate(new DateTimeImmutable('2014-01-01'), new DateTimeImmutable('2014-04-01')),
-                Period::fromDate(new DateTimeImmutable('2014-01-01'), new DateTimeImmutable('2014-06-01')),
-                false,
-            ],
-            'contains returns true with a Period objects sharing the same end date' => [
-                Period::fromDate(new DateTimeImmutable('2015-01-01'), new DateTimeImmutable('2016-01-01')),
-                Period::fromDate(new DateTimeImmutable('2015-12-01'), new DateTimeImmutable('2016-01-01')),
-                true,
-            ],
-            'contains returns false with O duration Period object' => [
-                Period::fromDate(new DateTimeImmutable('2012-03-12'), new DateTimeImmutable('2012-03-12')),
-                new DateTime('2012-03-12'),
-                false,
-            ],
-            'contains datetime edge case datetime equals start date' => [
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY')),
-                new DateTime('2012-01-08'),
-                true,
-            ],
-            'contains datetime edge case datetime equals end date' => [
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY')),
-                new DateTime('2012-01-09'),
-                false,
-            ],
-            'contains datetime edge case datetime equals start date OLCR interval' => [
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeStartIncludeEnd),
-                new DateTime('2012-01-08'),
-                false,
-            ],
-            'contains datetime edge case datetime equals end date CLCR interval' => [
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeAll),
-                new DateTime('2012-01-09'),
-                false,
-            ],
-            'contains period same duration + boundary type CLCR vs CLCR' => [
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeAll),
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeAll),
-                true,
-            ],
-            'contains period same duration + boundary type OLOR vs OLOR' => [
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::IncludeAll),
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::IncludeAll),
-                true,
-            ],
-            'contains period same duration + boundary type CLOR vs CLOR' => [
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeStartIncludeEnd),
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeStartIncludeEnd),
-                true,
-            ],
-            'contains period same duration + boundary type CLOR vs OLCR' => [
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeStartIncludeEnd),
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::IncludeStartExcludeEnd),
-                false,
-            ],
-            'contains period same duration + boundary type OLCR vs CLOR' => [
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::IncludeStartExcludeEnd),
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeStartIncludeEnd),
-                false,
-            ],
-            'contains period same duration + boundary type CLCR vs OLOR' => [
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeAll),
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::IncludeAll),
-                false,
-            ],
-            'contains period same duration + boundary type OLOR vs CLCR' => [
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::IncludeAll),
-                Period::after(new DateTimeImmutable('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeAll),
-                true,
-            ],
+        yield 'contains returns true with a DateTimeInterface object' => [
+            Period::fromDate('2014-03-10', '2014-03-15'),
+            Date::parse('2014-03-12'),
+            true,
+        ];
+        yield 'contains returns true with a Period object' => [
+            Period::fromDate('2014-01-01', '2014-06-01'),
+            Period::fromDate('2014-01-01', '2014-04-01'),
+            true,
+        ];
+        yield 'contains returns true with a Period object (2)' => [
+            Period::fromDate('2014-03-01', '2014-06-01', Bounds::ExcludeStartIncludeEnd),
+            Period::fromDate('2014-05-01', '2014-06-01', Bounds::ExcludeStartIncludeEnd),
+            true,
+        ];
+        yield 'contains returns true with a Period object (3)' => [
+            Period::fromDate('2014-03-01', '2014-06-01', Bounds::ExcludeAll),
+            Period::fromDate('2014-05-01', '2014-06-01', Bounds::ExcludeAll),
+            true,
+        ];
+        yield 'contains returns true with a Period object (4)' => [
+            Period::fromDate('2014-03-01', '2014-06-01', Bounds::IncludeAll),
+            Period::fromDate('2014-05-01', '2014-06-01', Bounds::IncludeAll),
+            true,
+        ];
+        yield 'contains returns false with a DateTimeInterface object' => [
+            Period::fromDate('2014-03-13', '2014-03-15'),
+            Date::parse('2015-03-12'),
+            false,
+        ];
+        yield 'contains returns false with a DateTimeInterface object after the interval' => [
+            Period::fromDate('2014-03-13', '2014-03-15'),
+            Date::parse('2012-03-12'),
+            false,
+        ];
+        yield 'contains returns false with a DateTimeInterface object before the interval' => [
+            Period::fromDate('2014-03-13', '2014-03-15'),
+            Date::parse('2014-04-01'),
+            false,
+        ];
+        yield 'contains returns false with abuts interval' => [
+            Period::fromDate(
+                CarbonImmutable::parse('2014-01-01'), CarbonImmutable::parse('2014-04-01')
+            ),
+            Period::fromDate(
+                CarbonImmutable::parse('2014-01-01'), CarbonImmutable::parse('2014-06-01')
+            ),
+            false,
+        ];
+        yield 'contains returns true with a Period objects sharing the same end date' => [
+            Period::fromDate(
+                CarbonImmutable::parse('2015-01-01'), CarbonImmutable::parse('2016-01-01')
+            ),
+            Period::fromDate(
+                CarbonImmutable::parse('2015-12-01'), CarbonImmutable::parse('2016-01-01')
+            ),
+            true,
+        ];
+        yield 'contains returns false with O duration Period object' => [
+            Period::fromDate(
+                CarbonImmutable::parse('2012-03-12'), CarbonImmutable::parse('2012-03-12')
+            ),
+            Date::parse('2012-03-12'),
+            false,
+        ];
+        yield 'contains datetime edge case datetime equals start date' => [
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY')
+            ),
+            Date::parse('2012-01-08'),
+            true,
+        ];
+        yield 'contains datetime edge case datetime equals end date' => [
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY')
+            ),
+            Date::parse('2012-01-09'),
+            false,
+        ];
+        yield 'contains datetime edge case datetime equals start date OLCR interval' => [
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeStartIncludeEnd
+            ),
+            Date::parse('2012-01-08'),
+            false,
+        ];
+        yield 'contains datetime edge case datetime equals end date CLCR interval' => [
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeAll
+            ),
+            Date::parse('2012-01-09'),
+            false,
+        ];
+        yield 'contains period same duration + boundary type CLCR vs CLCR' => [
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeAll
+            ),
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeAll
+            ),
+            true,
+        ];
+        yield 'contains period same duration + boundary type OLOR vs OLOR' => [
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::IncludeAll
+            ),
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::IncludeAll
+            ),
+            true,
+        ];
+        yield 'contains period same duration + boundary type CLOR vs CLOR' => [
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeStartIncludeEnd
+            ),
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeStartIncludeEnd
+            ),
+            true,
+        ];
+        yield 'contains period same duration + boundary type CLOR vs OLCR' => [
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeStartIncludeEnd
+            ),
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::IncludeStartExcludeEnd
+            ),
+            false,
+        ];
+        yield 'contains period same duration + boundary type OLCR vs CLOR' => [
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::IncludeStartExcludeEnd
+            ),
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeStartIncludeEnd
+            ),
+            false,
+        ];
+        yield 'contains period same duration + boundary type CLCR vs OLOR' => [
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeAll
+            ),
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::IncludeAll
+            ),
+            false,
+        ];
+        yield 'contains period same duration + boundary type OLOR vs CLCR' => [
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::IncludeAll
+            ),
+            Period::after(
+                CarbonImmutable::parse('2012-01-08'), DateInterval::createFromDateString('1 DAY'), Bounds::ExcludeAll
+            ),
+            true,
         ];
     }
 
-    #[DataProvider('startsDataProvider')]
-    public function testStarts(Period $interval, DateTimeInterface|Period $index, bool $expected): void
+    #[DataProvider('provideStartsCases')]
+    public function test_starts(Period $interval, DateTimeInterface|Period $index, bool $expected): void
     {
-        self::assertSame($expected, $interval->isStartedBy($index));
+        $this->assertSame($expected, $interval->isStartedBy($index));
 
-        if ($index instanceof DateTimeInterface) {
-            self::assertSame($expected, DatePoint::fromDate($index)->isStarting($interval));
+        if (!$index instanceof DateTimeInterface) {
+            return;
         }
+
+        $this->assertSame($expected, DatePoint::fromDate($index)->isStarting($interval));
     }
 
     /**
-     * @return array<array{0:Period, 1:Period|DateTimeInterface, 2:bool}>
+     * @return \Iterator<(int | string), array{Period, (Period | \DateTimeInterface), bool}>
      */
-    public static function startsDataProvider(): array
+    public static function provideStartsCases(): \Iterator
     {
-        $startingDate = new DateTime('2012-01-01');
-        $interval = Period::fromDate($startingDate, new DateTime('2012-01-15'));
-
-        return [
-            [
-                $interval,
-                $interval,
-                true,
-            ],
-            [
-                $interval,
-                $interval->moveEndDate('+3 MINUTES'),
-                true,
-            ],
-            [
-                $interval,
-                $interval->moveStartDate('+3 MINUTES'),
-                false,
-            ],
-            [
-                $interval->boundedBy(Bounds::IncludeAll),
-                $interval,
-                true,
-            ],
-            [
-                $interval->boundedBy(Bounds::ExcludeAll),
-                $interval->boundedBy(Bounds::IncludeAll),
-                false,
-            ],
-            [
-                $interval->boundedBy(Bounds::ExcludeAll),
-                $startingDate,
-                false,
-            ],
-            [
-                $interval->boundedBy(Bounds::IncludeStartExcludeEnd),
-                $startingDate,
-                true,
-            ],
+        $startingDate = Date::parse('2012-01-01');
+        $interval = Period::fromDate($startingDate, Date::parse('2012-01-15'));
+        yield [
+            $interval,
+            $interval,
+            true,
+        ];
+        yield [
+            $interval,
+            $interval->moveEndDate('+3 MINUTES'),
+            true,
+        ];
+        yield [
+            $interval,
+            $interval->moveStartDate('+3 MINUTES'),
+            false,
+        ];
+        yield [
+            $interval->boundedBy(Bounds::IncludeAll),
+            $interval,
+            true,
+        ];
+        yield [
+            $interval->boundedBy(Bounds::ExcludeAll),
+            $interval->boundedBy(Bounds::IncludeAll),
+            false,
+        ];
+        yield [
+            $interval->boundedBy(Bounds::ExcludeAll),
+            $startingDate,
+            false,
+        ];
+        yield [
+            $interval->boundedBy(Bounds::IncludeStartExcludeEnd),
+            $startingDate,
+            true,
         ];
     }
 
-    #[DataProvider('finishesDataProvider')]
-    public function testFinishes(Period $interval, DateTimeInterface|Period $index, bool $expected): void
+    #[DataProvider('provideFinishesCases')]
+    public function test_finishes(Period $interval, DateTimeInterface|Period $index, bool $expected): void
     {
-        self::assertSame($expected, $interval->isEndedBy($index));
+        $this->assertSame($expected, $interval->isEndedBy($index));
     }
 
     /**
-     * @return array<array{0:Period, 1:Period|DateTimeInterface, 2:bool}>
+     * @return \Iterator<(int | string), array{Period, (Period | \DateTimeInterface), bool}>
      */
-    public static function finishesDataProvider(): array
+    public static function provideFinishesCases(): \Iterator
     {
-        $endingDate = new DateTime('2012-01-16');
+        $endingDate = Date::parse('2012-01-16');
         $interval = Period::fromDate('2012-01-01', $endingDate);
-        return [
-            [
-                $interval,
-                $interval,
-                true,
-            ],
-            [
-                $interval->moveEndDate('+ 3 MINUTES'),
-                $interval,
-                false,
-            ],
-            [
-                $interval,
-                $interval->boundedBy(Bounds::ExcludeAll),
-                true,
-            ],
-            [
-                $interval->boundedBy(Bounds::ExcludeAll),
-                $interval->boundedBy(Bounds::IncludeAll),
-                false,
-            ],
-            [
-                $interval->boundedBy(Bounds::ExcludeAll),
-                $endingDate,
-                false,
-            ],
-            [
-                $interval->boundedBy(Bounds::IncludeAll),
-                $endingDate,
-                true,
-            ],
+        yield [
+            $interval,
+            $interval,
+            true,
+        ];
+        yield [
+            $interval->moveEndDate('+ 3 MINUTES'),
+            $interval,
+            false,
+        ];
+        yield [
+            $interval,
+            $interval->boundedBy(Bounds::ExcludeAll),
+            true,
+        ];
+        yield [
+            $interval->boundedBy(Bounds::ExcludeAll),
+            $interval->boundedBy(Bounds::IncludeAll),
+            false,
+        ];
+        yield [
+            $interval->boundedBy(Bounds::ExcludeAll),
+            $endingDate,
+            false,
+        ];
+        yield [
+            $interval->boundedBy(Bounds::IncludeAll),
+            $endingDate,
+            true,
         ];
     }
 
-    #[DataProvider('equalsDataProvider')]
-    public function testEquals(Period  $interval1, Period $interval2, bool $expected): void
+    #[DataProvider('provideEqualsCases')]
+    public function test_equals(Period $interval1, Period $interval2, bool $expected): void
     {
-        self::assertSame($expected, $interval1->equals($interval2));
+        $this->assertSame($expected, $interval1->equals($interval2));
     }
 
     /**
-     * @return array<string, array{0:Period, 1:Period, 2:bool}>
+     * @return \Iterator<string, array{Period, Period, bool}>
      */
-    public static function equalsDataProvider(): array
+    public static function provideEqualsCases(): \Iterator
     {
-        return [
-            'returns true' => [
-                Period::fromDate('2012-01-01 00:00:00', '2012-01-03 00:00:00'),
-                Period::fromDate('2012-01-01 00:00:00', '2012-01-03 00:00:00'),
-                true,
-            ],
-            'returns false' => [
-                Period::fromDate('2012-01-01', '2012-01-15'),
-                Period::fromDate('2012-01-01', '2012-01-07'),
-                false,
-            ],
-            'returns false is argument order independent' => [
-                Period::fromDate('2012-01-01', '2012-01-07'),
-                Period::fromDate('2012-01-01', '2012-01-15'),
-                false,
-            ],
-            'returns false with different range type' => [
-                Period::fromDate('2012-01-01', '2012-01-15', Bounds::IncludeAll),
-                Period::fromDate('2012-01-01', '2012-01-15', Bounds::ExcludeAll),
-                false,
-            ],
+        yield 'returns true' => [
+            Period::fromDate('2012-01-01 00:00:00', '2012-01-03 00:00:00'),
+            Period::fromDate('2012-01-01 00:00:00', '2012-01-03 00:00:00'),
+            true,
+        ];
+        yield 'returns false' => [
+            Period::fromDate('2012-01-01', '2012-01-15'),
+            Period::fromDate('2012-01-01', '2012-01-07'),
+            false,
+        ];
+        yield 'returns false is argument order independent' => [
+            Period::fromDate('2012-01-01', '2012-01-07'),
+            Period::fromDate('2012-01-01', '2012-01-15'),
+            false,
+        ];
+        yield 'returns false with different range type' => [
+            Period::fromDate('2012-01-01', '2012-01-15', Bounds::IncludeAll),
+            Period::fromDate('2012-01-01', '2012-01-15', Bounds::ExcludeAll),
+            false,
         ];
     }
 
-    public function testIntersect(): void
+    public function test_intersect(): void
     {
-        $orig = Period::fromDate(new DateTime('2011-12-01'), new DateTime('2012-04-01'));
-        $alt = Period::fromDate(new DateTime('2012-01-01'), new DateTime('2012-03-01'));
-        self::assertTrue($orig->intersect($alt)->equals(Period::fromDate(new DateTime('2012-01-01'), new DateTime('2012-03-01'))));
+        $orig = Period::fromDate(
+            Date::parse('2011-12-01'), Date::parse('2012-04-01')
+        );
+        $alt = Period::fromDate(
+            Date::parse('2012-01-01'), Date::parse('2012-03-01')
+        );
+        $this->assertTrue($orig->intersect($alt)->equals(Period::fromDate(
+            Date::parse('2012-01-01'), Date::parse('2012-03-01')
+        )));
     }
 
-    public function testIntersectThrowsExceptionWithNoOverlappingTimeRange(): void
+    public function test_intersect_throws_exception_with_no_overlapping_time_range(): void
     {
         $this->expectException(UnprocessableInterval::class);
-        $orig = Period::fromDate(new DateTime('2013-01-01'), new DateTime('2013-02-01'));
-        $alt = Period::fromDate(new DateTime('2012-01-01'), new DateTime('2012-03-01'));
+        $orig = Period::fromDate(
+            Date::parse('2013-01-01'), Date::parse('2013-02-01')
+        );
+        $alt = Period::fromDate(
+            Date::parse('2012-01-01'), Date::parse('2012-03-01')
+        );
         $orig->intersect($alt);
     }
 
-    #[DataProvider('intersectBoundaryResultProvider')]
-    public function testIntersectBoundaryTypeResult(Bounds $boundary1, Bounds $boundary2, Bounds $expected): void
+    #[DataProvider('provideIntersectBoundaryTypeResultCases')]
+    public function test_intersect_boundary_type_result(Bounds $boundary1, Bounds $boundary2, Bounds $expected): void
     {
-        $interval0 = Period::fromDate(new DateTime('2014-03-01'), new DateTime('2014-06-01'), $boundary1);
-        $interval1 = Period::fromDate(new DateTime('2014-05-01'), new DateTime('2014-08-01'), $boundary2);
+        $interval0 = Period::fromDate(
+            Date::parse('2014-03-01'), Date::parse('2014-06-01'), $boundary1
+        );
+        $interval1 = Period::fromDate(
+            Date::parse('2014-05-01'), Date::parse('2014-08-01'), $boundary2
+        );
 
-        self::assertTrue($expected === $interval0->intersect($interval1)->bounds);
+        $this->assertSame($interval0->intersect($interval1)->bounds, $expected);
     }
 
     /**
-     * @return array<string, array{boundary1:Bounds, boundary2:Bounds, expected:Bounds}>
+     * @return \Iterator<string, array{boundary1: Bounds, boundary2: Bounds, expected: Bounds}>
      */
-    public static function intersectBoundaryResultProvider(): array
+    public static function provideIntersectBoundaryTypeResultCases(): \Iterator
     {
-        return [
-            '() + ()' => [
-                'boundary1' => Bounds::ExcludeAll,
-                'boundary2' => Bounds::ExcludeAll,
-                'expected' => Bounds::ExcludeAll,
-            ],
-            '() + []' => [
-                'boundary1' => Bounds::ExcludeAll,
-                'boundary2' => Bounds::IncludeAll,
-                'expected' => Bounds::IncludeStartExcludeEnd,
-            ],
-            '() + [)' => [
-                'boundary1' => Bounds::ExcludeAll,
-                'boundary2' => Bounds::IncludeStartExcludeEnd,
-                'expected' => Bounds::IncludeStartExcludeEnd,
-            ],
-            '() + (]' => [
-                'boundary1' => Bounds::ExcludeAll,
-                'boundary2' => Bounds::ExcludeStartIncludeEnd,
-                'expected' => Bounds::ExcludeAll,
-            ],
-            '[] + []' => [
-                'boundary1' => Bounds::IncludeAll,
-                'boundary2' => Bounds::IncludeAll,
-                'expected' => Bounds::IncludeAll,
-            ],
-            '[] + [)' => [
-                'boundary1' => Bounds::IncludeAll,
-                'boundary2' => Bounds::IncludeStartExcludeEnd,
-                'expected' => Bounds::IncludeAll,
-            ],
-            '[] + (]' => [
-                'boundary1' => Bounds::IncludeAll,
-                'boundary2' => Bounds::ExcludeStartIncludeEnd,
-                'expected' => Bounds::ExcludeStartIncludeEnd,
-            ],
-            '[] + ()' => [
-                'boundary1' => Bounds::IncludeAll,
-                'boundary2' => Bounds::ExcludeAll,
-                'expected' => Bounds::ExcludeStartIncludeEnd,
-            ],
-            '[) + ()' => [
-                'boundary1' => Bounds::IncludeStartExcludeEnd,
-                'boundary2' => Bounds::ExcludeAll,
-                'expected' => Bounds::ExcludeAll,
-            ],
-            '[) + []' => [
-                'boundary1' => Bounds::IncludeStartExcludeEnd,
-                'boundary2' => Bounds::IncludeAll,
-                'expected' => Bounds::IncludeStartExcludeEnd,
-            ],
-            '[) + (]' => [
-                'boundary1' => Bounds::IncludeStartExcludeEnd,
-                'boundary2' => Bounds::ExcludeStartIncludeEnd,
-                'expected' => Bounds::ExcludeAll,
-            ],
-            '[) + [)' => [
-                'boundary1' => Bounds::IncludeStartExcludeEnd,
-                'boundary2' => Bounds::IncludeStartExcludeEnd,
-                'expected' => Bounds::IncludeStartExcludeEnd,
-            ],
-            '(] + ()' => [
-                'boundary1' => Bounds::ExcludeStartIncludeEnd,
-                'boundary2' => Bounds::ExcludeAll,
-                'expected' => Bounds::ExcludeStartIncludeEnd,
-            ],
-            '(] + []' => [
-                'boundary1' => Bounds::ExcludeStartIncludeEnd,
-                'boundary2' => Bounds::IncludeAll,
-                'expected' => Bounds::IncludeAll,
-            ],
-            '(] + (]' => [
-                'boundary1' => Bounds::ExcludeStartIncludeEnd,
-                'boundary2' => Bounds::ExcludeStartIncludeEnd,
-                'expected' => Bounds::ExcludeStartIncludeEnd,
-            ],
-            '(] + [)' => [
-                'boundary1' => Bounds::ExcludeStartIncludeEnd,
-                'boundary2' => Bounds::IncludeStartExcludeEnd,
-                'expected' => Bounds::IncludeAll,
-            ],
+        yield '() + ()' => [
+            'boundary1' => Bounds::ExcludeAll,
+            'boundary2' => Bounds::ExcludeAll,
+            'expected' => Bounds::ExcludeAll,
+        ];
+        yield '() + []' => [
+            'boundary1' => Bounds::ExcludeAll,
+            'boundary2' => Bounds::IncludeAll,
+            'expected' => Bounds::IncludeStartExcludeEnd,
+        ];
+        yield '() + [)' => [
+            'boundary1' => Bounds::ExcludeAll,
+            'boundary2' => Bounds::IncludeStartExcludeEnd,
+            'expected' => Bounds::IncludeStartExcludeEnd,
+        ];
+        yield '() + (]' => [
+            'boundary1' => Bounds::ExcludeAll,
+            'boundary2' => Bounds::ExcludeStartIncludeEnd,
+            'expected' => Bounds::ExcludeAll,
+        ];
+        yield '[] + []' => [
+            'boundary1' => Bounds::IncludeAll,
+            'boundary2' => Bounds::IncludeAll,
+            'expected' => Bounds::IncludeAll,
+        ];
+        yield '[] + [)' => [
+            'boundary1' => Bounds::IncludeAll,
+            'boundary2' => Bounds::IncludeStartExcludeEnd,
+            'expected' => Bounds::IncludeAll,
+        ];
+        yield '[] + (]' => [
+            'boundary1' => Bounds::IncludeAll,
+            'boundary2' => Bounds::ExcludeStartIncludeEnd,
+            'expected' => Bounds::ExcludeStartIncludeEnd,
+        ];
+        yield '[] + ()' => [
+            'boundary1' => Bounds::IncludeAll,
+            'boundary2' => Bounds::ExcludeAll,
+            'expected' => Bounds::ExcludeStartIncludeEnd,
+        ];
+        yield '[) + ()' => [
+            'boundary1' => Bounds::IncludeStartExcludeEnd,
+            'boundary2' => Bounds::ExcludeAll,
+            'expected' => Bounds::ExcludeAll,
+        ];
+        yield '[) + []' => [
+            'boundary1' => Bounds::IncludeStartExcludeEnd,
+            'boundary2' => Bounds::IncludeAll,
+            'expected' => Bounds::IncludeStartExcludeEnd,
+        ];
+        yield '[) + (]' => [
+            'boundary1' => Bounds::IncludeStartExcludeEnd,
+            'boundary2' => Bounds::ExcludeStartIncludeEnd,
+            'expected' => Bounds::ExcludeAll,
+        ];
+        yield '[) + [)' => [
+            'boundary1' => Bounds::IncludeStartExcludeEnd,
+            'boundary2' => Bounds::IncludeStartExcludeEnd,
+            'expected' => Bounds::IncludeStartExcludeEnd,
+        ];
+        yield '(] + ()' => [
+            'boundary1' => Bounds::ExcludeStartIncludeEnd,
+            'boundary2' => Bounds::ExcludeAll,
+            'expected' => Bounds::ExcludeStartIncludeEnd,
+        ];
+        yield '(] + []' => [
+            'boundary1' => Bounds::ExcludeStartIncludeEnd,
+            'boundary2' => Bounds::IncludeAll,
+            'expected' => Bounds::IncludeAll,
+        ];
+        yield '(] + (]' => [
+            'boundary1' => Bounds::ExcludeStartIncludeEnd,
+            'boundary2' => Bounds::ExcludeStartIncludeEnd,
+            'expected' => Bounds::ExcludeStartIncludeEnd,
+        ];
+        yield '(] + [)' => [
+            'boundary1' => Bounds::ExcludeStartIncludeEnd,
+            'boundary2' => Bounds::IncludeStartExcludeEnd,
+            'expected' => Bounds::IncludeAll,
         ];
     }
 
-    public function testGap(): void
+    public function test_gap(): void
     {
-        $orig = Period::fromDate(new DateTime('2011-12-01'), new DateTime('2012-02-01'));
-        $alt = Period::fromDate(new DateTime('2012-06-01'), new DateTime('2012-09-01'));
+        $orig = Period::fromDate(
+            Date::parse('2011-12-01'), Date::parse('2012-02-01')
+        );
+        $alt = Period::fromDate(
+            Date::parse('2012-06-01'), Date::parse('2012-09-01')
+        );
         $gap = $orig->gap($alt);
 
-        self::assertEquals($orig->endDate, $gap->startDate);
-        self::assertEquals($alt->startDate, $gap->endDate);
-        self::assertTrue($gap->equals($alt->gap($orig)));
+        $this->assertEquals($orig->endDate, $gap->startDate);
+        $this->assertEquals($alt->startDate, $gap->endDate);
+        $this->assertTrue($gap->equals($alt->gap($orig)));
     }
 
-    public function testGapThrowsExceptionWithOverlapsInterval(): void
+    public function test_gap_throws_exception_with_overlaps_interval(): void
     {
         $this->expectException(UnprocessableInterval::class);
-        $orig = Period::fromDate(new DateTime('2011-12-01'), new DateTime('2012-02-01'));
-        $alt = Period::fromDate(new DateTime('2011-12-10'), new DateTime('2011-12-15'));
+        $orig = Period::fromDate(
+            Date::parse('2011-12-01'), Date::parse('2012-02-01')
+        );
+        $alt = Period::fromDate(
+            Date::parse('2011-12-10'), Date::parse('2011-12-15')
+        );
         $orig->gap($alt);
     }
 
-    public function testGapWithSameStartingInterval(): void
+    public function test_gap_with_same_starting_interval(): void
     {
         $this->expectException(UnprocessableInterval::class);
-        $orig = Period::fromDate(new DateTime('2011-12-01'), new DateTime('2012-02-01'));
-        $alt = Period::fromDate(new DateTime('2011-12-01'), new DateTime('2011-12-15'));
+        $orig = Period::fromDate(
+            Date::parse('2011-12-01'), Date::parse('2012-02-01')
+        );
+        $alt = Period::fromDate(
+            Date::parse('2011-12-01'), Date::parse('2011-12-15')
+        );
         $orig->gap($alt);
     }
 
-    public function testGapWithSameEndingInterval(): void
+    public function test_gap_with_same_ending_interval(): void
     {
         $this->expectException(UnprocessableInterval::class);
-        $orig = Period::fromDate(new DateTime('2011-12-01'), new DateTime('2012-02-01'));
-        $alt = Period::fromDate(new DateTime('2012-01-15'), new DateTime('2012-02-01'));
+        $orig = Period::fromDate(
+            Date::parse('2011-12-01'), Date::parse('2012-02-01')
+        );
+        $alt = Period::fromDate(
+            Date::parse('2012-01-15'), Date::parse('2012-02-01')
+        );
         $orig->gap($alt);
     }
 
-    public function testGapWithAdjacentInterval(): void
+    public function test_gap_with_adjacent_interval(): void
     {
-        $orig = Period::fromDate(new DateTime('2011-12-01'), new DateTime('2012-02-01'));
-        $alt = Period::fromDate(new DateTime('2012-02-01'), new DateTime('2012-02-02'));
-        self::assertEquals(0, $orig->gap($alt)->timeDuration());
+        $orig = Period::fromDate(
+            Date::parse('2011-12-01'), Date::parse('2012-02-01')
+        );
+        $alt = Period::fromDate(
+            Date::parse('2012-02-01'), Date::parse('2012-02-02')
+        );
+        $this->assertSame(0, $orig->gap($alt)->timeDuration());
     }
 
-    #[DataProvider('gapBoundaryResultProvider')]
-    public function testGapBoundaryTypeResult(Bounds $boundary1, Bounds $boundary2, Bounds $expected): void
+    #[DataProvider('provideGapBoundaryTypeResultCases')]
+    public function test_gap_boundary_type_result(Bounds $boundary1, Bounds $boundary2, Bounds $expected): void
     {
-        $interval0 = Period::fromDate(new DateTime('2014-03-01'), new DateTime('2014-06-01'), $boundary1);
-        $interval1 = Period::fromDate(new DateTime('2014-07-01'), new DateTime('2014-09-01'), $boundary2);
-        self::assertTrue($interval0->gap($interval1)->bounds === $expected);
+        $interval0 = Period::fromDate(
+            Date::parse('2014-03-01'), Date::parse('2014-06-01'), $boundary1
+        );
+        $interval1 = Period::fromDate(
+            Date::parse('2014-07-01'), Date::parse('2014-09-01'), $boundary2
+        );
+        $this->assertSame($expected, $interval0->gap($interval1)->bounds);
     }
 
     /**
-     * @return array<string, array{boundary1:Bounds, boundary2:Bounds, expected:Bounds}>
+     * @return \Iterator<string, array{boundary1: Bounds, boundary2: Bounds, expected: Bounds}>
      */
-    public static function gapBoundaryResultProvider(): array
+    public static function provideGapBoundaryTypeResultCases(): \Iterator
     {
-        return [
-            '() + ()' => [
-                'boundary1' => Bounds::ExcludeAll,
-                'boundary2' => Bounds::ExcludeAll,
-                'expected' => Bounds::IncludeAll,
-            ],
-            '() + []' => [
-                'boundary1' => Bounds::ExcludeAll,
-                'boundary2' => Bounds::IncludeAll,
-                'expected' => Bounds::IncludeStartExcludeEnd,
-            ],
-            '() + [)' => [
-                'boundary1' => Bounds::ExcludeAll,
-                'boundary2' => Bounds::IncludeStartExcludeEnd,
-                'expected' => Bounds::IncludeStartExcludeEnd,
-            ],
-            '() + (]' => [
-                'boundary1' => Bounds::ExcludeAll,
-                'boundary2' => Bounds::ExcludeStartIncludeEnd,
-                'expected' => Bounds::IncludeAll,
-            ],
-            '[] + []' => [
-                'boundary1' => Bounds::IncludeAll,
-                'boundary2' => Bounds::IncludeAll,
-                'expected' => Bounds::ExcludeAll,
-            ],
-            '[] + [)' => [
-                'boundary1' => Bounds::IncludeAll,
-                'boundary2' => Bounds::IncludeStartExcludeEnd,
-                'expected' => Bounds::ExcludeAll,
-            ],
-            '[] + (]' => [
-                'boundary1' => Bounds::IncludeAll,
-                'boundary2' => Bounds::ExcludeStartIncludeEnd,
-                'expected' => Bounds::ExcludeStartIncludeEnd,
-            ],
-            '[] + ()' => [
-                'boundary1' => Bounds::IncludeAll,
-                'boundary2' => Bounds::ExcludeAll,
-                'expected' => Bounds::ExcludeStartIncludeEnd,
-            ],
-            '[) + ()' => [
-                'boundary1' => Bounds::IncludeStartExcludeEnd,
-                'boundary2' => Bounds::ExcludeAll,
-                'expected' => Bounds::IncludeAll,
-            ],
-            '[) + []' => [
-                'boundary1' => Bounds::IncludeStartExcludeEnd,
-                'boundary2' => Bounds::IncludeAll,
-                'expected' => Bounds::IncludeStartExcludeEnd,
-            ],
-            '[) + (]' => [
-                'boundary1' => Bounds::IncludeStartExcludeEnd,
-                'boundary2' => Bounds::ExcludeStartIncludeEnd,
-                'expected' => Bounds::IncludeAll,
-            ],
-            '[) + [)' => [
-                'boundary1' => Bounds::IncludeStartExcludeEnd,
-                'boundary2' => Bounds::IncludeStartExcludeEnd,
-                'expected' => Bounds::IncludeStartExcludeEnd,
-            ],
-            '(] + ()' => [
-                'boundary1' => Bounds::ExcludeStartIncludeEnd,
-                'boundary2' => Bounds::ExcludeAll,
-                'expected' => Bounds::ExcludeStartIncludeEnd,
-            ],
-            '(] + []' => [
-                'boundary1' => Bounds::ExcludeStartIncludeEnd,
-                'boundary2' => Bounds::IncludeAll,
-                'expected' => Bounds::ExcludeAll,
-            ],
-            '(] + (]' => [
-                'boundary1' => Bounds::ExcludeStartIncludeEnd,
-                'boundary2' => Bounds::ExcludeStartIncludeEnd,
-                'expected' => Bounds::ExcludeStartIncludeEnd,
-            ],
-            '(] + [)' => [
-                'boundary1' => Bounds::ExcludeStartIncludeEnd,
-                'boundary2' => Bounds::IncludeStartExcludeEnd,
-                'expected' => Bounds::ExcludeAll,
-            ],
+        yield '() + ()' => [
+            'boundary1' => Bounds::ExcludeAll,
+            'boundary2' => Bounds::ExcludeAll,
+            'expected' => Bounds::IncludeAll,
+        ];
+        yield '() + []' => [
+            'boundary1' => Bounds::ExcludeAll,
+            'boundary2' => Bounds::IncludeAll,
+            'expected' => Bounds::IncludeStartExcludeEnd,
+        ];
+        yield '() + [)' => [
+            'boundary1' => Bounds::ExcludeAll,
+            'boundary2' => Bounds::IncludeStartExcludeEnd,
+            'expected' => Bounds::IncludeStartExcludeEnd,
+        ];
+        yield '() + (]' => [
+            'boundary1' => Bounds::ExcludeAll,
+            'boundary2' => Bounds::ExcludeStartIncludeEnd,
+            'expected' => Bounds::IncludeAll,
+        ];
+        yield '[] + []' => [
+            'boundary1' => Bounds::IncludeAll,
+            'boundary2' => Bounds::IncludeAll,
+            'expected' => Bounds::ExcludeAll,
+        ];
+        yield '[] + [)' => [
+            'boundary1' => Bounds::IncludeAll,
+            'boundary2' => Bounds::IncludeStartExcludeEnd,
+            'expected' => Bounds::ExcludeAll,
+        ];
+        yield '[] + (]' => [
+            'boundary1' => Bounds::IncludeAll,
+            'boundary2' => Bounds::ExcludeStartIncludeEnd,
+            'expected' => Bounds::ExcludeStartIncludeEnd,
+        ];
+        yield '[] + ()' => [
+            'boundary1' => Bounds::IncludeAll,
+            'boundary2' => Bounds::ExcludeAll,
+            'expected' => Bounds::ExcludeStartIncludeEnd,
+        ];
+        yield '[) + ()' => [
+            'boundary1' => Bounds::IncludeStartExcludeEnd,
+            'boundary2' => Bounds::ExcludeAll,
+            'expected' => Bounds::IncludeAll,
+        ];
+        yield '[) + []' => [
+            'boundary1' => Bounds::IncludeStartExcludeEnd,
+            'boundary2' => Bounds::IncludeAll,
+            'expected' => Bounds::IncludeStartExcludeEnd,
+        ];
+        yield '[) + (]' => [
+            'boundary1' => Bounds::IncludeStartExcludeEnd,
+            'boundary2' => Bounds::ExcludeStartIncludeEnd,
+            'expected' => Bounds::IncludeAll,
+        ];
+        yield '[) + [)' => [
+            'boundary1' => Bounds::IncludeStartExcludeEnd,
+            'boundary2' => Bounds::IncludeStartExcludeEnd,
+            'expected' => Bounds::IncludeStartExcludeEnd,
+        ];
+        yield '(] + ()' => [
+            'boundary1' => Bounds::ExcludeStartIncludeEnd,
+            'boundary2' => Bounds::ExcludeAll,
+            'expected' => Bounds::ExcludeStartIncludeEnd,
+        ];
+        yield '(] + []' => [
+            'boundary1' => Bounds::ExcludeStartIncludeEnd,
+            'boundary2' => Bounds::IncludeAll,
+            'expected' => Bounds::ExcludeAll,
+        ];
+        yield '(] + (]' => [
+            'boundary1' => Bounds::ExcludeStartIncludeEnd,
+            'boundary2' => Bounds::ExcludeStartIncludeEnd,
+            'expected' => Bounds::ExcludeStartIncludeEnd,
+        ];
+        yield '(] + [)' => [
+            'boundary1' => Bounds::ExcludeStartIncludeEnd,
+            'boundary2' => Bounds::IncludeStartExcludeEnd,
+            'expected' => Bounds::ExcludeAll,
         ];
     }
 
-    public function testUnion(): void
+    public function test_union(): void
     {
-        $interval1 = Period::fromYear(2015);
-        $interval2 = Period::fromYear(2017);
+        $interval1 = Period::fromYear(2_015);
+        $interval2 = Period::fromYear(2_017);
 
-        self::assertEquals($interval1->union($interval2), new Sequence($interval1, $interval2));
+        $this->assertEquals($interval1->union($interval2), new Sequence($interval1, $interval2));
 
-        $interval1 = Period::fromMonth(2015, 7);
-        $interval2 = Period::fromQuarter(2015, 3);
+        $interval1 = Period::fromMonth(2_015, 7);
+        $interval2 = Period::fromQuarter(2_015, 3);
 
-        self::assertEquals($interval1->union($interval2), new Sequence($interval1->merge($interval2)));
+        $this->assertEquals($interval1->union($interval2), new Sequence($interval1->merge($interval2)));
     }
 
-    public function testDiffThrowsException(): void
+    public function test_diff_throws_exception(): void
     {
-        $interval1 = Period::fromDate(new DateTimeImmutable('2015-01-01'), new DateTimeImmutable('2016-01-01'));
-        $interval2 = Period::fromDate(new DateTimeImmutable('2013-01-01'), new DateTimeImmutable('2014-01-01'));
+        $interval1 = Period::fromDate(
+            CarbonImmutable::parse('2015-01-01'), CarbonImmutable::parse('2016-01-01')
+        );
+        $interval2 = Period::fromDate(
+            CarbonImmutable::parse('2013-01-01'), CarbonImmutable::parse('2014-01-01')
+        );
 
         $this->expectException(UnprocessableInterval::class);
         $interval1->diff($interval2);
     }
 
-    public function testDiffWithEqualsPeriod(): void
+    public function test_diff_with_equals_period(): void
     {
-        $period = Period::fromDate(new DateTimeImmutable('2013-01-01'), new DateTimeImmutable('2014-01-01'));
-        $alt = Period::fromDate(new DateTimeImmutable('2013-01-01'), new DateTimeImmutable('2014-01-01'));
+        $period = Period::fromDate(
+            CarbonImmutable::parse('2013-01-01'), CarbonImmutable::parse('2014-01-01')
+        );
+        $alt = Period::fromDate(
+            CarbonImmutable::parse('2013-01-01'), CarbonImmutable::parse('2014-01-01')
+        );
 
-        self::assertTrue($alt->diff($period)->isEmpty());
-        self::assertEquals($alt->diff($period), $period->diff($alt));
+        $this->assertTrue($alt->diff($period)->isEmpty());
+        $this->assertEquals($alt->diff($period), $period->diff($alt));
     }
 
-    public function testDiffWithPeriodSharingStartingDatepoints(): void
+    public function test_diff_with_period_sharing_starting_datepoints(): void
     {
-        $period = Period::fromDate(new DateTimeImmutable('2013-01-01'), new DateTimeImmutable('2014-01-01'));
-        $alt = Period::fromDate(new DateTimeImmutable('2013-01-01'), new DateTimeImmutable('2013-04-01'));
+        $period = Period::fromDate(
+            CarbonImmutable::parse('2013-01-01'), CarbonImmutable::parse('2014-01-01')
+        );
+        $alt = Period::fromDate(
+            CarbonImmutable::parse('2013-01-01'), CarbonImmutable::parse('2013-04-01')
+        );
         $sequence = $alt->diff($period);
 
-        self::assertCount(1, $sequence);
-        self::assertEquals(new DateTimeImmutable('2013-04-01'), $sequence[0]->startDate);
-        self::assertEquals(new DateTimeImmutable('2014-01-01'), $sequence[0]->endDate);
-        self::assertEquals($alt->diff($period), $period->diff($alt));
+        $this->assertCount(1, $sequence);
+        $this->assertEquals(
+            CarbonImmutable::parse('2013-04-01'), $sequence[0]->startDate
+        );
+        $this->assertEquals(
+            CarbonImmutable::parse('2014-01-01'), $sequence[0]->endDate
+        );
+        $this->assertEquals($alt->diff($period), $period->diff($alt));
     }
 
-    public function testDiffWithPeriodSharingEndingDatepoints(): void
+    public function test_diff_with_period_sharing_ending_datepoints(): void
     {
-        $period = Period::fromDate(new DateTimeImmutable('2013-01-01'), new DateTimeImmutable('2014-01-01'));
-        $alt = Period::fromDate(new DateTimeImmutable('2013-10-01'), new DateTimeImmutable('2014-01-01'));
+        $period = Period::fromDate(
+            CarbonImmutable::parse('2013-01-01'), CarbonImmutable::parse('2014-01-01')
+        );
+        $alt = Period::fromDate(
+            CarbonImmutable::parse('2013-10-01'), CarbonImmutable::parse('2014-01-01')
+        );
         $sequence = $alt->diff($period);
 
-        self::assertCount(1, $sequence);
-        self::assertEquals(new DateTimeImmutable('2013-01-01'), $sequence[0]->startDate);
-        self::assertEquals(new DateTimeImmutable('2013-10-01'), $sequence[0]->endDate);
-        self::assertEquals($alt->diff($period), $period->diff($alt));
+        $this->assertCount(1, $sequence);
+        $this->assertEquals(
+            CarbonImmutable::parse('2013-01-01'), $sequence[0]->startDate
+        );
+        $this->assertEquals(
+            CarbonImmutable::parse('2013-10-01'), $sequence[0]->endDate
+        );
+        $this->assertEquals($alt->diff($period), $period->diff($alt));
     }
 
-    public function testDiffWithOverlapsPeriod(): void
+    public function test_diff_with_overlaps_period(): void
     {
-        $period = Period::fromDate(new DateTimeImmutable('2013-01-01 10:00:00'), new DateTimeImmutable('2013-01-01 13:00:00'));
-        $alt = Period::fromDate(new DateTimeImmutable('2013-01-01 11:00:00'), new DateTimeImmutable('2013-01-01 14:00:00'));
+        $period = Period::fromDate(
+            CarbonImmutable::parse('2013-01-01 10:00:00'), CarbonImmutable::parse('2013-01-01 13:00:00')
+        );
+        $alt = Period::fromDate(
+            CarbonImmutable::parse('2013-01-01 11:00:00'), CarbonImmutable::parse('2013-01-01 14:00:00')
+        );
         $sequence = $alt->diff($period);
 
-        self::assertCount(2, $sequence);
-        self::assertSame(3600, $sequence[0]->timeDuration());
-        self::assertSame(3600, $sequence[1]->timeDuration());
-        self::assertEquals($alt->diff($period), $period->diff($alt));
+        $this->assertCount(2, $sequence);
+        $this->assertSame(3_600, $sequence[0]->timeDuration());
+        $this->assertSame(3_600, $sequence[1]->timeDuration());
+        $this->assertEquals($alt->diff($period), $period->diff($alt));
     }
 
-    #[DataProvider('diffBoundaryResultProvider')]
-    public function testDiffBoundaryTypeResult(
+    #[DataProvider('provideDiffBoundaryTypeResultCases')]
+    public function test_diff_boundary_type_result(
         Bounds $boundary1,
         Bounds $boundary2,
         Bounds $expected1,
-        Bounds $expected2
+        Bounds $expected2,
     ): void {
-        $interval0 = Period::fromDate(new DateTimeImmutable('2014-03-01'), new DateTimeImmutable('2014-06-01'), $boundary1);
-        $interval1 = Period::fromDate(new DateTimeImmutable('2014-05-01'), new DateTimeImmutable('2014-09-01'), $boundary2);
+        $interval0 = Period::fromDate(
+            CarbonImmutable::parse('2014-03-01'), CarbonImmutable::parse('2014-06-01'), $boundary1
+        );
+        $interval1 = Period::fromDate(
+            CarbonImmutable::parse('2014-05-01'), CarbonImmutable::parse('2014-09-01'), $boundary2
+        );
         $sequence = $interval0->diff($interval1);
 
         if (0 < count($sequence)) {
-            self::assertSame($expected1, $sequence[0]->bounds);
+            $this->assertSame($expected1, $sequence[0]->bounds);
         }
 
-        if (1 < count($sequence)) {
-            self::assertSame($expected2, $sequence[1]->bounds);
+        if (1 >= count($sequence)) {
+            return;
         }
+
+        $this->assertSame($expected2, $sequence[1]->bounds);
     }
 
     /**
-     * @return array<string, array{boundary1:Bounds, boundary2:Bounds, expected1:Bounds, expected2:Bounds}>
+     * @return \Iterator<string, array{boundary1: Bounds, boundary2: Bounds, expected1: Bounds, expected2: Bounds}>
      */
-    public static function diffBoundaryResultProvider(): array
+    public static function provideDiffBoundaryTypeResultCases(): \Iterator
     {
-        return [
-            '() + ()' => [
-                'boundary1' => Bounds::ExcludeAll,
-                'boundary2' => Bounds::ExcludeAll,
-                'expected1' => Bounds::ExcludeStartIncludeEnd,
-                'expected2' => Bounds::IncludeStartExcludeEnd,
-            ],
-            '() + []' => [
-                'boundary1' => Bounds::ExcludeAll,
-                'boundary2' => Bounds::IncludeAll,
-                'expected1' => Bounds::ExcludeAll,
-                'expected2' => Bounds::IncludeAll,
-            ],
-            '() + [)' => [
-                'boundary1' => Bounds::ExcludeAll,
-                'boundary2' => Bounds::IncludeStartExcludeEnd,
-                'expected1' => Bounds::ExcludeAll,
-                'expected2' => Bounds::IncludeStartExcludeEnd,
-            ],
-            '() + (]' => [
-                'boundary1' => Bounds::ExcludeAll,
-                'boundary2' => Bounds::ExcludeStartIncludeEnd,
-                'expected1' => Bounds::ExcludeStartIncludeEnd,
-                'expected2' => Bounds::IncludeAll,
-            ],
-            '[] + []' => [
-                'boundary1' => Bounds::IncludeAll,
-                'boundary2' => Bounds::IncludeAll,
-                'expected1' => Bounds::IncludeStartExcludeEnd,
-                'expected2' => Bounds::ExcludeStartIncludeEnd,
-            ],
-            '[] + [)' => [
-                'boundary1' => Bounds::IncludeAll,
-                'boundary2' => Bounds::IncludeStartExcludeEnd,
-                'expected1' => Bounds::IncludeStartExcludeEnd,
-                'expected2' => Bounds::ExcludeAll,
-            ],
-            '[] + (]' => [
-                'boundary1' => Bounds::IncludeAll,
-                'boundary2' => Bounds::ExcludeStartIncludeEnd,
-                'expected1' => Bounds::IncludeAll,
-                'expected2' => Bounds::ExcludeStartIncludeEnd,
-            ],
-            '[] + ()' => [
-                'boundary1' => Bounds::IncludeAll,
-                'boundary2' => Bounds::ExcludeAll,
-                'expected1' => Bounds::IncludeAll,
-                'expected2' => Bounds::ExcludeAll,
-            ],
-            '[) + ()' => [
-                'boundary1' => Bounds::IncludeStartExcludeEnd,
-                'boundary2' => Bounds::ExcludeAll,
-                'expected1' => Bounds::IncludeAll,
-                'expected2' => Bounds::IncludeStartExcludeEnd,
-            ],
-            '[) + []' => [
-                'boundary1' => Bounds::IncludeStartExcludeEnd,
-                'boundary2' => Bounds::IncludeAll,
-                'expected1' => Bounds::IncludeStartExcludeEnd,
-                'expected2' => Bounds::IncludeAll,
-            ],
-            '[) + (]' => [
-                'boundary1' => Bounds::IncludeStartExcludeEnd,
-                'boundary2' => Bounds::ExcludeStartIncludeEnd,
-                'expected1' => Bounds::IncludeAll,
-                'expected2' => Bounds::IncludeAll,
-            ],
-            '[) + [)' => [
-                'boundary1' => Bounds::IncludeStartExcludeEnd,
-                'boundary2' => Bounds::IncludeStartExcludeEnd,
-                'expected1' => Bounds::IncludeStartExcludeEnd,
-                'expected2' => Bounds::IncludeStartExcludeEnd,
-            ],
-            '(] + ()' => [
-                'boundary1' => Bounds::ExcludeStartIncludeEnd,
-                'boundary2' => Bounds::ExcludeAll,
-                'expected1' => Bounds::ExcludeStartIncludeEnd,
-                'expected2' => Bounds::ExcludeAll,
-            ],
-            '(] + []' => [
-                'boundary1' => Bounds::ExcludeStartIncludeEnd,
-                'boundary2' => Bounds::IncludeAll,
-                'expected1' => Bounds::ExcludeAll,
-                'expected2' => Bounds::ExcludeStartIncludeEnd,
-            ],
-            '(] + (]' => [
-                'boundary1' => Bounds::ExcludeStartIncludeEnd,
-                'boundary2' => Bounds::ExcludeStartIncludeEnd,
-                'expected1' => Bounds::ExcludeStartIncludeEnd,
-                'expected2' => Bounds::ExcludeStartIncludeEnd,
-            ],
-            '(] + [)' => [
-                'boundary1' => Bounds::ExcludeStartIncludeEnd,
-                'boundary2' => Bounds::IncludeStartExcludeEnd,
-                'expected1' => Bounds::ExcludeAll,
-                'expected2' => Bounds::ExcludeAll,
-            ],
+        yield '() + ()' => [
+            'boundary1' => Bounds::ExcludeAll,
+            'boundary2' => Bounds::ExcludeAll,
+            'expected1' => Bounds::ExcludeStartIncludeEnd,
+            'expected2' => Bounds::IncludeStartExcludeEnd,
+        ];
+        yield '() + []' => [
+            'boundary1' => Bounds::ExcludeAll,
+            'boundary2' => Bounds::IncludeAll,
+            'expected1' => Bounds::ExcludeAll,
+            'expected2' => Bounds::IncludeAll,
+        ];
+        yield '() + [)' => [
+            'boundary1' => Bounds::ExcludeAll,
+            'boundary2' => Bounds::IncludeStartExcludeEnd,
+            'expected1' => Bounds::ExcludeAll,
+            'expected2' => Bounds::IncludeStartExcludeEnd,
+        ];
+        yield '() + (]' => [
+            'boundary1' => Bounds::ExcludeAll,
+            'boundary2' => Bounds::ExcludeStartIncludeEnd,
+            'expected1' => Bounds::ExcludeStartIncludeEnd,
+            'expected2' => Bounds::IncludeAll,
+        ];
+        yield '[] + []' => [
+            'boundary1' => Bounds::IncludeAll,
+            'boundary2' => Bounds::IncludeAll,
+            'expected1' => Bounds::IncludeStartExcludeEnd,
+            'expected2' => Bounds::ExcludeStartIncludeEnd,
+        ];
+        yield '[] + [)' => [
+            'boundary1' => Bounds::IncludeAll,
+            'boundary2' => Bounds::IncludeStartExcludeEnd,
+            'expected1' => Bounds::IncludeStartExcludeEnd,
+            'expected2' => Bounds::ExcludeAll,
+        ];
+        yield '[] + (]' => [
+            'boundary1' => Bounds::IncludeAll,
+            'boundary2' => Bounds::ExcludeStartIncludeEnd,
+            'expected1' => Bounds::IncludeAll,
+            'expected2' => Bounds::ExcludeStartIncludeEnd,
+        ];
+        yield '[] + ()' => [
+            'boundary1' => Bounds::IncludeAll,
+            'boundary2' => Bounds::ExcludeAll,
+            'expected1' => Bounds::IncludeAll,
+            'expected2' => Bounds::ExcludeAll,
+        ];
+        yield '[) + ()' => [
+            'boundary1' => Bounds::IncludeStartExcludeEnd,
+            'boundary2' => Bounds::ExcludeAll,
+            'expected1' => Bounds::IncludeAll,
+            'expected2' => Bounds::IncludeStartExcludeEnd,
+        ];
+        yield '[) + []' => [
+            'boundary1' => Bounds::IncludeStartExcludeEnd,
+            'boundary2' => Bounds::IncludeAll,
+            'expected1' => Bounds::IncludeStartExcludeEnd,
+            'expected2' => Bounds::IncludeAll,
+        ];
+        yield '[) + (]' => [
+            'boundary1' => Bounds::IncludeStartExcludeEnd,
+            'boundary2' => Bounds::ExcludeStartIncludeEnd,
+            'expected1' => Bounds::IncludeAll,
+            'expected2' => Bounds::IncludeAll,
+        ];
+        yield '[) + [)' => [
+            'boundary1' => Bounds::IncludeStartExcludeEnd,
+            'boundary2' => Bounds::IncludeStartExcludeEnd,
+            'expected1' => Bounds::IncludeStartExcludeEnd,
+            'expected2' => Bounds::IncludeStartExcludeEnd,
+        ];
+        yield '(] + ()' => [
+            'boundary1' => Bounds::ExcludeStartIncludeEnd,
+            'boundary2' => Bounds::ExcludeAll,
+            'expected1' => Bounds::ExcludeStartIncludeEnd,
+            'expected2' => Bounds::ExcludeAll,
+        ];
+        yield '(] + []' => [
+            'boundary1' => Bounds::ExcludeStartIncludeEnd,
+            'boundary2' => Bounds::IncludeAll,
+            'expected1' => Bounds::ExcludeAll,
+            'expected2' => Bounds::ExcludeStartIncludeEnd,
+        ];
+        yield '(] + (]' => [
+            'boundary1' => Bounds::ExcludeStartIncludeEnd,
+            'boundary2' => Bounds::ExcludeStartIncludeEnd,
+            'expected1' => Bounds::ExcludeStartIncludeEnd,
+            'expected2' => Bounds::ExcludeStartIncludeEnd,
+        ];
+        yield '(] + [)' => [
+            'boundary1' => Bounds::ExcludeStartIncludeEnd,
+            'boundary2' => Bounds::IncludeStartExcludeEnd,
+            'expected1' => Bounds::ExcludeAll,
+            'expected2' => Bounds::ExcludeAll,
         ];
     }
 
-    public function testDiffAndIntersect(): void
+    public function test_diff_and_intersect(): void
     {
         foreach (['[2014-03-01,2014-06-01]', '[2014-03-01,2014-06-01)', '(2014-03-01,2014-06-01)', '(2014-03-01,2014-06-01]'] as $bound1) {
             foreach (['[2014-05-01,2014-08-01]', '[2014-05-01,2014-08-01)', '(2014-05-01,2014-08-01)', '(2014-05-01,2014-08-01]'] as $bound2) {
@@ -978,122 +1077,148 @@ final class PeriodRelationTest extends PeriodTestCase
                 $intersect = $interval0->intersect($interval1);
 
                 if (0 < count($sequence)) {
-                    self::assertTrue($sequence[0]->bordersOnStart($intersect));
+                    $this->assertTrue($sequence[0]->bordersOnStart($intersect));
                 }
 
                 if (1 < count($sequence)) {
-                    self::assertTrue($sequence[1]->bordersOnEnd($intersect));
+                    $this->assertTrue($sequence[1]->bordersOnEnd($intersect));
                 }
 
                 $sequence->push($intersect);
                 $period = $sequence->length();
-                if (null !== $period) {
-                    self::assertTrue($period->equals($interval0->merge($interval1)));
+
+                if (!$period instanceof Period) {
+                    continue;
                 }
+
+                $this->assertTrue($period->equals($interval0->merge($interval1)));
             }
         }
     }
 
-
-
-    public function testOverlapsAllCanReturnsAPeriod(): void
+    public function test_overlaps_all_can_returns_a_period(): void
     {
-        $period = Period::fromDate(new DateTime('2000-02-01'), new DateTime('2000-02-28'));
+        $period = Period::fromDate(
+            Date::parse('2000-02-01'), Date::parse('2000-02-28')
+        );
         $sequence = new Sequence(
-            Period::fromDate(new DateTime('2000-01-12'), new DateTime('2000-02-10')),
-            Period::fromDate(new DateTime('2000-01-14'), new DateTime('2000-02-03')),
+            Period::fromDate(
+                Date::parse('2000-01-12'), Date::parse('2000-02-10')
+            ),
+            Period::fromDate(
+                Date::parse('2000-01-14'), Date::parse('2000-02-03')
+            ),
         );
         $overlaps = $period->intersect(...$sequence);
+
         foreach ($sequence as $item) {
-            self::assertTrue($item->overlaps($overlaps));
+            $this->assertTrue($item->overlaps($overlaps));
         }
-        self::assertTrue($period->overlaps($overlaps));
+
+        $this->assertTrue($period->overlaps($overlaps));
     }
 
-    public function testOverlapsAllCanReturnNull(): void
+    public function test_overlaps_all_can_return_null(): void
     {
-        $period1 = Period::fromDate(new DateTime('2000-02-01'), new DateTime('2000-02-28'));
-        $period2 = Period::fromDate(new DateTime('2000-01-14'), new DateTime('2000-01-23'));
+        $period1 = Period::fromDate(
+            Date::parse('2000-02-01'), Date::parse('2000-02-28')
+        );
+        $period2 = Period::fromDate(
+            Date::parse('2000-01-14'), Date::parse('2000-01-23')
+        );
 
         $this->expectException(UnprocessableInterval::class);
 
         $period1->intersect($period2);
     }
 
-
-    public function testSubtractWithOverlappingUnequalPeriods(): void
+    public function test_subtract_with_overlapping_unequal_periods(): void
     {
-        $periodA = Period::after(new DateTimeImmutable('2000-01-01 10:00:00'), DateInterval::createFromDateString('8 HOURS'));
-        $periodB = Period::after(new DateTimeImmutable('2000-01-01 14:00:00'), DateInterval::createFromDateString('6 HOURS'));
+        $periodA = Period::after(
+            CarbonImmutable::parse('2000-01-01 10:00:00'), DateInterval::createFromDateString('8 HOURS')
+        );
+        $periodB = Period::after(
+            CarbonImmutable::parse('2000-01-01 14:00:00'), DateInterval::createFromDateString('6 HOURS')
+        );
 
         $diff1 = $periodA->subtract($periodB);
 
-        self::assertCount(1, $diff1);
-        self::assertEquals($periodA->startDate, $diff1[0]->startDate);
-        self::assertEquals($periodB->startDate, $diff1[0]->endDate);
+        $this->assertCount(1, $diff1);
+        $this->assertEquals($periodA->startDate, $diff1[0]->startDate);
+        $this->assertEquals($periodB->startDate, $diff1[0]->endDate);
 
         $diff2 = $periodB->subtract($periodA);
 
-        self::assertCount(1, $diff2);
-        self::assertEquals($periodA->endDate, $diff2[0]->startDate);
-        self::assertEquals($periodB->endDate, $diff2[0]->endDate);
+        $this->assertCount(1, $diff2);
+        $this->assertEquals($periodA->endDate, $diff2[0]->startDate);
+        $this->assertEquals($periodB->endDate, $diff2[0]->endDate);
     }
 
-    public function testSubtractWithSeparatePeriods(): void
+    public function test_subtract_with_separate_periods(): void
     {
-        $periodA = Period::after(new DateTimeImmutable('2000-01-01 10:00:00'), DateInterval::createFromDateString('4 HOURS'));
-        $periodB = Period::after(new DateTimeImmutable('2000-01-01 15:00:00'), DateInterval::createFromDateString('3 HOURS'));
+        $periodA = Period::after(
+            CarbonImmutable::parse('2000-01-01 10:00:00'), DateInterval::createFromDateString('4 HOURS')
+        );
+        $periodB = Period::after(
+            CarbonImmutable::parse('2000-01-01 15:00:00'), DateInterval::createFromDateString('3 HOURS')
+        );
 
         $diff1 = $periodA->subtract($periodB);
 
-        self::assertCount(1, $diff1);
-        self::assertTrue($diff1[0]->equals($periodA));
+        $this->assertCount(1, $diff1);
+        $this->assertTrue($diff1[0]->equals($periodA));
 
         $diff2 = $periodB->subtract($periodA);
 
-        self::assertCount(1, $diff2);
-        self::assertTrue($diff2[0]->equals($periodB));
+        $this->assertCount(1, $diff2);
+        $this->assertTrue($diff2[0]->equals($periodB));
     }
 
-    public function testSubtractWithOnePeriodContainedInAnother(): void
+    public function test_subtract_with_one_period_contained_in_another(): void
     {
-        $periodA = Period::after(new DateTimeImmutable('2000-01-01 10:00:00'), DateInterval::createFromDateString('8 HOURS'));
-        $periodB = Period::after(new DateTimeImmutable('2000-01-01 15:00:00'), DateInterval::createFromDateString('1 HOUR'));
+        $periodA = Period::after(
+            CarbonImmutable::parse('2000-01-01 10:00:00'), DateInterval::createFromDateString('8 HOURS')
+        );
+        $periodB = Period::after(
+            CarbonImmutable::parse('2000-01-01 15:00:00'), DateInterval::createFromDateString('1 HOUR')
+        );
 
         $diff1 = $periodA->subtract($periodB);
 
-        self::assertCount(2, $diff1);
-        self::assertEquals($periodA->startDate, $diff1[0]->startDate);
-        self::assertEquals($periodB->startDate, $diff1[0]->endDate);
-        self::assertEquals($periodB->endDate, $diff1[1]->startDate);
-        self::assertEquals($periodA->endDate, $diff1[1]->endDate);
+        $this->assertCount(2, $diff1);
+        $this->assertEquals($periodA->startDate, $diff1[0]->startDate);
+        $this->assertEquals($periodB->startDate, $diff1[0]->endDate);
+        $this->assertEquals($periodB->endDate, $diff1[1]->startDate);
+        $this->assertEquals($periodA->endDate, $diff1[1]->endDate);
 
         $diff2 = $periodB->subtract($periodA);
 
-        self::assertCount(0, $diff2);
+        $this->assertCount(0, $diff2);
     }
 
-    public function testSubtractWithEqualPeriodObjec(): void
+    public function test_subtract_with_equal_period_objec(): void
     {
-        $periodA = Period::after(new DateTimeImmutable('2000-01-01 10:00:00'), DateInterval::createFromDateString('8 HOURS'));
+        $periodA = Period::after(
+            CarbonImmutable::parse('2000-01-01 10:00:00'), DateInterval::createFromDateString('8 HOURS')
+        );
         $diff = $periodA->subtract($periodA);
 
-        self::assertCount(0, $diff);
-        self::assertEquals($diff, $periodA->subtract($periodA));
+        $this->assertCount(0, $diff);
+        $this->assertEquals($diff, $periodA->subtract($periodA));
     }
 
-    #[DataProvider('meetsProvider')]
-    public function testMeets(Period $period1, Period $period2, bool $meets, bool $meetsOnStart, bool $meetsOnEnd): void
+    #[DataProvider('provideMeetsCases')]
+    public function test_meets(Period $period1, Period $period2, bool $meets, bool $meetsOnStart, bool $meetsOnEnd): void
     {
-        self::assertSame($meets, $period1->meets($period2));
-        self::assertSame($meetsOnStart, $period1->meetsOnStart($period2));
-        self::assertSame($meetsOnEnd, $period1->meetsOnEnd($period2));
+        $this->assertSame($meets, $period1->meets($period2));
+        $this->assertSame($meetsOnStart, $period1->meetsOnStart($period2));
+        $this->assertSame($meetsOnEnd, $period1->meetsOnEnd($period2));
     }
 
     /**
      * @return iterable<array{period1:Period, period2:Period, meets:bool, meetsOnStart:bool, meetsOnEnd:bool}>
      */
-    public static function meetsProvider(): iterable
+    public static function provideMeetsCases(): iterable
     {
         yield [
             'period1' => Period::fromDate('2022-01-01', '2022-02-01', Bounds::IncludeAll),

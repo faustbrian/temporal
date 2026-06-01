@@ -1,6 +1,11 @@
-<?php
+<?php declare(strict_types=1);
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Time;
 
@@ -11,21 +16,25 @@ use IntlDateFormatter;
 use JsonSerializable;
 use Throwable;
 
+use const STR_PAD_LEFT;
+
 use function abs;
 use function array_reduce;
 use function array_shift;
 use function class_exists;
+use function ctype_digit;
 use function is_int;
+use function mb_str_pad;
+use function mb_strlen;
+use function mb_substr;
+use function mb_trim;
 use function preg_match;
 use function preg_quote;
-use function str_pad;
 use function str_replace;
-use function strlen;
-use function substr;
-use function trim;
 
-use const STR_PAD_LEFT;
-
+/**
+ * @psalm-immutable
+ */
 final readonly class Time implements JsonSerializable
 {
     private const string TIME_PATTERN = '/^
@@ -35,11 +44,15 @@ final readonly class Time implements JsonSerializable
         (?:\.(?<micro>\d{1,6}))?
     $/x';
 
-    private int $value;
     public int $hour;
+
     public int $minute;
+
     public int $second;
+
     public int $microsecond;
+
+    private int $value;
 
     /**
      * @param int $value represents the microseconds from midnight
@@ -57,6 +70,28 @@ final readonly class Time implements JsonSerializable
     }
 
     /**
+     * @return array{0: array{microseconds: int}, 1:array{}}
+     */
+    public function __serialize(): array
+    {
+        return [['microseconds' => (int) $this->toUnitOfDay(Unit::Microsecond)], []];
+    }
+
+    /**
+     * @param array{0: array{microseconds: int}, 1:array{}} $data
+     */
+    public function __unserialize(array $data): void
+    {
+        [$properties] = $data;
+        $time = new self($properties['microseconds']);
+        $this->value = $time->value;
+        $this->hour = $time->hour;
+        $this->minute = $time->minute;
+        $this->second = $time->second;
+        $this->microsecond = $time->microsecond;
+    }
+
+    /**
      * @throws InvalidTime
      */
     public static function at(
@@ -65,16 +100,24 @@ final readonly class Time implements JsonSerializable
         int $second = 0,
         int $microsecond = 0,
     ): self {
-        ($hour >= 0 && $hour < 24) || throw InvalidTime::dueToMalformedHour($hour);
-        ($minute >= 0 && $minute < 60) || throw InvalidTime::dueToMalformedMinute($minute);
-        ($second >= 0 && $second < 60) || throw InvalidTime::dueToMalformedSecond($second);
-        ($microsecond >= 0 && $microsecond < 1_000_000) || throw InvalidTime::dueToMalformedMicrosecond($microsecond);
+        if (!($hour >= 0 && $hour < 24)) {
+            throw InvalidTime::dueToMalformedHour($hour);
+        }
+        if (!($minute >= 0 && $minute < 60)) {
+            throw InvalidTime::dueToMalformedMinute($minute);
+        }
+        if (!($second >= 0 && $second < 60)) {
+            throw InvalidTime::dueToMalformedSecond($second);
+        }
+        if (!($microsecond >= 0 && $microsecond < 1_000_000)) {
+            throw InvalidTime::dueToMalformedMicrosecond($microsecond);
+        }
 
         return new self(
             Unit::Hour->toMicroseconds($hour)
             + Unit::Minute->toMicroseconds($minute)
             + Unit::Second->toMicroseconds($second)
-            + $microsecond
+            + $microsecond,
         );
     }
 
@@ -83,20 +126,9 @@ final readonly class Time implements JsonSerializable
      */
     public static function now(DateTimeZone|string|null $timezone = null): self
     {
-        return self::fromDate(new DateTimeImmutable(timezone: self::filterTimezone($timezone)));
-    }
-
-    private static function filterTimezone(DateTimeZone|string|null $timezone): ?DateTimeZone
-    {
-        try {
-            return match (true) {
-                null === $timezone => null,
-                $timezone instanceof DateTimeZone => $timezone,
-                default => new DateTimeZone($timezone),
-            };
-        } catch (Throwable $exception) {
-            throw new TimeException('Timezone must be a valid IANA Timezone Name supported by '.DateTimeZone::class, previous: $exception);
-        }
+        return self::fromDate(
+            new DateTimeImmutable(timezone: self::filterTimezone($timezone))
+        );
     }
 
     /**
@@ -117,10 +149,13 @@ final readonly class Time implements JsonSerializable
      */
     public static function parse(string $notation, string $separator = ':'): ?self
     {
-        (1 === strlen($separator) && !ctype_digit($separator)) || throw InvalidTime::dueToInvalidSeparator($separator);
+        if (!(1 === mb_strlen($separator) && !ctype_digit($separator))) {
+            throw InvalidTime::dueToInvalidSeparator($separator);
+        }
 
-        $notation = trim($notation);
+        $notation = mb_trim($notation);
         $escaped = preg_quote($separator, '/');
+
         if (1 !== preg_match(str_replace('{{SEP}}', $escaped, self::TIME_PATTERN), $notation, $parts)) {
             return null;
         }
@@ -128,7 +163,7 @@ final readonly class Time implements JsonSerializable
         $hour = (int) $parts['hour'];
         $minute = (int) ($parts['minute'] ?? 0);
         $second = (int) ($parts['second'] ?? 0);
-        $micro = isset($parts['micro']) ? (int) str_pad(substr($parts['micro'], 0, 6), 6, '0') : 0;
+        $micro = isset($parts['micro']) ? (int) mb_str_pad(mb_substr($parts['micro'], 0, 6), 6, '0') : 0;
 
         return ($hour > 23 || $minute > 59 || $second > 59)
             ? null
@@ -160,7 +195,7 @@ final readonly class Time implements JsonSerializable
      */
     public static function minOf(self ...$times): self
     {
-        [] !== $times || throw new InvalidTime('minOf() expects at least one time');
+        throw_if([] === $times, InvalidTime::class, 'minOf() expects at least one time');
 
         $min = array_shift($times);
 
@@ -172,7 +207,7 @@ final readonly class Time implements JsonSerializable
      */
     public static function maxOf(self ...$times): self
     {
-        [] !== $times || throw new InvalidTime('maxOf() expects at least one time');
+        throw_if([] === $times, InvalidTime::class, 'maxOf() expects at least one time');
         $max = array_shift($times);
 
         return array_reduce($times, fn (self $max, self $item): self => $item->isAfter($max) ? $item : $max, $max);
@@ -188,12 +223,12 @@ final readonly class Time implements JsonSerializable
      */
     public function toString(): string
     {
-        $pad = static fn (int $v): string => str_pad((string) $v, 2, '0', STR_PAD_LEFT);
+        $pad = static fn (int $v): string => mb_str_pad((string) $v, 2, '0', STR_PAD_LEFT);
         $base = $pad($this->hour).':'.$pad($this->minute).':'.$pad($this->second);
 
         return 0 === $this->microsecond
             ? $base
-            : $base.'.'.str_pad((string) $this->microsecond, 6, '0', STR_PAD_LEFT);
+            : $base.'.'.mb_str_pad((string) $this->microsecond, 6, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -202,10 +237,10 @@ final readonly class Time implements JsonSerializable
     public function toLocaleString(
         string $locale,
         DateTimeZone|string|null $timezone = null,
-        TimeFormatLength $length = TimeFormatLength::Medium
+        TimeFormatLength $length = TimeFormatLength::Medium,
     ): string {
         static $isSupported = null;
-        $isSupported = $isSupported ?? class_exists(IntlDateFormatter::class);
+        $isSupported ??= class_exists(IntlDateFormatter::class);
         $isSupported || throw new TimeException('Support for time locale formatting requires the `intl` extension for best performance or run "composer require symfony/polyfill-intl-icu" to install a polyfill.');
 
         $timeType = match ($length) {
@@ -218,14 +253,16 @@ final readonly class Time implements JsonSerializable
         $timezone = self::filterTimezone($timezone);
 
         try {
-            $formatted = (new IntlDateFormatter(
+            $formatted = new IntlDateFormatter(
                 locale: $locale,
                 dateType: IntlDateFormatter::NONE,
                 timeType: $timeType,
                 timezone: $timezone,
-            ))->format($this->applyTo(new DateTimeImmutable(timezone: $timezone)));
-        } catch (Throwable $exception) {
-            throw new TimeException('Unable to convert to locale "'.$locale.'" the current time; Please verify your locale.', previous: $exception);
+            )->format($this->applyTo(
+                new DateTimeImmutable(timezone: $timezone)
+            ));
+        } catch (Throwable $throwable) {
+            throw new TimeException('Unable to convert to locale "'.$locale.'" the current time; Please verify your locale.', $throwable->getCode(), previous: $throwable);
         }
 
         return false !== $formatted ? $formatted : throw new TimeException('Unable to convert to locale "'.$locale.'" the current time.');
@@ -279,7 +316,7 @@ final readonly class Time implements JsonSerializable
      */
     public function clamp(self $min, self $max): self
     {
-        $max->isAfterOrEqual($min) || throw new InvalidTime('The maximum time must be after or equal to the minimum time.');
+        throw_unless($max->isAfterOrEqual($min), InvalidTime::class, 'The maximum time must be after or equal to the minimum time.');
 
         return match (true) {
             $this->isBefore($min) => $min,
@@ -298,7 +335,9 @@ final readonly class Time implements JsonSerializable
         }
 
         $value = $this->value + $duration->total(Unit::Microsecond);
-        is_int($value) || throw InvalidDuration::dueToOverflow();
+        if (!is_int($value)) {
+            throw InvalidDuration::dueToOverflow();
+        }
 
         return new self($value);
     }
@@ -310,7 +349,7 @@ final readonly class Time implements JsonSerializable
         ?int $hour = null,
         ?int $minute = null,
         ?int $second = null,
-        ?int $microsecond = null
+        ?int $microsecond = null,
     ): self {
         $hour ??= $this->hour;
         $minute ??= $this->minute;
@@ -356,25 +395,16 @@ final readonly class Time implements JsonSerializable
         return Duration::of(microseconds: Unit::Day->wrap($other->value - $this->value));
     }
 
-    /**
-     * @return array{0: array{microseconds: int}, 1:array{}}
-     */
-    public function __serialize(): array
+    private static function filterTimezone(DateTimeZone|string|null $timezone): ?DateTimeZone
     {
-        return [['microseconds' => (int) $this->toUnitOfDay(Unit::Microsecond)], []];
-    }
-
-    /**
-     * @param array{0: array{microseconds: int}, 1:array{}} $data
-     */
-    public function __unserialize(array $data): void
-    {
-        [$properties] = $data;
-        $time = new self($properties['microseconds']);
-        $this->value = $time->value;
-        $this->hour = $time->hour;
-        $this->minute = $time->minute;
-        $this->second = $time->second;
-        $this->microsecond = $time->microsecond;
+        try {
+            return match (true) {
+                null === $timezone => null,
+                $timezone instanceof DateTimeZone => $timezone,
+                default => new DateTimeZone($timezone),
+            };
+        } catch (Throwable $throwable) {
+            throw new TimeException('Timezone must be a valid IANA Timezone Name supported by '.DateTimeZone::class, $throwable->getCode(), previous: $throwable);
+        }
     }
 }

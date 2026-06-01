@@ -1,9 +1,7 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -11,13 +9,12 @@
 
 namespace Cline\Temporal\Period;
 
+use function mb_trim;
 use function preg_match;
-use function trim;
 
-/*
+/**
  * An Enum to handle interval bounds.
  *
- * @package League.period
  * @author  Ignace Nyamagana Butera <nyamsprod@gmail.com>
  * @since   5.0.0
  */
@@ -29,6 +26,7 @@ enum Bounds
     case ExcludeAll;
 
     private const REGEXP_ISO80000 = '/^(?<lower>\[|\()(?<start>[^,\]\)\[\(]*),(?<end>[^,\]\)\[\(]*)(?<upper>\]|\))$/';
+
     private const REGEXP_BOURBAKI = '/^(?<lower>\[|\])(?<start>[^,\]\[]*),(?<end>[^,\]\[]*)(?<upper>\[|\])$/';
 
     /**
@@ -45,8 +43,8 @@ enum Bounds
         }
 
         return [
-            'start' => trim($found['start']),
-            'end' => trim($found['end']),
+            'start' => mb_trim($found['start']),
+            'end' => mb_trim($found['end']),
             'bounds' => match ($found['lower'].$found['upper']) {
                 '[]' => self::IncludeAll,
                 '[)' => self::IncludeStartExcludeEnd,
@@ -70,8 +68,8 @@ enum Bounds
         }
 
         return [
-            'start' => trim($found['start']),
-            'end' => trim($found['end']),
+            'start' => mb_trim($found['start']),
+            'end' => mb_trim($found['end']),
             'bounds' => match ($found['lower'].$found['upper']) {
                 '[]' => self::IncludeAll,
                 '[[' => self::IncludeStartExcludeEnd,
@@ -87,10 +85,10 @@ enum Bounds
     public function buildIso80000(string $start, string $end): string
     {
         return match ($this) {
-            self::IncludeAll => "[$start, $end]",
-            self::IncludeStartExcludeEnd => "[$start, $end)",
-            self::ExcludeAll => "($start, $end)",
-            self::ExcludeStartIncludeEnd => "($start, $end]",
+            self::IncludeAll => sprintf('[%s, %s]', $start, $end),
+            self::IncludeStartExcludeEnd => sprintf('[%s, %s)', $start, $end),
+            self::ExcludeAll => sprintf('(%s, %s)', $start, $end),
+            self::ExcludeStartIncludeEnd => sprintf('(%s, %s]', $start, $end),
         };
     }
 

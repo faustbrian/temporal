@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,52 +9,61 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Period\Chart;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+use function iterator_to_array;
+
+/**
+ * @internal
+ */
 final class ReverseLabelTest extends TestCase
 {
     /**
      * @param array<string> $expected
      */
-    #[DataProvider('providerLetter')]
-    public function testGetLabels(int $nbLabels, string $letter, array $expected): void
+    #[DataProvider('provideGetLabelsCases')]
+    public function test_get_labels(int $nbLabels, string $letter, array $expected): void
     {
-        $generator = new ReverseLabel(new LatinLetter($letter));
-        self::assertSame($expected, iterator_to_array($generator->generate($nbLabels), false));
+        $generator = new ReverseLabel(
+            new LatinLetter($letter)
+        );
+        $this->assertSame($expected, iterator_to_array($generator->generate($nbLabels), false));
     }
 
-    /**
-     * @return iterable<string, array{nbLabels:int, letter:string, expected:array<string>}>
-     */
-    public static function providerLetter(): iterable
+    public static function provideGetLabelsCases(): \Iterator
     {
-        return [
-            'empty labels' => [
-                'nbLabels' => 0,
-                'letter' => 'i',
-                'expected' => [],
-            ],
-            'labels starts at i' => [
-                'nbLabels' => 2,
-                'letter' => 'i',
-                'expected' => ['j', 'i'],
-            ],
-            'labels starts ends at ab' => [
-                'nbLabels' => 2,
-                'letter' => 'aa',
-                'expected' => ['ab', 'aa'],
-            ],
+        yield 'empty labels' => [
+            'nbLabels' => 0,
+            'letter' => 'i',
+            'expected' => [],
+        ];
+        yield 'labels starts at i' => [
+            'nbLabels' => 2,
+            'letter' => 'i',
+            'expected' => ['j', 'i'],
+        ];
+        yield 'labels starts ends at ab' => [
+            'nbLabels' => 2,
+            'letter' => 'aa',
+            'expected' => ['ab', 'aa'],
         ];
     }
 
-    public function testFormat(): void
+    public function test_format(): void
     {
-        $generator = new ReverseLabel(new LatinLetter('AA'));
-        self::assertSame('', $generator->format(''));
+        $generator = new ReverseLabel(
+            new LatinLetter('AA')
+        );
+        $this->assertSame('', $generator->format(''));
     }
 }

@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,7 +9,12 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Period;
 
@@ -28,7 +33,7 @@ final class UnprocessableInterval extends RuntimeException implements IntervalEr
         return new self('Both '.Period::class.' objects must overlaps.');
     }
 
-    public static function dueToMissingGaps(): UnprocessableInterval
+    public static function dueToMissingGaps(): self
     {
         return new self('Both '.Period::class.' objects must have at least one gap.');
     }

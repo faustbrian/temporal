@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,16 +9,21 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Period\Chart;
 
+use Cline\Temporal\Period\Period;
+use Cline\Temporal\Period\Sequence;
 use Countable;
 use Iterator;
 use IteratorAggregate;
 use JsonSerializable;
-use Cline\Temporal\Period\Period;
-use Cline\Temporal\Period\Sequence;
 
 /**
  * @extends IteratorAggregate<array-key, array{0:array-key, 1:Sequence}>
@@ -38,7 +43,7 @@ interface Data extends Countable, IteratorAggregate, JsonSerializable
     public function getIterator(): Iterator;
 
     /**
-     * @return array<array{label:string|int, item:Sequence}>
+     * @return array<array{label:int|string, item:Sequence}>
      */
     public function jsonSerialize(): array;
 
@@ -50,7 +55,7 @@ interface Data extends Countable, IteratorAggregate, JsonSerializable
     /**
      * Returns the labels associated to all items.
      *
-     * @return array<string|int>
+     * @return array<int|string>
      */
     public function labels(): iterable;
 
@@ -64,7 +69,7 @@ interface Data extends Countable, IteratorAggregate, JsonSerializable
     /**
      * Returns the dataset length.
      */
-    public function length(): Period|null;
+    public function length(): ?Period;
 
     /**
      * Returns the label maximum length.
@@ -79,7 +84,7 @@ interface Data extends Countable, IteratorAggregate, JsonSerializable
     /**
      * Add a collection of pairs to the collection.
      *
-     * @param iterable<array{0:string|int, 1:Period|Sequence}> $pairs
+     * @param iterable<array{0:int|string, 1:Period|Sequence}> $pairs
      */
     public function appendAll(iterable $pairs): self;
 }

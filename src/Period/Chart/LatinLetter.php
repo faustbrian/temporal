@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,7 +9,12 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Period\Chart;
 
@@ -18,32 +23,23 @@ use Iterator;
 use function array_pop;
 use function chr;
 use function implode;
+use function mb_str_split;
+use function mb_trim;
+use function ord;
 use function preg_match;
-use function str_split;
-use function trim;
 
 /**
  * A class to attach a latin letter to the generated label.
  *
  * @see LabelGenerator
  */
-final class LatinLetter implements LabelGenerator
+final readonly class LatinLetter implements LabelGenerator
 {
-    public readonly string $startLabel;
+    public string $startLabel;
 
     public function __construct(string $startLabel)
     {
         $this->startLabel = $this->filterLabel($startLabel);
-    }
-
-    private function filterLabel(string $str): string
-    {
-        $label = trim($str);
-
-        return match (1) {
-            preg_match('/^[A-Za-z]+$/', $label) => $label,
-            default => throw UnableToDrawChart::dueToInvalidLabel($str, $this),
-        };
     }
 
     public function format(string $label): string
@@ -59,10 +55,11 @@ final class LatinLetter implements LabelGenerator
 
         $count = 0;
         $label = $this->startLabel;
+
         while ($count < $nbLabels) {
             yield $count => $label;
 
-            $label = self::increment($label);
+            $label = $this->increment($label);
 
             ++$count;
         }
@@ -73,13 +70,13 @@ final class LatinLetter implements LabelGenerator
      *
      * @see https://stackoverflow.com/questions/3567180/how-to-increment-letters-like-numbers-in-php/3567218
      */
-    private static function increment(string $current): string
+    private function increment(string $current): string
     {
         static $asciiUpperCaseBounds = ['start' => 65, 'end' => 91];
         static $asciiLowerCaseBounds = ['start' => 97, 'end' => 123];
 
         $increase = true;
-        $letters = str_split($current);
+        $letters = mb_str_split($current);
         $nextLetters = [];
 
         while ([] !== $letters) {
@@ -95,6 +92,7 @@ final class LatinLetter implements LabelGenerator
                 };
 
                 $nextLetter = chr($nextLetterAscii);
+
                 if ($increase && [] === $letters) {
                     $nextLetter .= $nextLetter;
                 }
@@ -104,5 +102,15 @@ final class LatinLetter implements LabelGenerator
         }
 
         return implode('', $nextLetters);
+    }
+
+    private function filterLabel(string $str): string
+    {
+        $label = mb_trim($str);
+
+        return match (1) {
+            preg_match('/^[A-Za-z]+$/', $label) => $label,
+            default => throw UnableToDrawChart::dueToInvalidLabel($str, $this),
+        };
     }
 }

@@ -1,9 +1,7 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
- * League.Period (https://period.thephpleague.com)
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -24,6 +22,14 @@ enum Color: string
     case White = 'white';
     case None = 'none';
 
+    /**
+     * @return non-empty-array<int, Color>
+     */
+    public static function rainBow(): array
+    {
+        return [self::Black, self::Red, self::Green, self::Yellow, self::Blue, self::Magenta, self::Cyan, self::White];
+    }
+
     public function posix(): string
     {
         return match ($this) {
@@ -38,13 +44,5 @@ enum Color: string
             self::White => '37',
             self::None => '',
         };
-    }
-
-    /**
-     * @return non-empty-array<int, Color>
-     */
-    public static function rainBow(): array
-    {
-        return [self::Black, self::Red, self::Green, self::Yellow, self::Blue, self::Magenta, self::Cyan, self::White];
     }
 }

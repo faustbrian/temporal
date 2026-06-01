@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,12 +9,8 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 /**
- * League.Period (https://period.thephpleague.com).
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -22,14 +18,21 @@ declare(strict_types=1);
 
 namespace Cline\Temporal\Period;
 
+use Illuminate\Support\Facades\Date;
+use Carbon\CarbonImmutable;
 use DateInterval;
-use DateTime;
-use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+use function date_default_timezone_get;
+use function date_default_timezone_set;
+use function var_export;
+
+/**
+ * @internal
+ */
 final class DatePointTest extends TestCase
 {
     private string $timezone;
@@ -44,258 +47,281 @@ final class DatePointTest extends TestCase
         date_default_timezone_set($this->timezone);
     }
 
-    public function testInstantiationFromSetState(): void
+    public function test_instantiation_from_set_state(): void
     {
         $datePoint = DatePoint::fromDateString('TOMORROW');
+
         /** @var DatePoint $generatedDatePoint */
         $generatedDatePoint = eval('return '.var_export($datePoint, true).';');
 
-        self::assertEquals($datePoint, $generatedDatePoint);
+        $this->assertEquals($datePoint, $generatedDatePoint);
     }
 
-    public function testUsingDateTimeZone(): void
+    public function test_using_date_time_zone(): void
     {
         $datePointA = DatePoint::fromDateString('TOMORROW', 'Africa/Nairobi');
         $datePointB = DatePoint::fromDateString('TOMORROW', new DateTimeZone('Africa/Nairobi'));
 
-        self::assertEquals($datePointA, $datePointB);
+        $this->assertEquals($datePointA, $datePointB);
 
         $timeZone = DatePoint::fromDateString('TOMORROW')->date->getTimezone();
 
-        self::assertEquals(new DateTimeZone($this->timezone), $timeZone);
+        $this->assertEquals(
+            new DateTimeZone($this->timezone), $timeZone
+        );
     }
 
-    public function testInstantiationFromMinute(): void
+    public function test_instantiation_from_minute(): void
     {
         $datePoint = DatePoint::fromDateString('2021-07-08 13:23:58');
         $minutePeriod = $datePoint->minute();
 
-        self::assertSame('[2021-07-08 13:23:00, 2021-07-08 13:24:00)', $minutePeriod->toIso80000('Y-m-d H:i:s'));
+        $this->assertSame('[2021-07-08 13:23:00, 2021-07-08 13:24:00)', $minutePeriod->toIso80000('Y-m-d H:i:s'));
     }
 
-    public function testInstantiationFromSeconds(): void
+    public function test_instantiation_from_seconds(): void
     {
         $datePoint = DatePoint::fromDateString('2021-07-08 13:23:58');
         $secondPeriod = $datePoint->second();
 
-        self::assertSame('[2021-07-08 13:23:58, 2021-07-08 13:23:59)', $secondPeriod->toIso80000('Y-m-d H:i:s'));
+        $this->assertSame('[2021-07-08 13:23:58, 2021-07-08 13:23:59)', $secondPeriod->toIso80000('Y-m-d H:i:s'));
     }
 
-    #[DataProvider('isAfterProvider')]
-    public function testIsAfter(Period $interval, DateTimeInterface $input, bool $expected): void
+    #[DataProvider('provideIsAfterCases')]
+    public function test_is_after(Period $interval, DateTimeInterface $input, bool $expected): void
     {
-        self::assertSame($expected, DatePoint::fromDate($input)->isAfter($interval));
+        $this->assertSame($expected, DatePoint::fromDate($input)->isAfter($interval));
     }
 
     /**
-     * @return array<string, array{interval:Period, input:DateTimeInterface, expected:bool}>
+     * @return \Iterator<string, array{interval: Period, input: \DateTimeInterface, expected: bool}>
      */
-    public static function isAfterProvider(): array
+    public static function provideIsAfterCases(): \Iterator
     {
-        return [
-            'range exclude end date success' => [
-                'interval' => Period::fromMonth(2012, 1),
-                'input' => new DateTime('2015-01-01'),
-                'expected' => true,
-            ],
-            'range exclude end date fails' => [
-                'interval' => Period::fromMonth(2012, 1),
-                'input' => new DateTime('2010-01-01'),
-                'expected' => false,
-            ],
-            'range exclude end date abuts date fails' => [
-                'interval' => Period::fromMonth(2012, 1),
-                'input' => new DateTime('2012-01-01'),
-                'expected' => false,
-            ],
-            'range exclude start date success' => [
-                'interval' => Period::after(new DateTime('2012-01-01'), DateInterval::createFromDateString('1 MONTH'), Bounds::ExcludeStartIncludeEnd),
-                'input' => new DateTime('2015-01-01'),
-                'expected' => true,
-            ],
-            'range exclude start date fails' => [
-                'interval' => Period::after(new DateTime('2012-01-01'), DateInterval::createFromDateString('1 MONTH'), Bounds::ExcludeStartIncludeEnd),
-                'input' => new DateTime('2010-01-01'),
-                'expected' => false,
-            ],
-            'range exclude start date abuts date success' => [
-                'interval' => Period::after(new DateTime('2012-01-01'), DateInterval::createFromDateString('1 MONTH'), Bounds::ExcludeStartIncludeEnd),
-                'input' => new DateTime('2012-02-01'),
-                'expected' => false,
-            ],
+        yield 'range exclude end date success' => [
+            'interval' => Period::fromMonth(2_012, 1),
+            'input' => Date::parse('2015-01-01'),
+            'expected' => true,
+        ];
+        yield 'range exclude end date fails' => [
+            'interval' => Period::fromMonth(2_012, 1),
+            'input' => Date::parse('2010-01-01'),
+            'expected' => false,
+        ];
+        yield 'range exclude end date abuts date fails' => [
+            'interval' => Period::fromMonth(2_012, 1),
+            'input' => Date::parse('2012-01-01'),
+            'expected' => false,
+        ];
+        yield 'range exclude start date success' => [
+            'interval' => Period::after(
+                Date::parse('2012-01-01'), DateInterval::createFromDateString('1 MONTH'), Bounds::ExcludeStartIncludeEnd
+            ),
+            'input' => Date::parse('2015-01-01'),
+            'expected' => true,
+        ];
+        yield 'range exclude start date fails' => [
+            'interval' => Period::after(
+                Date::parse('2012-01-01'), DateInterval::createFromDateString('1 MONTH'), Bounds::ExcludeStartIncludeEnd
+            ),
+            'input' => Date::parse('2010-01-01'),
+            'expected' => false,
+        ];
+        yield 'range exclude start date abuts date success' => [
+            'interval' => Period::after(
+                Date::parse('2012-01-01'), DateInterval::createFromDateString('1 MONTH'), Bounds::ExcludeStartIncludeEnd
+            ),
+            'input' => Date::parse('2012-02-01'),
+            'expected' => false,
         ];
     }
 
-    #[DataProvider('isBeforeProvider')]
-    public function testIsBefore(Period $interval, DateTimeInterface $input, bool $expected): void
+    #[DataProvider('provideIsBeforeCases')]
+    public function test_is_before(Period $interval, DateTimeInterface $input, bool $expected): void
     {
-        self::assertSame($expected, DatePoint::fromDate($input)->isBefore($interval));
+        $this->assertSame($expected, DatePoint::fromDate($input)->isBefore($interval));
     }
 
     /**
-     * @return array<string, array{interval:Period, input:DateTimeInterface, expected:bool}>
+     * @return \Iterator<string, array{interval: Period, input: \DateTimeInterface, expected: bool}>
      */
-    public static function isBeforeProvider(): array
+    public static function provideIsBeforeCases(): \Iterator
     {
-        return [
-            'range exclude end date success' => [
-                'interval' => Period::fromMonth(2012, 1),
-                'input' => new DateTime('2010-01-01'),
-                'expected' => true,
-            ],
-            'range exclude end date fails' => [
-                'interval' => Period::fromMonth(2012, 1),
-                'input' => new DateTime('2015-01-01'),
-                'expected' => false,
-            ],
-            'range exclude end date abuts date fails' => [
-                'interval' => Period::after(new DateTime('2012-01-01'), DateInterval::createFromDateString('1 MONTH'), Bounds::ExcludeStartIncludeEnd),
-                'input' => new DateTime('2012-02-01'),
-                'expected' => false,
-            ],
-            'range exclude start date success' => [
-                'interval' => Period::after(new DateTime('2012-01-01'), DateInterval::createFromDateString('1 MONTH'), Bounds::ExcludeStartIncludeEnd),
-                'input' => new DateTime('2012-01-01'),
-                'expected' => true,
-            ],
+        yield 'range exclude end date success' => [
+            'interval' => Period::fromMonth(2_012, 1),
+            'input' => Date::parse('2010-01-01'),
+            'expected' => true,
+        ];
+        yield 'range exclude end date fails' => [
+            'interval' => Period::fromMonth(2_012, 1),
+            'input' => Date::parse('2015-01-01'),
+            'expected' => false,
+        ];
+        yield 'range exclude end date abuts date fails' => [
+            'interval' => Period::after(
+                Date::parse('2012-01-01'), DateInterval::createFromDateString('1 MONTH'), Bounds::ExcludeStartIncludeEnd
+            ),
+            'input' => Date::parse('2012-02-01'),
+            'expected' => false,
+        ];
+        yield 'range exclude start date success' => [
+            'interval' => Period::after(
+                Date::parse('2012-01-01'), DateInterval::createFromDateString('1 MONTH'), Bounds::ExcludeStartIncludeEnd
+            ),
+            'input' => Date::parse('2012-01-01'),
+            'expected' => true,
         ];
     }
 
-    public function testDatepointBorderingOn(): void
+    public function test_datepoint_bordering_on(): void
     {
         $datepoint = DatePoint::fromDateString('2018-01-18 10:00:00');
         $duration = Duration::fromDateString('3 minutes');
 
         $intervalBorderOnStartTrue = Period::after($datepoint, $duration, Bounds::ExcludeStartIncludeEnd);
-        self::assertTrue($datepoint->bordersOnStart($intervalBorderOnStartTrue));
-        self::assertTrue($datepoint->abuts($intervalBorderOnStartTrue));
+        $this->assertTrue($datepoint->bordersOnStart($intervalBorderOnStartTrue));
+        $this->assertTrue($datepoint->abuts($intervalBorderOnStartTrue));
 
         $intervalBorderOnStartFalse = Period::after($datepoint, $duration, Bounds::IncludeAll);
-        self::assertFalse($datepoint->bordersOnStart($intervalBorderOnStartFalse));
-        self::assertFalse($datepoint->abuts($intervalBorderOnStartFalse));
+        $this->assertFalse($datepoint->bordersOnStart($intervalBorderOnStartFalse));
+        $this->assertFalse($datepoint->abuts($intervalBorderOnStartFalse));
 
         $intervalBorderOnEndTrue = Period::before($datepoint, $duration, Bounds::IncludeStartExcludeEnd);
-        self::assertTrue($datepoint->bordersOnEnd($intervalBorderOnEndTrue));
-        self::assertTrue($datepoint->abuts($intervalBorderOnEndTrue));
+        $this->assertTrue($datepoint->bordersOnEnd($intervalBorderOnEndTrue));
+        $this->assertTrue($datepoint->abuts($intervalBorderOnEndTrue));
 
         $intervalBorderOnEndFalse = Period::before($datepoint, $duration, Bounds::ExcludeStartIncludeEnd);
-        self::assertFalse($datepoint->bordersOnEnd($intervalBorderOnEndFalse));
-        self::assertFalse($datepoint->abuts($intervalBorderOnEndFalse));
+        $this->assertFalse($datepoint->bordersOnEnd($intervalBorderOnEndFalse));
+        $this->assertFalse($datepoint->abuts($intervalBorderOnEndFalse));
     }
 
-    #[DataProvider('isDuringDataProvider')]
-    public function testIsDuring(Period $interval, DateTimeInterface|string $input, bool $expected): void
+    #[DataProvider('provideIsDuringCases')]
+    public function test_is_during(Period $interval, DateTimeInterface|string $input, bool $expected): void
     {
         $datepoint = $input instanceof DateTimeInterface ? DatePoint::fromDate($input) : DatePoint::fromDateString($input);
 
-        self::assertSame($expected, $datepoint->isDuring($interval));
+        $this->assertSame($expected, $datepoint->isDuring($interval));
     }
 
     /**
-     * @return array<string, array{0:Period, 1:DateTimeInterface|string, 2:bool}>
+     * @return \Iterator<string, array{Period, (\DateTimeInterface | string), bool}>
      */
-    public static function isDuringDataProvider(): array
+    public static function provideIsDuringCases(): \Iterator
     {
-        return [
-            'contains returns true with a DateTimeInterface object' => [
-                Period::fromDate(new DateTimeImmutable('2014-03-10'), new DateTimeImmutable('2014-03-15')),
-                new DateTime('2014-03-12'),
-                true,
-            ],
-            'contains returns false with a DateTimeInterface object' => [
-                Period::fromDate(new DateTimeImmutable('2014-03-13'), new DateTimeImmutable('2014-03-15')),
-                new DateTime('2015-03-12'),
-                false,
-            ],
-            'contains returns false with a DateTimeInterface object after the interval' => [
-                Period::fromDate(new DateTimeImmutable('2014-03-13'), new DateTimeImmutable('2014-03-15')),
-                '2012-03-12',
-                false,
-            ],
-            'contains returns false with a DateTimeInterface object before the interval' => [
-                Period::fromDate(new DateTimeImmutable('2014-03-13'), new DateTimeImmutable('2014-03-15')),
-                '2014-04-01',
-                false,
-            ],
-            'contains returns false with O duration Period object' => [
-                Period::fromDate(new DateTimeImmutable('2012-03-12'), new DateTimeImmutable('2012-03-12')),
-                new DateTime('2012-03-12'),
-                false,
-            ],
-            'contains datetime edge case datetime equals start date' => [
-                Period::after(new DateTime('2012-01-08'), Duration::fromDateString('1 DAY')),
-                new DateTime('2012-01-08'),
-                true,
-            ],
-            'contains datetime edge case datetime equals end date' => [
-                Period::after(new DateTime('2012-01-08'), Duration::fromDateString('1 DAY')),
-                new DateTime('2012-01-09'),
-                false,
-            ],
-            'contains datetime edge case datetime equals start date OLCR interval' => [
-                Period::after(new DateTime('2012-01-08'), Duration::fromDateString('1 DAY'), Bounds::ExcludeStartIncludeEnd),
-                new DateTime('2012-01-08'),
-                false,
-            ],
-            'contains datetime edge case datetime equals end date CLCR interval' => [
-                Period::after(new DateTime('2012-01-08'), Duration::fromDateString('1 DAY'), Bounds::ExcludeAll),
-                new DateTime('2012-01-09'),
-                false,
-            ],
+        yield 'contains returns true with a DateTimeInterface object' => [
+            Period::fromDate(
+                CarbonImmutable::parse('2014-03-10'), CarbonImmutable::parse('2014-03-15')
+            ),
+            Date::parse('2014-03-12'),
+            true,
+        ];
+        yield 'contains returns false with a DateTimeInterface object' => [
+            Period::fromDate(
+                CarbonImmutable::parse('2014-03-13'), CarbonImmutable::parse('2014-03-15')
+            ),
+            Date::parse('2015-03-12'),
+            false,
+        ];
+        yield 'contains returns false with a DateTimeInterface object after the interval' => [
+            Period::fromDate(
+                CarbonImmutable::parse('2014-03-13'), CarbonImmutable::parse('2014-03-15')
+            ),
+            '2012-03-12',
+            false,
+        ];
+        yield 'contains returns false with a DateTimeInterface object before the interval' => [
+            Period::fromDate(
+                CarbonImmutable::parse('2014-03-13'), CarbonImmutable::parse('2014-03-15')
+            ),
+            '2014-04-01',
+            false,
+        ];
+        yield 'contains returns false with O duration Period object' => [
+            Period::fromDate(
+                CarbonImmutable::parse('2012-03-12'), CarbonImmutable::parse('2012-03-12')
+            ),
+            Date::parse('2012-03-12'),
+            false,
+        ];
+        yield 'contains datetime edge case datetime equals start date' => [
+            Period::after(
+                Date::parse('2012-01-08'), Duration::fromDateString('1 DAY')
+            ),
+            Date::parse('2012-01-08'),
+            true,
+        ];
+        yield 'contains datetime edge case datetime equals end date' => [
+            Period::after(
+                Date::parse('2012-01-08'), Duration::fromDateString('1 DAY')
+            ),
+            Date::parse('2012-01-09'),
+            false,
+        ];
+        yield 'contains datetime edge case datetime equals start date OLCR interval' => [
+            Period::after(
+                Date::parse('2012-01-08'), Duration::fromDateString('1 DAY'), Bounds::ExcludeStartIncludeEnd
+            ),
+            Date::parse('2012-01-08'),
+            false,
+        ];
+        yield 'contains datetime edge case datetime equals end date CLCR interval' => [
+            Period::after(
+                Date::parse('2012-01-08'), Duration::fromDateString('1 DAY'), Bounds::ExcludeAll
+            ),
+            Date::parse('2012-01-09'),
+            false,
         ];
     }
 
-    #[DataProvider('startsDataProvider')]
-    public function testStarts(Period $interval, DateTimeInterface $index, bool $expected): void
+    #[DataProvider('provideStartsCases')]
+    public function test_starts(Period $interval, DateTimeInterface $index, bool $expected): void
     {
-        self::assertSame($expected, DatePoint::fromDate($index)->isStarting($interval));
+        $this->assertSame($expected, DatePoint::fromDate($index)->isStarting($interval));
     }
 
     /**
-     * @return array<array{0:Period, 1:DateTimeInterface, 2:bool}>
+     * @return \Iterator<(int | string), array{Period, \DateTimeInterface, bool}>
      */
-    public static function startsDataProvider(): array
+    public static function provideStartsCases(): \Iterator
     {
-        $datepoint = new DateTime('2012-01-01');
-
-        return [
-            [
-                Period::fromDate($datepoint, new DateTime('2012-01-15'), Bounds::ExcludeAll),
-                $datepoint,
-                false,
-            ],
-            [
-                Period::fromDate($datepoint, new DateTime('2012-01-15'), Bounds::IncludeStartExcludeEnd),
-                $datepoint,
-                true,
-            ],
+        $datepoint = Date::parse('2012-01-01');
+        yield [
+            Period::fromDate($datepoint, Date::parse('2012-01-15'), Bounds::ExcludeAll),
+            $datepoint,
+            false,
+        ];
+        yield [
+            Period::fromDate($datepoint, Date::parse('2012-01-15'), Bounds::IncludeStartExcludeEnd),
+            $datepoint,
+            true,
         ];
     }
 
-    #[DataProvider('isEndingDataProvider')]
-    public function testFinishes(Period $interval, DateTimeInterface $index, bool $expected): void
+    #[DataProvider('provideFinishesCases')]
+    public function test_finishes(Period $interval, DateTimeInterface $index, bool $expected): void
     {
-        self::assertSame($expected, DatePoint::fromDate($index)->isEnding($interval));
+        $this->assertSame($expected, DatePoint::fromDate($index)->isEnding($interval));
     }
 
     /**
-     * @return array<array{0:Period, 1:DateTimeInterface, 2:bool}>
+     * @return \Iterator<(int | string), array{Period, \DateTimeInterface, bool}>
      */
-    public static function isEndingDataProvider(): array
+    public static function provideFinishesCases(): \Iterator
     {
-        $datepoint = new DateTime('2012-01-16');
-
-        return [
-            [
-                Period::fromDate(new DateTime('2012-01-01'), $datepoint, Bounds::ExcludeAll),
-                $datepoint,
-                false,
-            ],
-            [
-                Period::fromDate(new DateTime('2012-01-01'), $datepoint, Bounds::IncludeAll),
-                $datepoint,
-                true,
-            ],
+        $datepoint = Date::parse('2012-01-16');
+        yield [
+            Period::fromDate(
+                Date::parse('2012-01-01'), $datepoint, Bounds::ExcludeAll
+            ),
+            $datepoint,
+            false,
+        ];
+        yield [
+            Period::fromDate(
+                Date::parse('2012-01-01'), $datepoint, Bounds::IncludeAll
+            ),
+            $datepoint,
+            true,
         ];
     }
 }

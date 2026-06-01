@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,42 +9,47 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Period\Chart;
 
+use const STDOUT;
+
+use function array_rand;
 use function mb_convert_encoding;
 use function mb_strlen;
 use function preg_match;
 use function preg_replace;
-
-use const STDOUT;
 
 /**
  * A class to configure the settings to stroke data using the GanttChart.
  *
  * @see GanttChart
  */
-final class GanttChartConfig
+final readonly class GanttChartConfig
 {
-    private const REGEXP_UNICODE = '/\\\\u(?<unicode>[0-9A-F]{1,4})/i';
+    private const string REGEXP_UNICODE = '/\\\\u(?<unicode>[0-9A-F]{1,4})/i';
 
     public function __construct(
-        public readonly Output $output = new StreamOutput(STDOUT, Terminal::Posix),
+        public Output $output = new StreamOutput(STDOUT, Terminal::Posix),
         /** @var array<Color> */
-        public readonly array $colors = [Color::Reset],
-        public readonly string $startExcludedCharacter = '(',
-        public readonly string $startIncludedCharacter = '[',
-        public readonly string $endExcludedCharacter = ')',
-        public readonly string $endIncludedCharacter = ']',
-        public readonly string $bodyCharacter = '-',
-        public readonly string $spaceCharacter = ' ',
-        public readonly int $width = 60,
-        public readonly int $gapSize = 1,
-        public readonly int $leftMarginSize = 1,
-        public readonly Alignment $labelAlignment = Alignment::Left,
-    ) {
-    }
+        public array $colors = [Color::Reset],
+        public string $startExcludedCharacter = '(',
+        public string $startIncludedCharacter = '[',
+        public string $endExcludedCharacter = ')',
+        public string $endIncludedCharacter = ']',
+        public string $bodyCharacter = '-',
+        public string $spaceCharacter = ' ',
+        public int $width = 60,
+        public int $gapSize = 1,
+        public int $leftMarginSize = 1,
+        public Alignment $labelAlignment = Alignment::Left,
+    ) {}
 
     /**
      * Returns a CLI Renderer to Display the graph.
@@ -53,7 +58,9 @@ final class GanttChartConfig
      */
     public static function fromStream($stream, Terminal $terminal = Terminal::Posix): self
     {
-        return new self(new StreamOutput($stream, $terminal));
+        return new self(
+            new StreamOutput($stream, $terminal)
+        );
     }
 
     /**
@@ -80,39 +87,6 @@ final class GanttChartConfig
     public static function fromRainbow(): self
     {
         return new self(colors: Color::rainBow());
-    }
-
-    /**
-     * Filter the submitted string.
-     *
-     * @throws UnableToDrawChart if the pattern is invalid
-     */
-    private function filterPattern(string $str, string $part): string
-    {
-        return match (true) {
-            1 === mb_strlen($str) => $str,
-            1 === preg_match(self::REGEXP_UNICODE, $str) => $this->filterUnicodeCharacter($str),
-            default => throw UnableToDrawChart::dueToInvalidPattern($part),
-        };
-    }
-
-    /**
-     * Decode unicode characters.
-     *
-     * @see http://stackoverflow.com/a/37415135/2316257
-     *
-     * @throws UnableToDrawChart if the character is not valid.
-     */
-    private function filterUnicodeCharacter(string $str): string
-    {
-        $replaced = (string) preg_replace(self::REGEXP_UNICODE, '&#x$1;', $str);
-        $result = mb_convert_encoding($replaced, 'UTF-16', 'HTML-ENTITIES');
-        $result = mb_convert_encoding($result, 'UTF-8', 'UTF-16');
-
-        return match (1) {
-            mb_strlen($result) => $result,
-            default => throw UnableToDrawChart::dueToInvalidUnicodeChar($str),
-        };
     }
 
     /**
@@ -405,6 +379,7 @@ final class GanttChartConfig
             ),
         };
     }
+
     /**
      * Return an instance with a new gap size.
      *
@@ -460,6 +435,39 @@ final class GanttChartConfig
                 $this->leftMarginSize,
                 $labelAlignment,
             ),
+        };
+    }
+
+    /**
+     * Filter the submitted string.
+     *
+     * @throws UnableToDrawChart if the pattern is invalid
+     */
+    private function filterPattern(string $str, string $part): string
+    {
+        return match (true) {
+            1 === mb_strlen($str) => $str,
+            1 === preg_match(self::REGEXP_UNICODE, $str) => $this->filterUnicodeCharacter($str),
+            default => throw UnableToDrawChart::dueToInvalidPattern($part),
+        };
+    }
+
+    /**
+     * Decode unicode characters.
+     *
+     * @see http://stackoverflow.com/a/37415135/2316257
+     *
+     * @throws UnableToDrawChart if the character is not valid.
+     */
+    private function filterUnicodeCharacter(string $str): string
+    {
+        $replaced = (string) preg_replace(self::REGEXP_UNICODE, '&#x$1;', $str);
+        $result = mb_convert_encoding($replaced, 'UTF-16', 'HTML-ENTITIES');
+        $result = mb_convert_encoding($result, 'UTF-8', 'UTF-16');
+
+        return match (1) {
+            mb_strlen($result) => $result,
+            default => throw UnableToDrawChart::dueToInvalidUnicodeChar($str),
         };
     }
 }

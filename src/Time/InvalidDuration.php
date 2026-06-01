@@ -1,13 +1,18 @@
-<?php
+<?php declare(strict_types=1);
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Time;
 
+use function mb_strpos;
 use function str_contains;
-use function strpos;
 
-class InvalidDuration extends TimeException
+final class InvalidDuration extends TimeException
 {
     public static function dueToOverflow(): self
     {
@@ -19,36 +24,37 @@ class InvalidDuration extends TimeException
         $containsUnsupportedUnits = str_contains($notation, 'Y') || self::containsMonthComponent($notation);
 
         $message = $containsUnsupportedUnits
-            ? "The submitted duration `$notation` contains unsupported ISO 8601 duration components."
-            : "The submitted duration `$notation` is not a valid ISO 8601 duration.";
+            ? "The submitted duration `{$notation}` contains unsupported ISO 8601 duration components."
+            : "The submitted duration `{$notation}` is not a valid ISO 8601 duration.";
 
         return new self($message);
     }
 
-    private static function containsMonthComponent(string $value): bool
-    {
-        $monthPosition = strpos($value, 'M');
-        if (false === $monthPosition) {
-            return false;
-        }
-
-        $timePosition = strpos($value, 'T');
-
-        return false === $timePosition || $monthPosition < $timePosition;
-    }
-
     public static function dueToMalformedMinute(int $minute): self
     {
-        return new self("Minute must be between 0 and 59, got $minute.");
+        return new self("Minute must be between 0 and 59, got {$minute}.");
     }
 
     public static function dueToMalformedSecond(int $second): self
     {
-        return new self("Second must be between 0 and 59, got $second.");
+        return new self("Second must be between 0 and 59, got {$second}.");
     }
 
     public static function dueToMalformedMicrosecond(int $microsecond): self
     {
-        return new self("Microsecond must be between 0 and 999999, got $microsecond.");
+        return new self("Microsecond must be between 0 and 999999, got {$microsecond}.");
+    }
+
+    private static function containsMonthComponent(string $value): bool
+    {
+        $monthPosition = mb_strpos($value, 'M');
+
+        if (false === $monthPosition) {
+            return false;
+        }
+
+        $timePosition = mb_strpos($value, 'T');
+
+        return false === $timePosition || $monthPosition < $timePosition;
     }
 }

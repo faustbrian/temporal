@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,7 +9,12 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Period\Chart;
 
@@ -20,19 +25,19 @@ use Iterator;
  *
  * @see LabelGenerator
  */
-final class RomanNumber implements LabelGenerator
+final readonly class RomanNumber implements LabelGenerator
 {
-    private const CHARACTER_MAP = [
-        'M'  => 1000, 'CM' => 900,  'D' => 500,
+    private const array CHARACTER_MAP = [
+        'M' => 1_000, 'CM' => 900,  'D' => 500,
         'CD' => 400,   'C' => 100, 'XC' => 90,
-        'L'  => 50,   'XL' => 40,   'X' => 10,
+        'L' => 50,   'XL' => 40,   'X' => 10,
         'IX' => 9,     'V' => 5,   'IV' => 4,
-        'I'  => 1,
+        'I' => 1,
     ];
 
     public function __construct(
-        public readonly DecimalNumber $decimalNumber,
-        public readonly LetterCase $letterCase
+        public DecimalNumber $decimalNumber,
+        public LetterCase $letterCase,
     ) {
         if ($this->decimalNumber->startLabel < 1) {
             throw UnableToDrawChart::dueToInvalidLabel($this->decimalNumber->startLabel, $this);
@@ -60,11 +65,13 @@ final class RomanNumber implements LabelGenerator
     {
         $numberInt = (int) $number;
         $retVal = '';
+
         while ($numberInt > 0) {
             foreach (self::CHARACTER_MAP as $roman => $int) {
                 if ($numberInt >= $int) {
                     $numberInt -= $int;
                     $retVal .= $roman;
+
                     break;
                 }
             }

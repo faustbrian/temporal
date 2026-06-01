@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,7 +9,12 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Period\Chart;
 
@@ -17,8 +22,12 @@ use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+use const STDERR;
 use const STDOUT;
 
+/**
+ * @internal
+ */
 final class GanttChartConfigTest extends TestCase
 {
     private GanttChartConfig $config;
@@ -28,219 +37,205 @@ final class GanttChartConfigTest extends TestCase
         $this->config = GanttChartConfig::fromStream(STDOUT);
     }
 
-    public function testNewInstance(): void
+    public function test_new_instance(): void
     {
-        self::assertSame('[', $this->config->startIncludedCharacter);
-        self::assertSame('(', $this->config->startExcludedCharacter);
-        self::assertSame(']', $this->config->endIncludedCharacter);
-        self::assertSame(')', $this->config->endExcludedCharacter);
-        self::assertSame('-', $this->config->bodyCharacter);
-        self::assertSame(' ', $this->config->spaceCharacter);
-        self::assertSame(60, $this->config->width);
-        self::assertSame(1, $this->config->gapSize);
-        self::assertSame([Color::Reset], $this->config->colors);
-        self::assertSame(Alignment::Left, $this->config->labelAlignment);
+        $this->assertSame('[', $this->config->startIncludedCharacter);
+        $this->assertSame('(', $this->config->startExcludedCharacter);
+        $this->assertSame(']', $this->config->endIncludedCharacter);
+        $this->assertSame(')', $this->config->endExcludedCharacter);
+        $this->assertSame('-', $this->config->bodyCharacter);
+        $this->assertSame(' ', $this->config->spaceCharacter);
+        $this->assertSame(60, $this->config->width);
+        $this->assertSame(1, $this->config->gapSize);
+        $this->assertSame([Color::Reset], $this->config->colors);
+        $this->assertSame(Alignment::Left, $this->config->labelAlignment);
     }
 
-    public function testCreateFromRandom(): void
+    public function test_create_from_random(): void
     {
         $config1 = GanttChartConfig::fromRandomColor();
         $config2 = GanttChartConfig::fromRainbow();
-        self::assertContains($config1->colors[0], $config2->colors);
+        $this->assertContains($config1->colors[0], $config2->colors);
     }
 
-    #[DataProvider('widthProvider')]
-    public function testWidth(int $size, int $expected): void
+    #[DataProvider('provideWidthCases')]
+    public function test_width(int $size, int $expected): void
     {
-        self::assertSame($expected, $this->config->width($size)->width);
+        $this->assertSame($expected, $this->config->width($size)->width);
     }
 
     /**
-     * @return array<string, array{0:int, 1:int}>
+     * @return \Iterator<string, array{int, int}>
      */
-    public static function widthProvider(): array
+    public static function provideWidthCases(): \Iterator
     {
-        return [
-            '0 size' => [0, 10],
-            'negative size' => [-23, 10],
-            'basic usage' => [23, 23],
-            'default value' => [60, 60],
-        ];
+        yield '0 size' => [0, 10];
+        yield 'negative size' => [-23, 10];
+        yield 'basic usage' => [23, 23];
+        yield 'default value' => [60, 60];
     }
 
     #[DataProvider('providerChars')]
-    public function testBody(string $char, string $expected): void
+    public function test_body(string $char, string $expected): void
     {
-        self::assertSame($expected, $this->config->bodyCharacter($char)->bodyCharacter);
+        $this->assertSame($expected, $this->config->bodyCharacter($char)->bodyCharacter);
     }
 
     #[DataProvider('providerChars')]
-    public function testEndExcluded(string $char, string $expected): void
+    public function test_end_excluded(string $char, string $expected): void
     {
-        self::assertSame($expected, $this->config->endExcludedCharacter($char)->endExcludedCharacter);
+        $this->assertSame($expected, $this->config->endExcludedCharacter($char)->endExcludedCharacter);
     }
 
     #[DataProvider('providerChars')]
-    public function testEndIncluded(string $char, string $expected): void
+    public function test_end_included(string $char, string $expected): void
     {
-        self::assertSame($expected, $this->config->endIncludedCharacter($char)->endIncludedCharacter);
+        $this->assertSame($expected, $this->config->endIncludedCharacter($char)->endIncludedCharacter);
     }
 
     #[DataProvider('providerChars')]
-    public function testStartExcluded(string $char, string $expected): void
+    public function test_start_excluded(string $char, string $expected): void
     {
-        self::assertSame($expected, $this->config->startExcludedCharacter($char)->startExcludedCharacter);
+        $this->assertSame($expected, $this->config->startExcludedCharacter($char)->startExcludedCharacter);
     }
 
     #[DataProvider('providerChars')]
-    public function testStartIncluded(string $char, string $expected): void
+    public function test_start_included(string $char, string $expected): void
     {
-        self::assertSame($expected, $this->config->startIncludedCharacter($char)->startIncludedCharacter);
+        $this->assertSame($expected, $this->config->startIncludedCharacter($char)->startIncludedCharacter);
     }
 
     #[DataProvider('providerChars')]
-    public function testSpace(string $char, string $expected): void
+    public function test_space(string $char, string $expected): void
     {
-        self::assertSame($expected, $this->config->spaceCharacter($char)->spaceCharacter);
+        $this->assertSame($expected, $this->config->spaceCharacter($char)->spaceCharacter);
     }
 
     /**
-     * @return array<array{0:string, 1:string}>
+     * @return \Iterator<(int | string), array{string, string}>
      */
-    public static function providerChars(): array
+    public static function providerChars(): \Iterator
     {
-        return [
-            ['-', '-'],
-            ['=', '='],
-            ['[', '['],
-            [']', ']'],
-            [')', ')'],
-            ['(', '('],
-            [' ', ' '],
-            ['#', '#'],
-            ["\t", "\t"],
-            ['€', '€'],
-            ['█', '█'],
-            [' ', ' '],
-            ['\uD83D\uDE00', '😀'],
-        ];
+        yield ['-', '-'];
+        yield ['=', '='];
+        yield ['[', '['];
+        yield [']', ']'];
+        yield [')', ')'];
+        yield ['(', '('];
+        yield [' ', ' '];
+        yield ['#', '#'];
+        yield ["\t", "\t"];
+        yield ['€', '€'];
+        yield ['█', '█'];
+        yield [' ', ' '];
+        yield ['\uD83D\uDE00', '😀'];
     }
 
-    #[DataProvider('colorsProvider')]
-    public function testColors(Color $char, Color $expected): void
+    #[DataProvider('provideColorsCases')]
+    public function test_colors(Color $char, Color $expected): void
     {
-        self::assertSame($expected, $this->config->colors($char)->colors[0]);
+        $this->assertSame($expected, $this->config->colors($char)->colors[0]);
     }
 
     /**
-     * @return array<array{0:Color, 1:Color}>
+     * @return \Iterator<(int | string), array{Color, Color}>
      */
-    public static function colorsProvider(): array
+    public static function provideColorsCases(): \Iterator
     {
-        return [
-            [Color::Reset, Color::Reset],
-            [Color::White, Color::White],
-        ];
+        yield [Color::Reset, Color::Reset];
+        yield [Color::White, Color::White];
     }
 
-    public function testWithColorsReturnSameInstance(): void
+    public function test_with_colors_return_same_instance(): void
     {
-        self::assertSame($this->config, $this->config->colors());
+        $this->assertSame($this->config, $this->config->colors());
     }
 
-    /**
-     * @return array<array{0:string}>
-     */
-    public static function providerInvalidChars(): array
-    {
-        return [
-            ['coucou'],
-            ['\uD83D\uDE00\uD83D\uDE00'],
-        ];
-    }
-
-    #[DataProvider('providerInvalidChars')]
-    public function testWithHeadBlockThrowsInvalidArgumentException(string $input): void
+    #[DataProvider('provideWithHeadBlockThrowsInvalidArgumentExceptionCases')]
+    public function test_with_head_block_throws_invalid_argument_exception(string $input): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->config->bodyCharacter($input);
     }
 
-    #[DataProvider('providerGaps')]
-    public function testLeftMargin(int $gap, int $expected): void
-    {
-        self::assertSame($expected, $this->config->leftMarginSize($gap)->leftMarginSize);
-    }
-
-    #[DataProvider('providerGaps')]
-    public function testGap(int $gap, int $expected): void
-    {
-        self::assertSame($expected, $this->config->gapSize($gap)->gapSize);
-    }
-
     /**
-     * @return iterable<string, array{gap:int, expected:int}>
+     * @return \Iterator<(int | string), array{string}>
      */
-    public static function providerGaps(): iterable
+    public static function provideWithHeadBlockThrowsInvalidArgumentExceptionCases(): \Iterator
     {
-        return [
-            'single gap' => [
-                'gap' => 1,
-                'expected' => 1,
-            ],
-            'empty gap' => [
-                'gap' => 0,
-                'expected' => 0,
-            ],
-            'sequence with invalid chars' => [
-                'gap' => -42,
-                'expected' => 1,
-            ],
+        yield ['coucou'];
+        yield ['\uD83D\uDE00\uD83D\uDE00'];
+    }
+
+    #[DataProvider('providerGaps')]
+    public function test_left_margin(int $gap, int $expected): void
+    {
+        $this->assertSame($expected, $this->config->leftMarginSize($gap)->leftMarginSize);
+    }
+
+    #[DataProvider('providerGaps')]
+    public function test_gap(int $gap, int $expected): void
+    {
+        $this->assertSame($expected, $this->config->gapSize($gap)->gapSize);
+    }
+
+    public static function providerGaps(): \Iterator
+    {
+        yield 'single gap' => [
+            'gap' => 1,
+            'expected' => 1,
+        ];
+        yield 'empty gap' => [
+            'gap' => 0,
+            'expected' => 0,
+        ];
+        yield 'sequence with invalid chars' => [
+            'gap' => -42,
+            'expected' => 1,
         ];
     }
 
-    #[DataProvider('providerPaddings')]
-    public function testPadding(Alignment $padding, Alignment $expected): void
+    #[DataProvider('providePaddingCases')]
+    public function test_padding(Alignment $padding, Alignment $expected): void
     {
-        self::assertSame($expected, $this->config->labelAlignment($padding)->labelAlignment);
+        $this->assertSame($expected, $this->config->labelAlignment($padding)->labelAlignment);
     }
 
-    public function testAlignmentWillFail(): void
+    public static function providePaddingCases(): \Iterator
+    {
+        yield 'default' => [
+            'padding' => Alignment::Left,
+            'expected' => Alignment::Left,
+        ];
+        yield 'changing wit a defined config' => [
+            'padding' => Alignment::Right,
+            'expected' => Alignment::Right,
+        ];
+    }
+
+    public function test_alignment_will_fail(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
         Alignment::fromPadding(42);
     }
 
-    /**
-     * @return iterable<string, array{padding:Alignment, expected:Alignment}>
-     */
-    public static function providerPaddings(): iterable
+    public function test_with_output_always_returns_a_new_instance(): void
     {
-        return [
-            'default' => [
-                'padding' => Alignment::Left,
-                'expected' => Alignment::Left,
-            ],
-            'changing wit a defined config' => [
-                'padding' => Alignment::Right,
-                'expected' => Alignment::Right,
-            ],
-        ];
+        $newConfig = $this->config->output(
+            new StreamOutput(STDOUT, Terminal::Posix)
+        );
+        $this->assertNotSame($this->config, $newConfig);
+        $this->assertEquals($newConfig->output, $this->config->output);
     }
 
-    public function testWithOutputAlwaysReturnsANewInstance(): void
+    public function test_constructors(): void
     {
-        $newConfig = $this->config->output(new StreamOutput(STDOUT, Terminal::Posix));
-        self::assertNotSame($this->config, $newConfig);
-        self::assertEquals($newConfig->output, $this->config->output);
-    }
-
-    public function testConstructors(): void
-    {
-        self::assertEquals(
-            GanttChartConfig::fromOutput(new StreamOutput(STDERR, Terminal::Posix)),
-            GanttChartConfig::fromStream(STDERR)
+        $this->assertEquals(
+            GanttChartConfig::fromOutput(
+                new StreamOutput(STDERR, Terminal::Posix)
+            ),
+            GanttChartConfig::fromStream(STDERR),
         );
     }
 }

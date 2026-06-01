@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,7 +9,12 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Period\Chart;
 
@@ -20,11 +25,11 @@ use Iterator;
  *
  * @see LabelGenerator
  */
-final class DecimalNumber implements LabelGenerator
+final readonly class DecimalNumber implements LabelGenerator
 {
-    public function __construct(public readonly int $startLabel)
-    {
-    }
+    public function __construct(
+        public int $startLabel,
+    ) {}
 
     public function format(string $label): string
     {
@@ -40,6 +45,7 @@ final class DecimalNumber implements LabelGenerator
         $count = 0;
         $end = $this->startLabel + $nbLabels;
         $label = $this->startLabel;
+
         while ($label < $end) {
             yield $count => $this->format((string) $label);
 

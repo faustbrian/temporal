@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,18 +9,23 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Period\Chart;
 
+use Illuminate\Support\Facades\Date;
+use Carbon\CarbonImmutable;
 use ArrayIterator;
 use ArrayObject;
-use DateTime;
-use DateTimeImmutable;
-use Iterator;
-use IteratorAggregate;
 use Cline\Temporal\Period\Period;
 use Cline\Temporal\Period\Sequence;
+use Iterator;
+use IteratorAggregate;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use TypeError;
@@ -28,141 +33,167 @@ use TypeError;
 use function iterator_to_array;
 use function json_encode;
 
+/**
+ * @internal
+ */
 final class DatasetTest extends TestCase
 {
-    public function testFromSequenceConstructor(): void
+    public function test_from_sequence_constructor(): void
     {
-        $periodA = Period::fromDay(2018, 3, 15);
-        $periodB = Period::fromDay(2019, 3, 15);
+        $periodA = Period::fromDay(2_018, 3, 15);
+        $periodB = Period::fromDay(2_019, 3, 15);
         $labelGenerator = new LatinLetter('A');
         $sequence = new Sequence($periodA, $periodB);
         $dataset = Dataset::fromItems($sequence, $labelGenerator);
         $arr = iterator_to_array($dataset);
 
-        self::assertCount(2, $dataset);
-        self::assertSame('B', $arr[1][0]);
-        self::assertTrue($periodB->equals($arr[1][1][0]));
+        $this->assertCount(2, $dataset);
+        $this->assertSame('B', $arr[1][0]);
+        $this->assertTrue($periodB->equals($arr[1][1][0]));
 
-        $emptyDataset = Dataset::fromItems(new Sequence(), $labelGenerator);
-        self::assertCount(0, $emptyDataset);
-        self::assertTrue($emptyDataset->isEmpty());
+        $emptyDataset = Dataset::fromItems(
+            new Sequence(), $labelGenerator
+        );
+        $this->assertCount(0, $emptyDataset);
+        $this->assertTrue($emptyDataset->isEmpty());
     }
 
     /**
      * @param iterable<int, Period|Sequence> $input
      */
-    #[DataProvider('provideIterableStructure')]
-    public function testFromIterableConstructor(iterable $input, int $expectedCount, bool $isEmpty, bool $boundaryIsNull): void
+    #[DataProvider('provideFromIterableConstructorCases')]
+    public function test_from_iterable_constructor(iterable $input, int $expectedCount, bool $isEmpty, bool $boundaryIsNull): void
     {
         $dataset = Dataset::fromIterable($input);
-        self::assertCount($expectedCount, $dataset);
-        self::assertSame($isEmpty, $dataset->isEmpty());
-        self::assertSame($boundaryIsNull, null === $dataset->length());
+        $this->assertCount($expectedCount, $dataset);
+        $this->assertSame($isEmpty, $dataset->isEmpty());
+        $this->assertSame($boundaryIsNull, !$dataset->length() instanceof Period);
     }
 
     /**
-     * @return array<string, array{input:iterable<int, Period|Sequence>, expectedCount:int, isEmpty:bool, boundaryIsNull:bool}>
+     * @return \Iterator<string, array{input: iterable<int, (Period | Sequence)>, expectedCount: int, isEmpty: bool, boundaryIsNull: bool}>
      */
-    public static function provideIterableStructure(): array
+    public static function provideFromIterableConstructorCases(): \Iterator
     {
-        return [
-            'empty structure' => [
-                'input' => [],
-                'expectedCount' => 0,
-                'isEmpty' => true,
-                'boundaryIsNull' => true,
-            ],
-            'single array' => [
-                'input' => [Period::fromDay(2019, 3, 15)],
-                'expectedCount' => 1,
-                'isEmpty' => false,
-                'boundaryIsNull' => false,
-            ],
-            'using an iterator' => [
-                'input' => new ArrayObject([Period::fromDay(2019, 3, 15)]),
-                'expectedCount' => 1,
-                'isEmpty' => false,
-                'boundaryIsNull' => false,
-            ],
-            'using a direct sequence' => [
-                'input' => new Sequence(
-                    Period::fromDay(2018, 9, 10),
-                    Period::fromDay(2019, 10, 11)
-                ),
-                'expectedCount' => 2,
-                'isEmpty' => false,
-                'boundaryIsNull' => false,
-            ],
-            'using a wrapped sequence' => [
-                'input' => [new Sequence(
-                    Period::fromDay(2018, 9, 10),
-                    Period::fromDay(2019, 10, 11)
-                )],
-                'expectedCount' => 1,
-                'isEmpty' => false,
-                'boundaryIsNull' => false,
-            ],
+        yield 'empty structure' => [
+            'input' => [],
+            'expectedCount' => 0,
+            'isEmpty' => true,
+            'boundaryIsNull' => true,
+        ];
+        yield 'single array' => [
+            'input' => [Period::fromDay(2_019, 3, 15)],
+            'expectedCount' => 1,
+            'isEmpty' => false,
+            'boundaryIsNull' => false,
+        ];
+        yield 'using an iterator' => [
+            'input' => new ArrayObject([Period::fromDay(2_019, 3, 15)]),
+            'expectedCount' => 1,
+            'isEmpty' => false,
+            'boundaryIsNull' => false,
+        ];
+        yield 'using a direct sequence' => [
+            'input' => new Sequence(
+                Period::fromDay(2_018, 9, 10),
+                Period::fromDay(2_019, 10, 11),
+            ),
+            'expectedCount' => 2,
+            'isEmpty' => false,
+            'boundaryIsNull' => false,
+        ];
+        yield 'using a wrapped sequence' => [
+            'input' => [new Sequence(
+                Period::fromDay(2_018, 9, 10),
+                Period::fromDay(2_019, 10, 11),
+            )],
+            'expectedCount' => 1,
+            'isEmpty' => false,
+            'boundaryIsNull' => false,
         ];
     }
 
-    public function testAppendDataset(): void
+    public function test_append_dataset(): void
     {
         $dataset = new Dataset([
-            ['A', new Sequence(Period::fromDate(new DateTime('2018-01-01'), new DateTime('2018-01-15')))],
-            ['B', Period::fromDate(new DateTime('2018-01-15'), new DateTime('2018-02-01'))],
+            ['A', new Sequence(Period::fromDate(
+                Date::parse('2018-01-01'), Date::parse('2018-01-15')
+            ))],
+            ['B', Period::fromDate(
+                Date::parse('2018-01-15'), Date::parse('2018-02-01')
+            )],
         ]);
 
-        self::assertCount(2, $dataset);
+        $this->assertCount(2, $dataset);
     }
 
-    public function testLabelizeDataset(): void
+    public function test_labelize_dataset(): void
     {
         $dataset = new Dataset([
-            ['A', new Sequence(Period::fromDate(new DateTimeImmutable('2018-01-01'), new DateTimeImmutable('2018-01-15')))],
-            ['B', new Sequence(Period::fromDate(new DateTimeImmutable('2018-01-15'), new DateTimeImmutable('2018-02-01')))],
+            ['A', new Sequence(Period::fromDate(
+                CarbonImmutable::parse('2018-01-01'), CarbonImmutable::parse('2018-01-15')
+            ))],
+            ['B', new Sequence(Period::fromDate(
+                CarbonImmutable::parse('2018-01-15'), CarbonImmutable::parse('2018-02-01')
+            ))],
         ]);
-        self::assertSame(['A', 'B'], $dataset->labels());
-        self::assertSame(1, $dataset->labelMaxLength());
+        $this->assertSame(['A', 'B'], $dataset->labels());
+        $this->assertSame(1, $dataset->labelMaxLength());
 
         $newDataset = Dataset::fromItems($dataset->items(), new DecimalNumber(42));
-        self::assertSame(['42', '43'], $newDataset->labels());
-        self::assertSame($dataset->items(), $newDataset->items());
-        self::assertSame(2, $newDataset->labelMaxLength());
+        $this->assertSame(['42', '43'], $newDataset->labels());
+        $this->assertSame($dataset->items(), $newDataset->items());
+        $this->assertSame(2, $newDataset->labelMaxLength());
     }
 
-    public function testLabelizeDatasetReturnsSameInstance(): void
+    public function test_labelize_dataset_returns_same_instance(): void
     {
         $dataset = new Dataset([
-            ['A', new Sequence(Period::fromDate(new DateTimeImmutable('2018-01-01'), new DateTimeImmutable('2018-01-15')))],
-            ['B', new Sequence(Period::fromDate(new DateTimeImmutable('2018-01-15'), new DateTimeImmutable('2018-02-01')))],
+            ['A', new Sequence(Period::fromDate(
+                CarbonImmutable::parse('2018-01-01'), CarbonImmutable::parse('2018-01-15')
+            ))],
+            ['B', new Sequence(Period::fromDate(
+                CarbonImmutable::parse('2018-01-15'), CarbonImmutable::parse('2018-02-01')
+            ))],
         ]);
 
-        self::assertEquals($dataset, Dataset::fromItems($dataset->items(), new LatinLetter('A')));
-        self::assertEquals(new Dataset(), Dataset::fromItems((new Dataset())->items(), new DecimalNumber(42)));
+        $this->assertEquals($dataset, Dataset::fromItems($dataset->items(), new LatinLetter('A')));
+        $this->assertEquals(
+            new Dataset(), Dataset::fromItems(
+                new Dataset()->items(), new DecimalNumber(42)
+            )
+        );
     }
 
-    public function testEmptyInstance(): void
+    public function test_empty_instance(): void
     {
         $dataset = new Dataset();
-        self::assertSame(0, $dataset->labelMaxLength());
-        self::assertSame([], $dataset->items());
-        self::assertSame([], $dataset->labels());
+        $this->assertSame(0, $dataset->labelMaxLength());
+        $this->assertSame([], $dataset->items());
+        $this->assertSame([], $dataset->labels());
     }
 
-    public function testJsonEncoding(): void
+    public function test_json_encoding(): void
     {
-        self::assertSame('[]', json_encode(new Dataset()));
+        $this->assertSame('[]', json_encode(
+            new Dataset()
+        ));
         $dataset = new Dataset([
-            ['A', new Sequence(Period::fromDate(new DateTime('2018-01-01'), new DateTime('2018-01-15')))],
-            ['B', new Sequence(Period::fromDate(new DateTime('2018-01-15'), new DateTime('2018-02-01')))],
+            ['A', new Sequence(Period::fromDate(
+                Date::parse('2018-01-01'), Date::parse('2018-01-15')
+            ))],
+            ['B', new Sequence(Period::fromDate(
+                Date::parse('2018-01-15'), Date::parse('2018-02-01')
+            ))],
         ]);
 
-        self::assertStringContainsString('label', (string) json_encode($dataset));
+        $this->assertStringContainsString('label', (string) json_encode($dataset));
     }
 
-    public function testFromItemsFailsWithNonCountableIterator(): void
+    public function test_from_items_fails_with_non_countable_iterator(): void
     {
-        $items = new class () implements IteratorAggregate {
+        $items = new class() implements IteratorAggregate
+        {
             /**
              * @return ArrayIterator<array-key, Period>
              */

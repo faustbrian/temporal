@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 /**
  * League.Period (https://period.thephpleague.com)
@@ -9,12 +9,8 @@
  * file that was distributed with this source code.
  */
 
-declare(strict_types=1);
-
 /**
- * League.Period (https://period.thephpleague.com).
- *
- * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ * Copyright (C) Brian Faust
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -25,18 +21,21 @@ namespace Cline\Temporal\Period;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 final class BoundsTest extends TestCase
 {
-    #[DataProvider('boundsIso80000Provider')]
-    public function testIso80000(string $notation, Bounds $bounds, string $start, string $end): void
+    #[DataProvider('provideIso80000Cases')]
+    public function test_iso80000(string $notation, Bounds $bounds, string $start, string $end): void
     {
-        self::assertSame($notation, $bounds->buildIso80000($start, $end));
+        $this->assertSame($notation, $bounds->buildIso80000($start, $end));
     }
 
     /**
      * @return iterable<array{notation:string, bounds:Bounds, start:string, end:string}>
      */
-    public static function boundsIso80000Provider(): iterable
+    public static function provideIso80000Cases(): iterable
     {
         yield 'exclude all' => [
             'notation' => '(3, 4)',
@@ -45,7 +44,7 @@ final class BoundsTest extends TestCase
             'end' => '4',
         ];
 
-        $period = Period::fromMonth(2022, 3);
+        $period = Period::fromMonth(2_022, 3);
 
         yield 'include start exclude end' => [
             'notation' => '[2022-03-01, 2022-04)',
@@ -55,16 +54,16 @@ final class BoundsTest extends TestCase
         ];
     }
 
-    #[DataProvider('boundsBourbakiProvider')]
-    public function testBourbaki(string $notation, Bounds $bounds, string $start, string $end): void
+    #[DataProvider('provideBourbakiCases')]
+    public function test_bourbaki(string $notation, Bounds $bounds, string $start, string $end): void
     {
-        self::assertSame($notation, $bounds->buildBourbaki($start, $end));
+        $this->assertSame($notation, $bounds->buildBourbaki($start, $end));
     }
 
     /**
      * @return iterable<array{notation:string, bounds:Bounds, start:string, end:string}>
      */
-    public static function boundsBourbakiProvider(): iterable
+    public static function provideBourbakiCases(): iterable
     {
         yield 'exclude all' => [
             'notation' => ']3, 4[',
@@ -73,7 +72,7 @@ final class BoundsTest extends TestCase
             'end' => '4',
         ];
 
-        $period = Period::fromMonth(2022, 3);
+        $period = Period::fromMonth(2_022, 3);
 
         yield 'include start exclude end' => [
             'notation' => '[2022-03-01, 2022-04[',
@@ -83,24 +82,24 @@ final class BoundsTest extends TestCase
         ];
     }
 
-    public function testFromIso80000Succeeds(): void
+    public function test_from_iso80000_succeeds(): void
     {
-        self::assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::IncludeAll], Bounds::parseIso80000('[3,5]'));
-        self::assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::ExcludeAll], Bounds::parseIso80000('(3,5)'));
-        self::assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::ExcludeStartIncludeEnd], Bounds::parseIso80000('(3,5]'));
-        self::assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::IncludeStartExcludeEnd], Bounds::parseIso80000('[3,5)'));
+        $this->assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::IncludeAll], Bounds::parseIso80000('[3,5]'));
+        $this->assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::ExcludeAll], Bounds::parseIso80000('(3,5)'));
+        $this->assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::ExcludeStartIncludeEnd], Bounds::parseIso80000('(3,5]'));
+        $this->assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::IncludeStartExcludeEnd], Bounds::parseIso80000('[3,5)'));
     }
 
-    public function testFromBourbakiSucceeds(): void
+    public function test_from_bourbaki_succeeds(): void
     {
-        self::assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::IncludeAll], Bounds::parseBourbaki('[3,5]'));
-        self::assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::ExcludeAll], Bounds::parseBourbaki(']3,5['));
-        self::assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::ExcludeStartIncludeEnd], Bounds::parseBourbaki(']3,5]'));
-        self::assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::IncludeStartExcludeEnd], Bounds::parseBourbaki('[3,5['));
+        $this->assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::IncludeAll], Bounds::parseBourbaki('[3,5]'));
+        $this->assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::ExcludeAll], Bounds::parseBourbaki(']3,5['));
+        $this->assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::ExcludeStartIncludeEnd], Bounds::parseBourbaki(']3,5]'));
+        $this->assertSame(['start' => '3', 'end' => '5', 'bounds' => Bounds::IncludeStartExcludeEnd], Bounds::parseBourbaki('[3,5['));
     }
 
-    #[DataProvider('fromNotationFailsProvider')]
-    public function testFromNotationFails(string $notation): void
+    #[DataProvider('provideFromNotationFailsCases')]
+    public function test_from_notation_fails(string $notation): void
     {
         $this->expectException(InvalidInterval::class);
 
@@ -110,10 +109,12 @@ final class BoundsTest extends TestCase
     /**
      * @return iterable<string, array{notation:string}>
      */
-    public static function fromNotationFailsProvider(): iterable
+    public static function provideFromNotationFailsCases(): iterable
     {
         yield 'invalid notation' => ['notation' => 'foobar'];
+
         yield 'mixed notation 1' => ['notation' => ']3,5)'];
+
         yield 'mixed notation 2' => ['notation' => '([3,5'];
     }
 }

@@ -85,7 +85,7 @@ final class PeriodFactoryTest extends PeriodTestCase
         $start = new DateTimeImmutable($startDate);
         $period = match (true) {
             $duration instanceof Period => Period::after($start, $duration->dateInterval()),
-            is_string($duration) => Period::after($start, DateInterval::createFromDateString($duration)), /* @phpstan-ignore-line */
+            is_string($duration) => Period::after($start, DateInterval::createFromDateString($duration)),
             !$duration instanceof DateInterval => Period::after($start, Duration::fromSeconds($duration)),
             default => Period::after($start, $duration),
         };
@@ -194,7 +194,7 @@ final class PeriodFactoryTest extends PeriodTestCase
             new DateInterval('P1D'),
             new DateTime('2016-05-20T00:00:00Z')
         );
-        $period = Period::fromDateRange($datePeriod);  /* @phpstan-ignore-line */
+        $period = Period::fromDateRange($datePeriod);
         self::assertEquals($datePeriod->getStartDate(), $period->startDate);
         self::assertEquals($datePeriod->getEndDate(), $period->endDate);
     }

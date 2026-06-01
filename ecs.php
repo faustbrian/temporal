@@ -10,5 +10,5 @@
 use Cline\CodingStandard\EasyCodingStandard\Factory;
 
 return Factory::create(
-    paths: [__DIR__.'/src', __DIR__.'/tests'],
+    paths: [__DIR__.'/tests'],
 );

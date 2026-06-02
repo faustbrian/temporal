@@ -17,12 +17,9 @@ use JsonSerializable;
 use const PHP_INT_MAX;
 use const PHP_INT_MIN;
 
-use function array_column;
 use function array_reduce;
 use function array_shift;
-use function array_sum;
 use function intdiv;
-use function is_int;
 use function throw_if;
 use function throw_unless;
 
@@ -31,6 +28,8 @@ use function throw_unless;
  */
 final readonly class Duration implements JsonSerializable
 {
+    private const int MAX_ABSOLUTE_VALUE = PHP_INT_MAX - 1;
+
     public int $hours;
 
     public int $minutes;
@@ -53,7 +52,7 @@ final readonly class Duration implements JsonSerializable
     private function __construct(
         private int $value,
     ) {
-        if (!($value > PHP_INT_MIN + 1 && $value < PHP_INT_MAX)) {
+        if ($value < -self::MAX_ABSOLUTE_VALUE || $value > self::MAX_ABSOLUTE_VALUE) {
             throw InvalidDuration::dueToOverflow();
         }
 
@@ -290,12 +289,18 @@ final readonly class Duration implements JsonSerializable
      */
     public function sum(self ...$other): self
     {
-        $other[] = $this;
-        $value = array_sum(array_column($other, 'value'));
+        $value = $this->value;
 
-        if (!is_int($value)) {
-            throw InvalidDuration::dueToOverflow();
-        } /* @phpstan-ignore-line */
+        foreach ($other as $duration) {
+            if (
+                (0 < $duration->value && $value > self::MAX_ABSOLUTE_VALUE - $duration->value)
+                || (0 > $duration->value && $value < -self::MAX_ABSOLUTE_VALUE - $duration->value)
+            ) {
+                throw InvalidDuration::dueToOverflow();
+            }
+
+            $value += $duration->value;
+        }
 
         return $this->value === $value ? $this : new self($value);
     }
@@ -414,13 +419,14 @@ final readonly class Duration implements JsonSerializable
      */
     public function multipliedBy(int $factor): self
     {
-        $result = $this->value * $factor;
+        $absoluteFactor = 0 > $factor ? -$factor : $factor;
+        $absoluteValue = 0 > $this->value ? -$this->value : $this->value;
 
-        if (!is_int($result)) {
+        if (0 !== $factor && 0 !== $this->value && $absoluteValue > intdiv(self::MAX_ABSOLUTE_VALUE, $absoluteFactor)) {
             throw InvalidDuration::dueToOverflow();
-        } /* @phpstan-ignore-line */
+        }
 
-        return new self($result);
+        return new self($this->value * $factor);
     }
 
     /**

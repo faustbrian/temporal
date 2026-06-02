@@ -488,6 +488,9 @@ final class TimeTest extends TestCase
         $this->assertSame($expectedCeil, $time->roundTo($precision, RoundingMode::Ceil)->toOffset(Unit::Microsecond));
     }
 
+    /**
+     * @return iterable<string, array{0: int, 1: Unit, 2: int, 3: int, 4: int}>
+     */
     public static function provideTruncate_and_roundCases(): iterable
     {
         // [input microseconds, precision, expected truncate, expected round]
@@ -545,6 +548,7 @@ final class TimeTest extends TestCase
 
     /**
      * @throws InvalidTime
+     * @return iterable<string, array{0: list<Time>, 1: Time}>
      */
     public static function provideMin_ofCases(): iterable
     {
@@ -587,6 +591,7 @@ final class TimeTest extends TestCase
 
     /**
      * @throws InvalidTime
+     * @return iterable<string, array{0: list<Time>, 1: Time}>
      */
     public static function provideMax_ofCases(): iterable
     {
@@ -617,6 +622,7 @@ final class TimeTest extends TestCase
 
     /**
      * @throws InvalidTime
+     * @return iterable<string, array{0: Time, 1: Time, 2: Time, 3: Time}>
      */
     public static function provideClampCases(): iterable
     {

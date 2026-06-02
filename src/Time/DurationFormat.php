@@ -16,7 +16,6 @@ use function mb_rtrim;
 use function mb_str_pad;
 use function mb_trim;
 use function preg_match;
-use function throw_if;
 use function throw_unless;
 
 enum DurationFormat
@@ -199,7 +198,9 @@ enum DurationFormat
      */
     private function fromTimer(string $duration): Duration
     {
-        throw_if(1 !== preg_match(self::REGEXP_TIMER, $duration, $parts), InvalidDuration::class, 'Unknown or bad format `'.$duration.'`.');
+        if (1 !== preg_match(self::REGEXP_TIMER, $duration, $parts)) {
+            throw new InvalidDuration('Unknown or bad format `'.$duration.'`.');
+        }
 
         $minutes = (int) $parts['minutes'];
         $seconds = (int) $parts['seconds'];

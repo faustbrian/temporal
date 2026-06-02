@@ -16,7 +16,6 @@ use function mb_str_pad;
 use function mb_substr;
 use function mb_trim;
 use function preg_match;
-use function throw_if;
 
 enum TimeFormat
 {
@@ -48,7 +47,10 @@ enum TimeFormat
         };
 
         $data = mb_trim($data);
-        throw_if(1 !== preg_match($regexp, $data, $parts), InvalidTime::class, 'Unknown or bad format `'.$data.'`.');
+
+        if (1 !== preg_match($regexp, $data, $parts)) {
+            throw new InvalidTime('Unknown or bad format `'.$data.'`.');
+        }
 
         return Time::at(
             hour: (int) $parts['hour'],

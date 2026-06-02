@@ -10,11 +10,21 @@ use Cline\CodingStandard\Rector\Factory;
 use Rector\CodingStyle\Rector\ClassLike\NewlineBetweenClassLikeStmtsRector;
 use RectorLaravel\Rector\MethodCall\ContainerBindConcreteWithClosureOnlyRector;
 use Rector\DeadCode\Rector\Stmt\RemoveUnreachableStatementRector;
+use RectorLaravel\Rector\FuncCall\ThrowIfAndThrowUnlessExceptionsToUseClassStringRector;
+use RectorLaravel\Rector\If_\ThrowIfRector;
 return Factory::create(
     paths: [__DIR__.'/src', __DIR__.'/tests'],
     skip: [
         RemoveUnreachableStatementRector::class => [__DIR__.'/tests'],
         ContainerBindConcreteWithClosureOnlyRector::class,
         NewlineBetweenClassLikeStmtsRector::class,
+        ThrowIfAndThrowUnlessExceptionsToUseClassStringRector::class => [
+            __DIR__.'/src/Time/DurationFormat.php',
+            __DIR__.'/src/Time/TimeFormat.php',
+        ],
+        ThrowIfRector::class => [
+            __DIR__.'/src/Time/DurationFormat.php',
+            __DIR__.'/src/Time/TimeFormat.php',
+        ],
     ],
 );

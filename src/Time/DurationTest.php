@@ -751,6 +751,9 @@ final class DurationTest extends TestCase
         $this->assertSame($expected, $duration->roundTo($precision)->total(Unit::Microsecond));
     }
 
+    /**
+     * @return iterable<string, array{0: int, 1: Unit, 2: int}>
+     */
     public static function provideRound_toCases(): iterable
     {
         // [input microseconds, precision, expected microseconds]
@@ -794,6 +797,7 @@ final class DurationTest extends TestCase
 
     /**
      * @throws InvalidDuration
+     * @return iterable<string, array{0: list<Duration>, 1: Duration}>
      */
     public static function provideMin_ofCases(): iterable
     {
@@ -829,6 +833,7 @@ final class DurationTest extends TestCase
 
     /**
      * @throws InvalidDuration
+     * @return iterable<string, array{0: list<Duration>, 1: Duration}>
      */
     public static function provideMax_ofCases(): iterable
     {
@@ -850,6 +855,7 @@ final class DurationTest extends TestCase
 
     /**
      * @throws InvalidDuration
+     * @return iterable<string, array{0: Duration, 1: Duration, 2: Duration, 3: Duration}>
      */
     public static function provideClampCases(): iterable
     {
@@ -888,6 +894,9 @@ final class DurationTest extends TestCase
         $this->assertSame($expectedMicroseconds, Duration::fromDateInterval($interval)->total(Unit::Microsecond));
     }
 
+    /**
+     * @return iterable<string, array{interval: DateInterval, expectedMicroseconds: int}>
+     */
     public static function provideFrom_date_interval_converts_correctlyCases(): iterable
     {
         yield 'simple positive' => [
@@ -919,6 +928,9 @@ final class DurationTest extends TestCase
         Duration::fromDateInterval($interval);
     }
 
+    /**
+     * @return iterable<string, array{0: DateInterval}>
+     */
     public static function provideFrom_date_interval_throws_for_invalid_intervalsCases(): iterable
     {
         yield 'has years' => [
@@ -970,6 +982,9 @@ final class DurationTest extends TestCase
         $this->assertTrue(Duration::fromFormat($data, DurationFormat::Timer)->equals($duration));
     }
 
+    /**
+     * @return iterable<string, array{0: string, 1: int}>
+     */
     public static function provideClock_factoryCases(): iterable
     {
         yield 'zero' => ['00:00:00', 0];
@@ -990,6 +1005,9 @@ final class DurationTest extends TestCase
         Duration::fromFormat($value, DurationFormat::Timer);
     }
 
+    /**
+     * @return iterable<string, array{0: string}>
+     */
     public static function provideInvalid_clock_factoryCases(): iterable
     {
         yield 'mm:ss format' => ['12:34'];
@@ -1026,6 +1044,9 @@ final class DurationTest extends TestCase
         $this->assertTrue(Duration::fromFormat($value, DurationFormat::Compact)->equals($duration));
     }
 
+    /**
+     * @return iterable<string, array{0: string, 1: int, 2?: int}>
+     */
     public static function provideCompact_factoryCases(): iterable
     {
         yield 'seconds only' => ['5s', 5];
@@ -1054,6 +1075,9 @@ final class DurationTest extends TestCase
         Duration::fromFormat($value, DurationFormat::Compact);
     }
 
+    /**
+     * @return iterable<string, array{0: string}>
+     */
     public static function provideInvalid_compact_factoryCases(): iterable
     {
         yield 'empty string' => [''];

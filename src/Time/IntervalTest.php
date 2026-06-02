@@ -648,6 +648,9 @@ final class IntervalTest extends TestCase
         $this->assertSame($expected, Interval::fromFormat($input, IntervalFormat::Iso8601)->format(IntervalFormat::Iso80000));
     }
 
+    /**
+     * @return iterable<string, array{0: string, 1: string}>
+     */
     public static function provideFrom_iso8601Cases(): iterable
     {
         yield 'valid simple with start date' => ['10:00:00/PT1H', '[10:00:00,11:00:00)'];
@@ -676,6 +679,9 @@ final class IntervalTest extends TestCase
         Interval::fromFormat($input, IntervalFormat::Iso8601);
     }
 
+    /**
+     * @return iterable<string, array{0: string}>
+     */
     public static function provideFrom_iso8601_invalidCases(): iterable
     {
         yield 'missing slash' => ['10:00:00PT1H'];
@@ -705,6 +711,9 @@ final class IntervalTest extends TestCase
         $this->assertSame($expectedIso8601, Interval::fromFormat($input, IntervalFormat::Iso80000)->format());
     }
 
+    /**
+     * @return iterable<string, array{0: string, 1: string}>
+     */
     public static function provideFrom_iso80000Cases(): iterable
     {
         yield 'full range' => ['[10:00:00,12:00:00)', '10:00:00/PT2H'];
@@ -729,6 +738,9 @@ final class IntervalTest extends TestCase
         Interval::fromFormat($input, IntervalFormat::Iso80000);
     }
 
+    /**
+     * @return iterable<string, array{0: string}>
+     */
     public static function provideFrom_iso80000_invalidCases(): iterable
     {
         yield 'unsupported boudaries' => ['[10:00:00,12:00:00]'];
@@ -754,6 +766,9 @@ final class IntervalTest extends TestCase
         $this->assertSame($expectedIso8601, Interval::fromFormat($input, IntervalFormat::Bourbaki)->format());
     }
 
+    /**
+     * @return iterable<string, array{0: string, 1: string}>
+     */
     public static function provideFrom_bourakiCases(): iterable
     {
         yield 'full range' => ['[10:00:00,12:00:00[', '10:00:00/PT2H'];
@@ -780,6 +795,9 @@ final class IntervalTest extends TestCase
         Interval::fromFormat($input, IntervalFormat::Bourbaki);
     }
 
+    /**
+     * @return iterable<string, array{0: string, 1: class-string<Throwable>}>
+     */
     public static function provideFrom_bourbaki_invalidCases(): iterable
     {
         yield 'unsupported boudaries' => ['[10:00:00,12:00:00', TimeException::class];
@@ -822,6 +840,7 @@ final class IntervalTest extends TestCase
 
     /**
      * @throws InvalidTime
+     * @return iterable<string, array{0: Interval, 1: Time, 2: list<non-empty-string>}>
      */
     public static function provideSplit_atCases(): iterable
     {

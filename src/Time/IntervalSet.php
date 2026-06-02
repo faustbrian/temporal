@@ -30,6 +30,7 @@ use function array_pop;
 use function array_shift;
 use function count;
 use function enum_exists;
+use function get_debug_type;
 use function in_array;
 use function is_string;
 use function max;
@@ -42,8 +43,9 @@ use function usort;
 /**
  * @phpstan-import-type NativeInterval from Interval
  *
- * @implements IteratorAggregate<Interval>
  * @psalm-immutable
+ * @author Brian Faust <brian@cline.sh>
+ * @implements IteratorAggregate<Interval>
  */
 final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSerializable
 {
@@ -678,7 +680,11 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
             };
         }
 
-        throw_unless(is_string($sortDirection), TypeError::class, 'Argument ($sortDirection) must be of type SortDirection, '.$sortDirection::class.' given,');
+        throw_unless(
+            is_string($sortDirection),
+            TypeError::class,
+            'Argument ($sortDirection) must be of type SortDirection, '.get_debug_type($sortDirection).' given,',
+        );
         $sortDirection = mb_strtolower($sortDirection);
 
         return match ($sortDirection) {

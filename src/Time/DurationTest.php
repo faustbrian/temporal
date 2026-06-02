@@ -10,6 +10,7 @@
 namespace Cline\Temporal\Time;
 
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterval;
 use DateInterval;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -1074,7 +1075,7 @@ final class DurationTest extends TestCase
         yield 'bad spacing unit' => ['10 ms'];
     }
 
-    private static function diff(string $spec): DateInterval
+    private static function diff(string $spec): CarbonInterval
     {
         $now = CarbonImmutable::now();
 

@@ -11,15 +11,8 @@ namespace Cline\Temporal\Time;
 
 use Throwable;
 
-/**
- * Thrown when ICU cannot render a localized string for the requested time.
- * @author Brian Faust <brian@cline.sh>
- */
 final class UnableToFormatLocaleTime extends TimeException
 {
-    /**
-     * Create an exception for a locale that cannot successfully format the time.
-     */
     public static function forLocale(string $locale, ?Throwable $previous = null): self
     {
         return new self(

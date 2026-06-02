@@ -12,16 +12,9 @@ namespace Cline\Temporal\Time;
 use DateTimeZone;
 use Throwable;
 
-/**
- * Thrown when a supplied timezone cannot be resolved to a supported IANA identifier.
- * @author Brian Faust <brian@cline.sh>
- */
 final class InvalidTimezone extends TimeException
 {
-    /**
-     * Create an exception for an unsupported timezone identifier.
-     */
-    public static function unsupportedIdentifier(?Throwable $previous = null): self
+    public static function unsupportedIdentifier(Throwable $previous): self
     {
         return new self(
             'Timezone must be a valid IANA Timezone Name supported by '.DateTimeZone::class,

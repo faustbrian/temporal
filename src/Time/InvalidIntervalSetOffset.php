@@ -9,19 +9,10 @@
 
 namespace Cline\Temporal\Time;
 
-use function sprintf;
-
-/**
- * Thrown when interval-set access targets an offset that does not exist.
- * @author Brian Faust <brian@cline.sh>
- */
 final class InvalidIntervalSetOffset extends TimeException
 {
-    /**
-     * Create an exception naming the invalid offset and target collection type.
-     */
     public static function forOffset(int $offset): self
     {
-        return new self(sprintf('Invalid offset (%d) given to %s.', $offset, IntervalSet::class));
+        return new self('Invalid offset ('.$offset.') given to '.IntervalSet::class.'.');
     }
 }

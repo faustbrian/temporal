@@ -13,7 +13,6 @@ use Carbon\CarbonImmutable;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
-use Iterator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -24,7 +23,6 @@ use function serialize;
 use function unserialize;
 
 /**
- * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 #[CoversClass(InvalidTime::class)]
@@ -101,16 +99,16 @@ final class TimeTest extends TestCase
     public function test_from_microseconds_wraps_correctly(): void
     {
         $time = Time::fromOffset(25 * 3_600_500_000, Unit::Microsecond);
-        $this->assertSame('01:00:12.500000', $time->toNotation());
+        $this->assertSame('01:00:12.500000', $time->format());
 
         $time = Time::fromOffset(25 * 3_600_500, Unit::Millisecond);
-        $this->assertSame('01:00:12.500000', $time->toNotation());
+        $this->assertSame('01:00:12.500000', $time->format());
 
         $time = Time::fromOffset(25 * 3_600, Unit::Second);
-        $this->assertSame('01:00:00', $time->toNotation());
+        $this->assertSame('01:00:00', $time->format());
 
         $time = Time::fromOffset(25 * 60, Unit::Minute);
-        $this->assertSame('01:00:00', $time->toNotation());
+        $this->assertSame('01:00:00', $time->format());
     }
 
     /*
@@ -121,7 +119,7 @@ final class TimeTest extends TestCase
 
     public function test_parse_string(): void
     {
-        $time = Time::fromNotation('12:34:56.123456');
+        $time = Time::fromFormat('12:34:56.123456');
 
         $this->assertSame(12, $time->hour);
         $this->assertSame(34, $time->minute);
@@ -131,7 +129,7 @@ final class TimeTest extends TestCase
 
     public function test_parse_without_seconds(): void
     {
-        $time = Time::fromNotation('08:15');
+        $time = Time::fromFormat('08:15');
 
         $this->assertSame(8, $time->hour);
         $this->assertSame(15, $time->minute);
@@ -142,7 +140,7 @@ final class TimeTest extends TestCase
     {
         $this->expectException(InvalidTime::class);
 
-        Time::fromNotation('99:99:99');
+        Time::fromFormat('99:99:99');
     }
 
     public function test_parse_date_time(): void
@@ -166,28 +164,28 @@ final class TimeTest extends TestCase
     {
         $time = Time::at(9, 5, 3);
 
-        $this->assertSame('09:05:03', $time->toNotation());
+        $this->assertSame('09:05:03', $time->format());
     }
 
     public function test_format_padded(): void
     {
         $time = Time::at(9, 5, 3);
 
-        $this->assertSame('09:05:03', $time->toNotation());
+        $this->assertSame('09:05:03', $time->format());
     }
 
     public function test_format_with_microseconds(): void
     {
         $time = Time::at(1, 2, 3, 45);
 
-        $this->assertSame('01:02:03.000045', $time->toNotation());
+        $this->assertSame('01:02:03.000045', $time->format());
     }
 
     public function test_format_auto_microseconds(): void
     {
         $time = Time::at(1, 2, 3);
 
-        $this->assertSame('01:02:03', $time->toNotation());
+        $this->assertSame('01:02:03', $time->format());
     }
 
     /*
@@ -331,7 +329,7 @@ final class TimeTest extends TestCase
         array $arguments,
         string $expected,
     ): void {
-        $this->assertSame($expected, $original->with(...$arguments)->toNotation());
+        $this->assertSame($expected, $original->with(...$arguments)->format());
     }
 
     /**
@@ -398,8 +396,8 @@ final class TimeTest extends TestCase
 
         $updated = $original->with(hour: 8);
 
-        $this->assertSame('23:54:23', $original->toNotation());
-        $this->assertSame('08:54:23', $updated->toNotation());
+        $this->assertSame('23:54:23', $original->format());
+        $this->assertSame('08:54:23', $updated->format());
         $this->assertNotSame($updated->toLocaleString(locale: 'tr-CY', length: TimeFormatLength::Short), $updated->toLocaleString(locale: 'tr-CY', length: TimeFormatLength::Long));
         $this->assertSame($updated->toLocaleString('en_US', 'Africa/Nairobi'), $updated->toLocaleString('en_US'));
 
@@ -461,7 +459,7 @@ final class TimeTest extends TestCase
 
     public function test_time_can_be_serialized_and_unserialized(): void
     {
-        $time = Time::fromNotation('12:34:56.123456');
+        $time = Time::fromFormat('12:34:56.123456');
         $restored = unserialize(serialize($time));
 
         $this->assertInstanceOf(Time::class, $restored);
@@ -470,7 +468,7 @@ final class TimeTest extends TestCase
 
     public function test_time_can_be_json_serialized(): void
     {
-        $time = Time::fromNotation('12:34:56');
+        $time = Time::fromFormat('12:34:56');
 
         $this->assertSame('"12:34:56"', json_encode($time));
     }
@@ -490,9 +488,6 @@ final class TimeTest extends TestCase
         $this->assertSame($expectedCeil, $time->roundTo($precision, RoundingMode::Ceil)->toOffset(Unit::Microsecond));
     }
 
-    /**
-     * @return Iterator<non-empty-string, array{int, Unit, int<1, max>, int<1, max>}>
-     */
     public static function provideTruncate_and_roundCases(): iterable
     {
         // [input microseconds, precision, expected truncate, expected round]
@@ -550,8 +545,6 @@ final class TimeTest extends TestCase
 
     /**
      * @throws InvalidTime
-     *
-     * @return Iterator<non-empty-string, array{list<Time>, Time}>
      */
     public static function provideMin_ofCases(): iterable
     {
@@ -594,8 +587,6 @@ final class TimeTest extends TestCase
 
     /**
      * @throws InvalidTime
-     *
-     * @return Iterator<non-empty-string, array{list<Time>, Time}>
      */
     public static function provideMax_ofCases(): iterable
     {
@@ -626,7 +617,6 @@ final class TimeTest extends TestCase
 
     /**
      * @throws InvalidTime
-     * @return Iterator<non-empty-string, list<Time>>
      */
     public static function provideClampCases(): iterable
     {
@@ -667,7 +657,7 @@ final class TimeTest extends TestCase
     #[DataProvider('provideFrom_notation_compact_validCases')]
     public function test_from_notation_compact_valid(string $value, Time $expected): void
     {
-        $this->assertTrue($expected->equals(Time::fromNotation($value, TimeFormat::Compact)));
+        $this->assertTrue($expected->equals(Time::fromFormat($value, TimeFormat::Compact)));
     }
 
     /**
@@ -690,7 +680,7 @@ final class TimeTest extends TestCase
     {
         $this->expectException(InvalidTime::class);
 
-        Time::fromNotation($value, TimeFormat::Compact);
+        Time::fromFormat($value, TimeFormat::Compact);
     }
 
     /**
@@ -716,7 +706,7 @@ final class TimeTest extends TestCase
     #[DataProvider('provideTo_notation_compactCases')]
     public function test_to_notation_compact(Time $time, string $expected): void
     {
-        $this->assertSame($expected, $time->toNotation(TimeFormat::Compact));
+        $this->assertSame($expected, $time->format(TimeFormat::Compact));
     }
 
     /**

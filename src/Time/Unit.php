@@ -12,13 +12,6 @@ namespace Cline\Temporal\Time;
 use function intdiv;
 use function round;
 
-/**
- * Precision and conversion units used by the time subsystem.
- *
- * Every unit resolves to an exact microsecond scale factor so value objects can
- * centralize conversion, wrapping, rounding, and remainder logic in one place.
- * @author Brian Faust <brian@cline.sh>
- */
 enum Unit
 {
     case Week;
@@ -41,9 +34,6 @@ enum Unit
 
     private const int MICRO_PER_WEEK = 7 * self::MICRO_PER_DAY;
 
-    /**
-     * Return the exact number of microseconds represented by one unit.
-     */
     public function inMicroseconds(): int
     {
         return match ($this) {
@@ -57,9 +47,6 @@ enum Unit
         };
     }
 
-    /**
-     * Round a microsecond value to this unit's precision boundary.
-     */
     public function round(int $valueInMicro, RoundingMode $mode = RoundingMode::Nearest): int
     {
         $unit = $this->inMicroseconds();
@@ -93,9 +80,6 @@ enum Unit
         return $value / $this->inMicroseconds();
     }
 
-    /**
-     * Wrap a scalar value into this unit's closed-open cycle.
-     */
     public function wrap(int $valueInMicro): int
     {
         $unit = $this->inMicroseconds();

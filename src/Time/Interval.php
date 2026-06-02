@@ -21,17 +21,9 @@ use function throw_if;
 use function usort;
 
 /**
- * Represents a start-inclusive, end-exclusive interval on a circular 24-hour clock.
- *
- * The interval is derived from a starting time plus a duration and then classified
- * as linear, overflow, circular, or collapsed depending on how the end point lands
- * on that clock. `linearStart` and `linearEnd` preserve an unwrapped microsecond
- * span for ordering and stepping logic, while `$start` and `$end` remain normalized
- * {@see Time} values suitable for formatting and comparisons.
- *
+ * Represents a start-inclusive, end-exclusive interval between two times on a 24-hour circular clock.
  * @phpstan-type NativeInterval array{startDate: DateTimeImmutable, interval: DateInterval}
  * @psalm-immutable
- * @author Brian Faust <brian@cline.sh>
  */
 final readonly class Interval implements JsonSerializable
 {
@@ -116,7 +108,7 @@ final readonly class Interval implements JsonSerializable
     /**
      * @throws InvalidDuration|InvalidInterval|InvalidTime
      */
-    public static function fromNotation(string $value, IntervalNotation $format = IntervalNotation::Iso8601StartDuration, ?Unit $unit = null): self
+    public static function fromFormat(string $value, IntervalFormat $format = IntervalFormat::Iso8601StartDuration, ?Unit $unit = null): self
     {
         return $format->decode($value, $unit);
     }
@@ -138,7 +130,7 @@ final readonly class Interval implements JsonSerializable
     }
 
     /**
-     * Return the canonical full-day interval that covers the entire clock cycle.
+     * Returns a Circular interval using midnight as endpoint.
      *
      * @throws InvalidDuration
      */
@@ -171,14 +163,12 @@ final readonly class Interval implements JsonSerializable
      *
      * @return non-empty-string
      */
-    public function toNotation(IntervalNotation $format = IntervalNotation::Iso8601StartDuration, ?Unit $unit = null): string
+    public function format(IntervalFormat $format = IntervalFormat::Iso8601StartDuration, ?Unit $unit = null): string
     {
         return $format->encode($this, $unit);
     }
 
     /**
-     * Convert the interval into a native start datetime plus native duration pair.
-     *
      * @return NativeInterval
      */
     public function toNative(DateTimeInterface $reference): array
@@ -196,7 +186,7 @@ final readonly class Interval implements JsonSerializable
      */
     public function jsonSerialize(): string
     {
-        return $this->toNotation();
+        return $this->format();
     }
 
     /**
@@ -224,8 +214,6 @@ final readonly class Interval implements JsonSerializable
     }
 
     /**
-     * Shift only one bound of the interval and recompute the resulting shape.
-     *
      * @throws InvalidDuration
      */
     public function shiftBound(Duration $duration, Bound $bound): self
@@ -238,8 +226,6 @@ final readonly class Interval implements JsonSerializable
     }
 
     /**
-     * Rebuild the interval so the selected bound stays fixed and the duration changes.
-     *
      * @throws InvalidDuration
      */
     public function lasting(Duration $duration, Bound $from): self
@@ -270,8 +256,6 @@ final readonly class Interval implements JsonSerializable
     }
 
     /**
-     * Return the complementary portion of the 24-hour cycle.
-     *
      * @throws InvalidDuration
      */
     public function complement(): self
@@ -284,8 +268,6 @@ final readonly class Interval implements JsonSerializable
     }
 
     /**
-     * Iterate over evenly spaced times inside the interval.
-     *
      * @throws InvalidDuration
      *
      * @return iterable<Time>
@@ -494,9 +476,6 @@ final readonly class Interval implements JsonSerializable
         throw_if(1 !== $duration->sign, InvalidDuration::class, 'The duration can not be negative or equal to 0.');
     }
 
-    /**
-     * Classify the interval shape once start and end are known.
-     */
     private function setType(): IntervalType
     {
         return match ($this->start->compareTo($this->end)) {

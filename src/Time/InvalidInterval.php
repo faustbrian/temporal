@@ -11,16 +11,9 @@ namespace Cline\Temporal\Time;
 
 use Throwable;
 
-/**
- * Thrown when an interval string cannot be parsed by the selected notation.
- * @author Brian Faust <brian@cline.sh>
- */
 final class InvalidInterval extends TimeException
 {
-    /**
-     * Create an exception that preserves the notation family used during parsing.
-     */
-    public static function dueToMalformedNotation(string $format, IntervalNotation $source, ?Throwable $previous = null): self
+    public static function dueToMalformedFormat(string $format, IntervalFormat $source, ?Throwable $previous = null): self
     {
         return new self('"'.$format.'" is an invalid or unsupported '.$source->name.' format.', previous: $previous);
     }

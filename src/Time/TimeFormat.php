@@ -18,13 +18,6 @@ use function mb_trim;
 use function preg_match;
 use function throw_if;
 
-/**
- * Supported string encodings for {@see Time} values.
- *
- * The enum owns both parsing and formatting rules so time notation stays
- * symmetric across the package.
- * @author Brian Faust <brian@cline.sh>
- */
 enum TimeFormat
 {
     case Compact;
@@ -45,8 +38,6 @@ enum TimeFormat
     $@x';
 
     /**
-     * Parse a textual clock representation into a normalized {@see Time}.
-     *
      * @throws InvalidTime
      */
     public function decode(string $data): Time
@@ -58,13 +49,12 @@ enum TimeFormat
 
         $data = mb_trim($data);
         throw_if(1 !== preg_match($regexp, $data, $parts), InvalidTime::class, 'Unknown or bad format `'.$data.'`.');
-        $parts += ['hour' => '0', 'minute' => '0', 'second' => '0', 'microsecond' => '0'];
 
         return Time::at(
             hour: (int) $parts['hour'],
             minute: (int) $parts['minute'],
-            second: (int) $parts['second'],
-            microsecond: (int) mb_str_pad(mb_substr($parts['microsecond'], 0, 6), 6, '0'),
+            second: (int) ($parts['second'] ?? 0),
+            microsecond: (int) mb_str_pad(mb_substr($parts['microsecond'] ?? '0', 0, 6), 6, '0'),
         );
     }
 
@@ -80,7 +70,12 @@ enum TimeFormat
     }
 
     /**
-     * Format a time using a fixed-width ISO-like clock representation.
+     * Returns the string representation of the Duration.
+     *
+     * The following format is used [-]HH:MM:SS[.mmmmmm]
+     * the fraction and the signed are only display if
+     * they duration is negative and/or the sub seconds
+     * fraction is different from 0
      *
      * @return non-empty-string
      */
@@ -97,7 +92,7 @@ enum TimeFormat
     }
 
     /**
-     * Format a time using the compact human-oriented `12h34m56s789µs` style.
+     * Format xhxmxsxµs where x is a number.
      *
      * @return non-empty-string
      */

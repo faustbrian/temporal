@@ -30,7 +30,6 @@ use function array_pop;
 use function array_shift;
 use function count;
 use function enum_exists;
-use function get_debug_type;
 use function in_array;
 use function is_string;
 use function max;
@@ -41,19 +40,10 @@ use function throw_unless;
 use function usort;
 
 /**
- * Ordered collection of {@see Interval} instances with aggregate helpers.
- *
- * The set keeps the provided interval order intact rather than normalizing or
- * merging it automatically. Nested sets are flattened at construction time so
- * higher-level code can compose collections without caring about structure. A
- * cached total duration is maintained eagerly because many read operations want
- * both the list view and its overall covered length.
- *
  * @phpstan-import-type NativeInterval from Interval
  *
- * @psalm-immutable
- * @author Brian Faust <brian@cline.sh>
  * @implements IteratorAggregate<Interval>
+ * @psalm-immutable
  */
 final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSerializable
 {
@@ -63,8 +53,6 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
     private Duration $duration;
 
     /**
-     * Build a set from intervals and other sets, flattening one level of composition.
-     *
      * @throws InvalidDuration
      */
     public function __construct(Interval|self ...$intervals)
@@ -119,9 +107,6 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
         return $this->intervals;
     }
 
-    /**
-     * Return the sum of all member interval durations.
-     */
     public function duration(): Duration
     {
         return $this->duration;
@@ -132,10 +117,10 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
      *
      * @return list<non-empty-string>
      */
-    public function allFormatted(IntervalNotation $format = IntervalNotation::Iso8601StartDuration, ?Unit $unit = null): array
+    public function allFormatted(IntervalFormat $format = IntervalFormat::Iso8601StartDuration, ?Unit $unit = null): array
     {
         return array_map(
-            static fn (Interval $interval): string => $interval->toNotation($format, $unit),
+            static fn (Interval $interval): string => $interval->format($format, $unit),
             $this->intervals,
         );
     }
@@ -161,9 +146,6 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
         return $this->nth($offset) ?? throw InvalidIntervalSetOffset::forOffset($offset);
     }
 
-    /**
-     * Return an interval by zero-based offset, supporting negative indexing from the end.
-     */
     public function nth(int $offset): ?Interval
     {
         if ($offset < 0) {
@@ -174,7 +156,7 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
     }
 
     /**
-     * Determine whether every provided interval exists in the set by value equality.
+     * Tells whether the given interval is present in the set.
      */
     public function has(Interval ...$intervals): bool
     {
@@ -220,8 +202,6 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
     }
 
     /**
-     * Return the first interval matching the predicate while preserving original order.
-     *
      * @param callable(Interval, int=): bool $predicate
      */
     public function firstMatching(callable $predicate): ?Interval
@@ -236,8 +216,6 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
     }
 
     /**
-     * Return the last interval matching the predicate by scanning from the end.
-     *
      * @param callable(Interval, int=): bool $predicate
      */
     public function lastMatching(callable $predicate): ?Interval
@@ -275,7 +253,7 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
 
     /**
      * @throws InvalidDuration
-     * @throws InvalidIntervalSetOffset
+     * @throws TimeException
      */
     public function replace(int $offset, Interval $interval): self
     {
@@ -283,7 +261,9 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
             $offset += count($this->intervals);
         }
 
-        throw_unless(isset($this->intervals[$offset]), InvalidIntervalSetOffset::class, 'Invalid offset ('.$offset.') given to '.self::class.'.');
+        if (!isset($this->intervals[$offset])) {
+            throw InvalidIntervalSetOffset::forOffset($offset);
+        }
 
         $intervals = $this->intervals;
         $intervals[$offset] = $interval;
@@ -698,10 +678,7 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
             };
         }
 
-        if (!is_string($sortDirection)) {
-            throw new TypeError('Argument ($sortDirection) must be of type SortDirection, '.get_debug_type($sortDirection).' given,');
-        }
-
+        throw_unless(is_string($sortDirection), TypeError::class, 'Argument ($sortDirection) must be of type SortDirection, '.$sortDirection::class.' given,');
         $sortDirection = mb_strtolower($sortDirection);
 
         return match ($sortDirection) {

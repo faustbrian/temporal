@@ -19,18 +19,11 @@ use function preg_match;
 use function throw_if;
 use function throw_unless;
 
-/**
- * Supported serialized forms for exact {@see Duration} values.
- *
- * Each notation is deliberately restricted to deterministic units. Month and year
- * components are excluded so parsing never depends on an external calendar context.
- * @author Brian Faust <brian@cline.sh>
- */
-enum DurationNotation
+enum DurationFormat
 {
     case Iso8601;
     case Compact;
-    case Chrono;
+    case Timer;
 
     private const string REGEXP_TIMER = '@^
         (?<sign>-)?\s*
@@ -70,7 +63,7 @@ enum DurationNotation
     {
         return match ($this) {
             self::Iso8601 => self::fromIso8601($data),
-            self::Chrono => self::fromChrono($data),
+            self::Timer => self::fromTimer($data),
             self::Compact => self::fromCompact($data),
         };
     }
@@ -82,7 +75,7 @@ enum DurationNotation
     {
         return match ($this) {
             self::Iso8601 => self::toIso8601($duration),
-            self::Chrono => self::toChrono($duration),
+            self::Timer => self::toTimer($duration),
             self::Compact => self::toCompact($duration),
         };
     }
@@ -102,11 +95,16 @@ enum DurationNotation
     }
 
     /**
-     * Format a duration as `[-]HH:MM:SS[.mmmmmm]`.
+     * Returns the string representation of the Duration.
+     *
+     * The following format is used [-]HH:MM:SS[.mmmmmm]
+     * the fraction and the signed are only display if
+     * they duration is negative and/or the sub seconds
+     * fraction is different from 0
      *
      * @return non-empty-string
      */
-    private static function toChrono(Duration $duration): string
+    private static function toTimer(Duration $duration): string
     {
         $pad = static fn (int $value, int $length): string => mb_str_pad((string) $value, $length, '0', STR_PAD_LEFT);
         $formatted = $pad($duration->hours, 2).':'.$pad($duration->minutes, 2).':'.$pad($duration->seconds, 2);
@@ -195,18 +193,17 @@ enum DurationNotation
     }
 
     /**
-     * Parse a clock-style timer representation such as `01:02:03.000004`.
+     * Creates a new instance from a timer string representation.
      *
      * @throws InvalidDuration
      */
-    private function fromChrono(string $duration): Duration
+    private function fromTimer(string $duration): Duration
     {
         throw_if(1 !== preg_match(self::REGEXP_TIMER, $duration, $parts), InvalidDuration::class, 'Unknown or bad format `'.$duration.'`.');
-        $parts += ['hours' => '0', 'minutes' => '0', 'seconds' => '0', 'microseconds' => '0', 'sign' => ''];
 
         $minutes = (int) $parts['minutes'];
         $seconds = (int) $parts['seconds'];
-        $microseconds = (int) $parts['microseconds'];
+        $microseconds = (int) ($parts['microseconds'] ?? '0');
 
         if (!($minutes >= 0 && $minutes < 60)) {
             throw InvalidDuration::dueToMalformedMinute($minutes);
@@ -235,7 +232,7 @@ enum DurationNotation
     }
 
     /**
-     * Parse a terse unit-suffixed duration such as `1w 2d 3h 4m`.
+     * Creates a new instance from a timer string representation.
      *
      * @throws InvalidDuration
      */
@@ -244,27 +241,25 @@ enum DurationNotation
         $data = mb_trim($data);
 
         throw_unless('' !== $data && 1 === preg_match(self::REGEXP_COMPACT, $data, $parts), InvalidDuration::class, 'Unknown or bad format `'.$data.'`.');
-        $parts += ['weeks' => '0', 'days' => '0', 'hours' => '0', 'minutes' => '0', 'seconds' => '0', 'microseconds' => '0', 'sign' => ''];
 
         /** @var non-negative-int $microseconds */
         $microseconds = self::toMicroseconds(
-            days: (((int) $parts['weeks'] * 7) + (int) $parts['days']),
-            hours: (int) $parts['hours'],
-            minutes: (int) $parts['minutes'],
-            seconds: (int) $parts['seconds'],
-            microseconds: (int) $parts['microseconds'],
+            days: (((int) ($parts['weeks'] ?? 0) * 7) + (int) ($parts['days'] ?? 0)),
+            hours: (int) ($parts['hours'] ?? 0),
+            minutes: (int) ($parts['minutes'] ?? 0),
+            seconds: (int) ($parts['seconds'] ?? 0),
+            microseconds: (int) ($parts['microseconds'] ?? 0),
         );
 
         $duration = Duration::of(microseconds: $microseconds);
 
-        return '-' === $parts['sign'] ? $duration->negated() : $duration;
+        return '-' === ($parts['sign'] ?? '') ? $duration->negated() : $duration;
     }
 
     /**
-     * Parse a constrained ISO-8601 duration into an exact scalar duration.
-     *
-     * Because this package models deterministic elapsed time rather than
-     * calendar-relative periods, the following restrictions apply:
+     * Parses and returns a new instance from ISO8601 string representation.
+     *  Because the duration does not handle in a deterministic way month and year components
+     * the following restrictions apply:
      *
      * - only W, D, H, S are allowed
      * - Y is rejected
@@ -281,19 +276,17 @@ enum DurationNotation
             throw InvalidDuration::dueToMalformedIso8601($data);
         }
 
-        $parts += ['weeks' => '0', 'days' => '0', 'hours' => '0', 'minutes' => '0', 'seconds' => '0', 'sign' => ''];
-
         /** @var non-negative-int $microseconds */
         $microseconds = self::toMicroseconds(
-            days: (((int) $parts['weeks'] * 7) + (int) $parts['days']),
-            hours: (int) $parts['hours'],
-            minutes: (int) $parts['minutes'],
-            seconds: (float) $parts['seconds'],
+            days: (((int) ($parts['weeks'] ?? 0) * 7) + (int) ($parts['days'] ?? 0)),
+            hours: (int) ($parts['hours'] ?? 0),
+            minutes: (int) ($parts['minutes'] ?? 0),
+            seconds: (float) ($parts['seconds'] ?? 0),
             microseconds: 0,
         );
 
         $duration = Duration::of(microseconds: $microseconds);
 
-        return '-' === $parts['sign'] ? $duration->negated() : $duration;
+        return '-' === ($parts['sign'] ?? '') ? $duration->negated() : $duration;
     }
 }

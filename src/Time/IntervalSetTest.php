@@ -25,11 +25,10 @@ use function serialize;
 use function unserialize;
 
 /**
- * @author Brian Faust <brian@cline.sh>
  * @internal
  */
-#[CoversClass(IntervalNotation::class)]
-#[CoversClass(DurationNotation::class)]
+#[CoversClass(IntervalFormat::class)]
+#[CoversClass(DurationFormat::class)]
 #[CoversClass(IntervalSet::class)]
 #[CoversClass(Interval::class)]
 final class IntervalSetTest extends TestCase
@@ -527,9 +526,9 @@ final class IntervalSetTest extends TestCase
     {
         $set = new IntervalSet($this->i(1, 2), $this->i(3, 4));
 
-        $this->assertSame([$this->i(1, 2)->toNotation(IntervalNotation::Iso80000), $this->i(3, 4)->toNotation(IntervalNotation::Iso80000)], $set->allFormatted(IntervalNotation::Iso80000));
-        $this->assertSame([$this->i(1, 2)->toNotation(), $this->i(3, 4)->toNotation()], $set->allFormatted());
-        $this->assertSame([$this->i(1, 2)->toNotation(IntervalNotation::Bourbaki), $this->i(3, 4)->toNotation(IntervalNotation::Bourbaki)], $set->allFormatted(IntervalNotation::Bourbaki));
+        $this->assertSame([$this->i(1, 2)->format(IntervalFormat::Iso80000), $this->i(3, 4)->format(IntervalFormat::Iso80000)], $set->allFormatted(IntervalFormat::Iso80000));
+        $this->assertSame([$this->i(1, 2)->format(), $this->i(3, 4)->format()], $set->allFormatted());
+        $this->assertSame([$this->i(1, 2)->format(IntervalFormat::Bourbaki), $this->i(3, 4)->format(IntervalFormat::Bourbaki)], $set->allFormatted(IntervalFormat::Bourbaki));
     }
 
     public function test_json_encoded_set(): void
@@ -891,9 +890,6 @@ final class IntervalSetTest extends TestCase
     }
 }
 
-/**
- * @author Brian Faust <brian@cline.sh>
- */
 enum Business
 {
     case Morning;

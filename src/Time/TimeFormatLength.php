@@ -9,14 +9,6 @@
 
 namespace Cline\Temporal\Time;
 
-/**
- * ICU formatting verbosity presets used by {@see Time::toLocaleString()}.
- *
- * The cases map directly to the native IntlDateFormatter constants and describe
- * how much localized detail should be emitted for a rendered time-of-day.
- *
- * @author Brian Faust <brian@cline.sh>
- */
 enum TimeFormatLength
 {
     case Short;

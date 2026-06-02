@@ -17,20 +17,17 @@ use JsonSerializable;
 use const PHP_INT_MAX;
 use const PHP_INT_MIN;
 
+use function array_column;
 use function array_reduce;
 use function array_shift;
+use function array_sum;
 use function intdiv;
+use function is_int;
 use function throw_if;
 use function throw_unless;
 
 /**
- * Immutable elapsed-time value stored as a signed microsecond count.
- *
- * This type preserves an exact scalar duration while also exposing derived parts
- * such as total days, total weeks, clock hours, and fractional seconds for
- * formatting and interval arithmetic.
  * @psalm-immutable
- * @author Brian Faust <brian@cline.sh>
  */
 final readonly class Duration implements JsonSerializable
 {
@@ -49,9 +46,7 @@ final readonly class Duration implements JsonSerializable
     public int $weeksCount;
 
     /**
-     * Build a duration from its canonical microsecond representation.
-     *
-     * @param int $value Signed duration expressed in microseconds.
+     * @param int $value expressed in microseconds
      *
      * @throws InvalidDuration
      */
@@ -137,11 +132,6 @@ final readonly class Duration implements JsonSerializable
     }
 
     /**
-     * Convert a native date interval into a deterministic duration.
-     *
-     * Month and year components are rejected because their actual length depends
-     * on calendar context and would undermine this value object's exact semantics.
-     *
      * @throws InvalidDuration
      */
     public static function fromDateInterval(DateInterval $interval): self
@@ -163,7 +153,7 @@ final readonly class Duration implements JsonSerializable
     /**
      * @throws InvalidDuration
      */
-    public static function fromNotation(string $value, DurationNotation $format): self
+    public static function fromFormat(string $value, DurationFormat $format): self
     {
         return $format->decode($value);
     }
@@ -217,14 +207,11 @@ final readonly class Duration implements JsonSerializable
     /**
      * @return non-empty-string
      */
-    public function toNotation(DurationNotation $format = DurationNotation::Iso8601): string
+    public function format(DurationFormat $format = DurationFormat::Iso8601): string
     {
         return $format->encode($this);
     }
 
-    /**
-     * Convert this exact duration back to PHP's native interval type.
-     */
     public function toDateInterval(?DateTimeInterface $relativeTo = null): DateInterval
     {
         $interval = new DateInterval('PT0S');
@@ -250,9 +237,6 @@ final readonly class Duration implements JsonSerializable
         return $relativeTo->diff($relativeTo->add($interval));
     }
 
-    /**
-     * Return the signed scalar duration in the requested unit.
-     */
     public function total(Unit $unit): int|float
     {
         return $unit->divide($this->value);
@@ -263,20 +247,15 @@ final readonly class Duration implements JsonSerializable
      */
     public function jsonSerialize(): string
     {
-        return $this->toNotation();
+        return $this->format();
     }
 
     /**
-     * Returns true when the duration is exactly zero microseconds.
+     * Returns true when the duration is zero, false otherwise.
      */
     public function isZero(): bool
     {
         return 0 === $this->value;
-    }
-
-    public function isEmpty(): bool
-    {
-        return $this->isZero();
     }
 
     /**
@@ -296,8 +275,6 @@ final readonly class Duration implements JsonSerializable
     }
 
     /**
-     * Round the duration to a coarser unit while preserving its sign.
-     *
      * @throws InvalidDuration
      */
     public function roundTo(Unit $precision, RoundingMode $roundingMode = RoundingMode::Nearest): self
@@ -314,18 +291,11 @@ final readonly class Duration implements JsonSerializable
     public function sum(self ...$other): self
     {
         $other[] = $this;
-        $value = 0;
+        $value = array_sum(array_column($other, 'value'));
 
-        foreach ($other as $duration) {
-            if (
-                ($duration->value > 0 && $value > (PHP_INT_MAX - 1) - $duration->value)
-                || ($duration->value < 0 && $value < (PHP_INT_MIN + 2) - $duration->value)
-            ) {
-                throw InvalidDuration::dueToOverflow();
-            }
-
-            $value += $duration->value;
-        }
+        if (!is_int($value)) {
+            throw InvalidDuration::dueToOverflow();
+        } /* @phpstan-ignore-line */
 
         return $this->value === $value ? $this : new self($value);
     }
@@ -372,37 +342,6 @@ final readonly class Duration implements JsonSerializable
      *
      * @throws InvalidDuration
      */
-    public function increment(
-        int $weeks = 0,
-        int $days = 0,
-        int $hours = 0,
-        int $minutes = 0,
-        int $seconds = 0,
-        int $milliseconds = 0,
-        int $microseconds = 0,
-    ): self {
-        return $this->increase(
-            weeks: $weeks,
-            days: $days,
-            hours: $hours,
-            minutes: $minutes,
-            seconds: $seconds,
-            milliseconds: $milliseconds,
-            microseconds: $microseconds,
-        );
-    }
-
-    /**
-     * @param non-negative-int $weeks
-     * @param non-negative-int $days
-     * @param non-negative-int $hours
-     * @param non-negative-int $minutes
-     * @param non-negative-int $seconds
-     * @param non-negative-int $milliseconds
-     * @param non-negative-int $microseconds
-     *
-     * @throws InvalidDuration
-     */
     public function decrease(
         int $weeks = 0,
         int $days = 0,
@@ -421,37 +360,6 @@ final readonly class Duration implements JsonSerializable
             milliseconds: $milliseconds,
             microseconds: $microseconds,
         )->negated());
-    }
-
-    /**
-     * @param non-negative-int $weeks
-     * @param non-negative-int $days
-     * @param non-negative-int $hours
-     * @param non-negative-int $minutes
-     * @param non-negative-int $seconds
-     * @param non-negative-int $milliseconds
-     * @param non-negative-int $microseconds
-     *
-     * @throws InvalidDuration
-     */
-    public function decrement(
-        int $weeks = 0,
-        int $days = 0,
-        int $hours = 0,
-        int $minutes = 0,
-        int $seconds = 0,
-        int $milliseconds = 0,
-        int $microseconds = 0,
-    ): self {
-        return $this->decrease(
-            weeks: $weeks,
-            days: $days,
-            hours: $hours,
-            minutes: $minutes,
-            seconds: $seconds,
-            milliseconds: $milliseconds,
-            microseconds: $microseconds,
-        );
     }
 
     /**
@@ -506,14 +414,13 @@ final readonly class Duration implements JsonSerializable
      */
     public function multipliedBy(int $factor): self
     {
-        if (
-            ($factor > 0 && ($this->value > intdiv(PHP_INT_MAX - 1, $factor) || $this->value < intdiv(PHP_INT_MIN + 2, $factor)))
-            || ($factor < 0 && ($this->value > intdiv(PHP_INT_MIN + 2, $factor) || $this->value < intdiv(PHP_INT_MAX - 1, $factor)))
-        ) {
-            throw InvalidDuration::dueToOverflow();
-        }
+        $result = $this->value * $factor;
 
-        return new self($this->value * $factor);
+        if (!is_int($result)) {
+            throw InvalidDuration::dueToOverflow();
+        } /* @phpstan-ignore-line */
+
+        return new self($result);
     }
 
     /**

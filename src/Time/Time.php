@@ -24,17 +24,7 @@ use function throw_if;
 use function throw_unless;
 
 /**
- * Immutable time-of-day value object stored as microseconds from midnight.
- *
- * The type models clock time without a date component and normalizes every
- * internal value to a single 24-hour cycle. Offset-based factories and arithmetic
- * therefore wrap across midnight instead of overflowing into calendar semantics.
- *
- * Public hour, minute, second, and microsecond fields expose normalized parts for
- * formatting and comparisons, while `$value` remains the canonical scalar used
- * for ordering and arithmetic.
  * @psalm-immutable
- * @author Brian Faust <brian@cline.sh>
  */
 final readonly class Time implements JsonSerializable
 {
@@ -49,12 +39,7 @@ final readonly class Time implements JsonSerializable
     private int $value;
 
     /**
-     * Build a normalized time from a raw microsecond offset.
-     *
-     * Negative or oversized offsets are wrapped into the current day before the
-     * individual clock components are derived.
-     *
-     * @param int $value Raw microseconds offset from midnight.
+     * @param int $value represents the microseconds from midnight
      */
     private function __construct(int $value)
     {
@@ -124,11 +109,6 @@ final readonly class Time implements JsonSerializable
     }
 
     /**
-     * Create a time-of-day from a native date or datetime object.
-     *
-     * Only the clock fields are preserved. Date and calendar semantics are
-     * discarded once the hour/minute/second/microsecond tuple is extracted.
-     *
      * @throws InvalidTime
      */
     public static function fromDate(DateTimeInterface $datetime): self
@@ -144,14 +124,11 @@ final readonly class Time implements JsonSerializable
     /**
      * @throws InvalidTime
      */
-    public static function fromNotation(string $value, TimeFormat $format = TimeFormat::Iso8601): self
+    public static function fromFormat(string $value, TimeFormat $format = TimeFormat::Iso8601): self
     {
         return $format->decode($value);
     }
 
-    /**
-     * Create a time by interpreting an offset in an arbitrary unit.
-     */
     public static function fromOffset(int|float $value, Unit $unit): self
     {
         return new self($unit->toMicroseconds($value));
@@ -167,9 +144,6 @@ final readonly class Time implements JsonSerializable
         return new self(Unit::Hour->toMicroseconds(12));
     }
 
-    /**
-     * Return the last representable microsecond before the next midnight.
-     */
     public static function endOfDay(): self
     {
         return new self(-1);
@@ -208,9 +182,6 @@ final readonly class Time implements JsonSerializable
         return array_reduce($times, fn (self $max, self $item): self => $item->isAfter($max) ? $item : $max, $max);
     }
 
-    /**
-     * Convert the normalized internal value into another unit.
-     */
     public function toOffset(Unit $unit): int|float
     {
         return $unit->divide($this->value);
@@ -219,17 +190,12 @@ final readonly class Time implements JsonSerializable
     /**
      * @return non-empty-string
      */
-    public function toNotation(TimeFormat $format = TimeFormat::Iso8601): string
+    public function format(TimeFormat $format = TimeFormat::Iso8601): string
     {
         return $format->encode($this);
     }
 
     /**
-     * Format the time using ICU locale rules.
-     *
-     * The optional timezone affects only the formatting context used for the
-     * temporary native datetime created during rendering.
-     *
      * @throws TimeException
      */
     public function toLocaleString(
@@ -273,7 +239,7 @@ final readonly class Time implements JsonSerializable
      */
     public function jsonSerialize(): string
     {
-        return $this->toNotation();
+        return $this->format();
     }
 
     /**
@@ -362,9 +328,6 @@ final readonly class Time implements JsonSerializable
             ? $this : self::at($hour, $minute, $second, $microsecond);
     }
 
-    /**
-     * Round the current time to the requested unit using the provided strategy.
-     */
     public function roundTo(Unit $unit, RoundingMode $roundingMode = RoundingMode::Nearest): self
     {
         $rounded = $unit->round($this->value, $roundingMode);
@@ -372,9 +335,6 @@ final readonly class Time implements JsonSerializable
         return $this->value === $rounded ? $this : new self($rounded);
     }
 
-    /**
-     * Copy this time-of-day onto an existing native date or datetime value.
-     */
     public function applyTo(DateTimeInterface $datetime): DateTimeImmutable
     {
         if (!$datetime instanceof DateTimeImmutable) {
@@ -385,10 +345,6 @@ final readonly class Time implements JsonSerializable
     }
 
     /**
-     * Return the signed linear difference to another time.
-     *
-     * Unlike {@see distance()}, this method does not wrap across midnight.
-     *
      * @throws InvalidDuration
      */
     public function diff(self $other): Duration
@@ -401,8 +357,6 @@ final readonly class Time implements JsonSerializable
     }
 
     /**
-     * Return the forward circular distance to another time on the same day cycle.
-     *
      * @throws InvalidDuration
      */
     public function distance(self $other): Duration
@@ -413,11 +367,6 @@ final readonly class Time implements JsonSerializable
         return Duration::of(microseconds: $duration);
     }
 
-    /**
-     * Normalize a timezone argument into a concrete timezone instance.
-     *
-     * @throws TimeException
-     */
     private static function filterTimezone(DateTimeZone|string|null $timezone): ?DateTimeZone
     {
         try {

@@ -3,27 +3,45 @@
 [![Software License][ico-license]](LICENSE.md)
 [![Total Downloads][ico-downloads]][link-downloads]
 
-------
+# temporal
 
-# :package_name
-
-:package_description
+Temporal primitives combining immutable date periods and local time
+modelling.
 
 ## Requirements
 
-> **Requires [PHP 8.4+](https://php.net/releases/)**
+> **Requires [PHP 8.5+](https://php.net/releases/)**
 
 ## Installation
 
 ```bash
-composer require cline/:package_name
+composer require cline/temporal
 ```
 
 ## Usage
 
 ```php
-// Add usage examples here
+use Cline\Temporal\Period\Bounds;
+use Cline\Temporal\Period\Period;
+use Cline\Temporal\Time\Duration;
+use Cline\Temporal\Time\DurationFormat;
+use Cline\Temporal\Time\Time;
+use Cline\Temporal\Time\TimeFormat;
+
+$period = Period::fromRange('2026-01-01', '2026-01-31', Bounds::IncludeAll);
+
+$time = Time::fromFormat('09:30:00', TimeFormat::Iso8601)
+    ->shift(Duration::fromFormat('PT45M', DurationFormat::Iso8601));
+
+echo $period->timeDuration()->totalSeconds();
+echo $time->format(TimeFormat::Compact);
 ```
+
+`Cline\Temporal\Period\*` mirrors the imported Period package surface for
+date and datetime ranges.
+
+`Cline\Temporal\Time\*` mirrors the imported Tokei package surface for
+local times, durations, circular intervals, and interval sets.
 
 ## Change log
 
@@ -46,14 +64,14 @@ If you discover any security related issues, please use the [GitHub security rep
 
 The MIT License. Please see [License File](LICENSE.md) for more information.
 
-[ico-tests]: https://github.com/faustbrian/:package_name/actions/workflows/quality-assurance.yaml/badge.svg
-[ico-version]: https://img.shields.io/packagist/v/cline/:package_name.svg
+[ico-tests]: https://github.com/faustbrian/temporal/actions/workflows/quality-assurance.yaml/badge.svg
+[ico-version]: https://img.shields.io/packagist/v/cline/temporal.svg
 [ico-license]: https://img.shields.io/badge/License-MIT-green.svg
-[ico-downloads]: https://img.shields.io/packagist/dt/cline/:package_name.svg
+[ico-downloads]: https://img.shields.io/packagist/dt/cline/temporal.svg
 
-[link-tests]: https://github.com/faustbrian/:package_name/actions
-[link-packagist]: https://packagist.org/packages/cline/:package_name
-[link-downloads]: https://packagist.org/packages/cline/:package_name
-[link-security]: https://github.com/faustbrian/:package_name/security
+[link-tests]: https://github.com/faustbrian/temporal/actions
+[link-packagist]: https://packagist.org/packages/cline/temporal
+[link-downloads]: https://packagist.org/packages/cline/temporal
+[link-security]: https://github.com/faustbrian/temporal/security
 [link-maintainer]: https://github.com/faustbrian
 [link-contributors]: ../../contributors

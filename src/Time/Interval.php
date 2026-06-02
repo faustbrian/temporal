@@ -31,6 +31,7 @@ use function usort;
  *
  * @phpstan-type NativeInterval array{startDate: DateTimeImmutable, interval: DateInterval}
  * @psalm-immutable
+ * @author Brian Faust <brian@cline.sh>
  */
 final readonly class Interval implements JsonSerializable
 {

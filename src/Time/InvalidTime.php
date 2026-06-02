@@ -16,6 +16,7 @@ use function sprintf;
  *
  * The named constructors describe which component violated the accepted range so
  * callers can surface precise validation feedback.
+ * @author Brian Faust <brian@cline.sh>
  */
 final class InvalidTime extends TimeException
 {

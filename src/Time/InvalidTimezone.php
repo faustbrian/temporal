@@ -14,6 +14,7 @@ use Throwable;
 
 /**
  * Thrown when a supplied timezone cannot be resolved to a supported IANA identifier.
+ * @author Brian Faust <brian@cline.sh>
  */
 final class InvalidTimezone extends TimeException
 {

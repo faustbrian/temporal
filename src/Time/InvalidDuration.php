@@ -18,6 +18,7 @@ use function str_contains;
  *
  * This includes scalar overflow and notation input that would require
  * calendar-relative units such as months or years.
+ * @author Brian Faust <brian@cline.sh>
  */
 final class InvalidDuration extends TimeException
 {

@@ -30,6 +30,7 @@ use function array_pop;
 use function array_shift;
 use function count;
 use function enum_exists;
+use function get_debug_type;
 use function in_array;
 use function is_string;
 use function max;
@@ -50,8 +51,9 @@ use function usort;
  *
  * @phpstan-import-type NativeInterval from Interval
  *
- * @implements IteratorAggregate<Interval>
  * @psalm-immutable
+ * @author Brian Faust <brian@cline.sh>
+ * @implements IteratorAggregate<Interval>
  */
 final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSerializable
 {
@@ -156,7 +158,7 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
      */
     public function get(int $offset): Interval
     {
-        return $this->nth($offset) ?? throw new TimeException('Invalid offset ('.$offset.') given to '.self::class.'.');
+        return $this->nth($offset) ?? throw InvalidIntervalSetOffset::forOffset($offset);
     }
 
     /**
@@ -273,7 +275,7 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
 
     /**
      * @throws InvalidDuration
-     * @throws TimeException
+     * @throws InvalidIntervalSetOffset
      */
     public function replace(int $offset, Interval $interval): self
     {
@@ -281,7 +283,7 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
             $offset += count($this->intervals);
         }
 
-        throw_unless(isset($this->intervals[$offset]), TimeException::class, 'Invalid offset ('.$offset.') given to '.self::class.'.');
+        throw_unless(isset($this->intervals[$offset]), InvalidIntervalSetOffset::class, 'Invalid offset ('.$offset.') given to '.self::class.'.');
 
         $intervals = $this->intervals;
         $intervals[$offset] = $interval;
@@ -696,7 +698,10 @@ final readonly class IntervalSet implements Countable, IteratorAggregate, JsonSe
             };
         }
 
-        throw_unless(is_string($sortDirection), TypeError::class, 'Argument ($sortDirection) must be of type SortDirection, '.$sortDirection::class.' given,');
+        if (!is_string($sortDirection)) {
+            throw new TypeError('Argument ($sortDirection) must be of type SortDirection, '.get_debug_type($sortDirection).' given,');
+        }
+
         $sortDirection = mb_strtolower($sortDirection);
 
         return match ($sortDirection) {

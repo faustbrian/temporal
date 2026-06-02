@@ -24,6 +24,7 @@ use function throw_unless;
  *
  * Each notation is deliberately restricted to deterministic units. Month and year
  * components are excluded so parsing never depends on an external calendar context.
+ * @author Brian Faust <brian@cline.sh>
  */
 enum DurationNotation
 {
@@ -201,10 +202,11 @@ enum DurationNotation
     private function fromChrono(string $duration): Duration
     {
         throw_if(1 !== preg_match(self::REGEXP_TIMER, $duration, $parts), InvalidDuration::class, 'Unknown or bad format `'.$duration.'`.');
+        $parts += ['hours' => '0', 'minutes' => '0', 'seconds' => '0', 'microseconds' => '0', 'sign' => ''];
 
         $minutes = (int) $parts['minutes'];
         $seconds = (int) $parts['seconds'];
-        $microseconds = (int) ($parts['microseconds'] ?? '0');
+        $microseconds = (int) $parts['microseconds'];
 
         if (!($minutes >= 0 && $minutes < 60)) {
             throw InvalidDuration::dueToMalformedMinute($minutes);
@@ -242,19 +244,20 @@ enum DurationNotation
         $data = mb_trim($data);
 
         throw_unless('' !== $data && 1 === preg_match(self::REGEXP_COMPACT, $data, $parts), InvalidDuration::class, 'Unknown or bad format `'.$data.'`.');
+        $parts += ['weeks' => '0', 'days' => '0', 'hours' => '0', 'minutes' => '0', 'seconds' => '0', 'microseconds' => '0', 'sign' => ''];
 
         /** @var non-negative-int $microseconds */
         $microseconds = self::toMicroseconds(
-            days: (((int) ($parts['weeks'] ?? 0) * 7) + (int) ($parts['days'] ?? 0)),
-            hours: (int) ($parts['hours'] ?? 0),
-            minutes: (int) ($parts['minutes'] ?? 0),
-            seconds: (int) ($parts['seconds'] ?? 0),
-            microseconds: (int) ($parts['microseconds'] ?? 0),
+            days: (((int) $parts['weeks'] * 7) + (int) $parts['days']),
+            hours: (int) $parts['hours'],
+            minutes: (int) $parts['minutes'],
+            seconds: (int) $parts['seconds'],
+            microseconds: (int) $parts['microseconds'],
         );
 
         $duration = Duration::of(microseconds: $microseconds);
 
-        return '-' === ($parts['sign'] ?? '') ? $duration->negated() : $duration;
+        return '-' === $parts['sign'] ? $duration->negated() : $duration;
     }
 
     /**
@@ -278,17 +281,19 @@ enum DurationNotation
             throw InvalidDuration::dueToMalformedIso8601($data);
         }
 
+        $parts += ['weeks' => '0', 'days' => '0', 'hours' => '0', 'minutes' => '0', 'seconds' => '0', 'sign' => ''];
+
         /** @var non-negative-int $microseconds */
         $microseconds = self::toMicroseconds(
-            days: (((int) ($parts['weeks'] ?? 0) * 7) + (int) ($parts['days'] ?? 0)),
-            hours: (int) ($parts['hours'] ?? 0),
-            minutes: (int) ($parts['minutes'] ?? 0),
-            seconds: (float) ($parts['seconds'] ?? 0),
+            days: (((int) $parts['weeks'] * 7) + (int) $parts['days']),
+            hours: (int) $parts['hours'],
+            minutes: (int) $parts['minutes'],
+            seconds: (float) $parts['seconds'],
             microseconds: 0,
         );
 
         $duration = Duration::of(microseconds: $microseconds);
 
-        return '-' === ($parts['sign'] ?? '') ? $duration->negated() : $duration;
+        return '-' === $parts['sign'] ? $duration->negated() : $duration;
     }
 }

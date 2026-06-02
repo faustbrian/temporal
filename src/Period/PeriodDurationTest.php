@@ -48,7 +48,7 @@ final class PeriodDurationTest extends PeriodTestCase
     }
 
     #[DataProvider('provideGet_date_periodCases')]
-    public function test_get_date_period(DateInterval|int|string $duration, InitialDatePresence $option, int $count): void
+    public function test_get_date_period(DateInterval|int|string $duration, Bounds $bounds, int $count): void
     {
         if (is_string($duration)) {
             $duration = DateInterval::createFromDateString($duration);
@@ -56,60 +56,60 @@ final class PeriodDurationTest extends PeriodTestCase
             $duration = Duration::fromSeconds($duration);
         }
 
-        $period = Period::fromDate('2012-01-12', '2012-01-13');
-        $this->assertCount($count, iterator_to_array($period->dateRangeForward($duration, $option)));
+        $period = Period::fromDate('2012-01-12', '2012-01-13', $bounds);
+        $this->assertCount($count, iterator_to_array($period->rangeForward($duration)));
     }
 
     /**
-     * @return Iterator<string, array{(DateInterval|int|string), InitialDatePresence, int}>
+     * @return Iterator<string, array{(DateInterval|int|string), Bounds, int}>
      */
     public static function provideGet_date_periodCases(): iterable
     {
-        yield 'useDateInterval' => [new DateInterval('PT1H'), InitialDatePresence::Included, 24];
+        yield 'useDateInterval' => [new DateInterval('PT1H'), Bounds::IncludeStartExcludeEnd, 24];
 
-        yield 'useString' => ['2 HOUR', InitialDatePresence::Included, 12];
+        yield 'useString' => ['2 HOUR', Bounds::IncludeStartExcludeEnd, 12];
 
-        yield 'useInt' => [9_600, InitialDatePresence::Included, 9];
+        yield 'useInt' => [9_600, Bounds::IncludeStartExcludeEnd, 9];
 
-        yield 'exclude start date use DateInterval' => [new DateInterval('PT1H'), InitialDatePresence::Excluded, 23];
+        yield 'exclude start date use DateInterval' => [new DateInterval('PT1H'), Bounds::ExcludeAll, 23];
 
-        yield 'exclude start date use String' => ['2 HOUR', InitialDatePresence::Excluded, 11];
+        yield 'exclude start date use String' => ['2 HOUR', Bounds::ExcludeAll, 11];
 
-        yield 'exclude start date use Int' => [9_600, InitialDatePresence::Excluded, 8];
+        yield 'exclude start date use Int' => [9_600, Bounds::ExcludeAll, 8];
 
-        yield 'exclude start date use Float' => [14_400, InitialDatePresence::Excluded, 5];
+        yield 'exclude start date use Float' => [14_400, Bounds::ExcludeAll, 5];
     }
 
     #[DataProvider('provideGet_date_period_backwardsCases')]
-    public function test_get_date_period_backwards(DateInterval|int|string $duration, InitialDatePresence $option, int $count): void
+    public function test_get_date_period_backwards(DateInterval|int|string $duration, Bounds $bounds, int $count): void
     {
         if (is_int($duration)) {
             $duration = Duration::fromSeconds($duration);
         }
 
-        $period = Period::fromDate('2012-01-12', '2012-01-13');
+        $period = Period::fromDate('2012-01-12', '2012-01-13', $bounds);
 
-        $this->assertCount($count, iterator_to_array($period->dateRangeBackwards($duration, $option)));
+        $this->assertCount($count, iterator_to_array($period->rangeBackwards($duration)));
     }
 
     /**
-     * @return Iterator<string, array{(DateInterval|int|string), InitialDatePresence, int}>
+     * @return Iterator<string, array{(DateInterval|int|string), Bounds, int}>
      */
     public static function provideGet_date_period_backwardsCases(): iterable
     {
-        yield 'useDateInterval' => [new DateInterval('PT1H'), InitialDatePresence::Included, 24];
+        yield 'useDateInterval' => [new DateInterval('PT1H'), Bounds::ExcludeStartIncludeEnd, 24];
 
-        yield 'useString' => ['2 HOUR', InitialDatePresence::Included, 12];
+        yield 'useString' => ['2 HOUR', Bounds::ExcludeStartIncludeEnd, 12];
 
-        yield 'useInt' => [9_600, InitialDatePresence::Included, 9];
+        yield 'useInt' => [9_600, Bounds::ExcludeStartIncludeEnd, 9];
 
-        yield 'exclude start date useDateInterval' => [new DateInterval('PT1H'), InitialDatePresence::Excluded, 23];
+        yield 'exclude start date useDateInterval' => [new DateInterval('PT1H'), Bounds::ExcludeAll, 23];
 
-        yield 'exclude start date useString' => ['2 HOUR', InitialDatePresence::Excluded, 11];
+        yield 'exclude start date useString' => ['2 HOUR', Bounds::ExcludeAll, 11];
 
-        yield 'exclude start date useInt' => [9_600, InitialDatePresence::Excluded, 8];
+        yield 'exclude start date useInt' => [9_600, Bounds::ExcludeAll, 8];
 
-        yield 'exclude start date useFloat' => [14_400, InitialDatePresence::Excluded, 5];
+        yield 'exclude start date useFloat' => [14_400, Bounds::ExcludeAll, 5];
     }
 
     /**

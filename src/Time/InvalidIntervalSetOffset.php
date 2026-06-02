@@ -13,6 +13,7 @@ use function sprintf;
 
 /**
  * Thrown when interval-set access targets an offset that does not exist.
+ * @author Brian Faust <brian@cline.sh>
  */
 final class InvalidIntervalSetOffset extends TimeException
 {

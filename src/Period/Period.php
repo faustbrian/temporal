@@ -22,7 +22,6 @@ use DatePeriod;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
-use Deprecated;
 use Exception;
 use Generator;
 use JsonSerializable;
@@ -295,20 +294,6 @@ final readonly class Period implements JsonSerializable
         return new self($startDate, $startDate->add(
             new DateInterval('P1D'),
         ), $bounds);
-    }
-
-    /**
-     * @see ::fromRange
-     * @throws InvalidInterval If no instance can be generated from a DatePeriod object
-     */
-    #[Deprecated(message: 'use League\\Perio\\Period::fromRange()', since: 'league/period:5.2.1')]
-    public static function fromDateRange(DatePeriod $dateRange, Bounds $bounds = Bounds::IncludeStartExcludeEnd): self
-    {
-        return new self(
-            self::filterDatePoint($dateRange->getStartDate()),
-            self::filterDatePoint($dateRange->getEndDate() ?? throw InvalidInterval::dueToInvalidDatePeriod()),
-            $bounds,
-        );
     }
 
     /*
@@ -1386,51 +1371,6 @@ final readonly class Period implements JsonSerializable
         return $this->newInstance(
             new self($startDate, $endDate, $this->bounds),
         );
-    }
-
-    /**
-     * @see ::rangeForward
-     *
-     * Allows iteration over a set of dates and times,
-     * recurring at regular intervals, over the instance.
-     *
-     * The returned DatePeriod object contains only DateTimeImmutable objects.
-     *
-     * @see http://php.net/manual/en/dateperiod.construct.php
-     * @return DatePeriod<DateTimeImmutable>
-     */
-    #[Deprecated(message: 'use League\\Perio\\Period::rangeForward()', since: 'league/period:5.2.0')]
-    public function dateRangeForward(self|Duration|DateInterval|string $timeDelta, InitialDatePresence $startDatePresence = InitialDatePresence::Included): DatePeriod
-    {
-        return new DatePeriod(
-            $this->startDate,
-            self::filterDuration($timeDelta),
-            $this->endDate,
-            InitialDatePresence::Excluded === $startDatePresence ? DatePeriod::EXCLUDE_START_DATE : 0,
-        );
-    }
-
-    /**
-     * @see Period::rangeBackwards()
-     *
-     * Allows iteration over a set of dates and times,
-     * recurring at regular intervals, over the instance backwards starting from the instance ending.
-     * @return Generator<int, DateTimeImmutable>
-     */
-    #[Deprecated(message: 'use League\\Perio\\Period::rangeBackwards()', since: 'league/period:5.2.0')]
-    public function dateRangeBackwards(self|Duration|DateInterval|string $timeDelta, InitialDatePresence $endDatePresence = InitialDatePresence::Included): Generator
-    {
-        $timeDelta = self::filterDuration($timeDelta);
-        $date = $this->endDate;
-
-        if (InitialDatePresence::Excluded === $endDatePresence) {
-            $date = $this->endDate->sub($timeDelta);
-        }
-
-        while ($date > $this->startDate) {
-            yield $date;
-            $date = $date->sub($timeDelta);
-        }
     }
 
     private static function resolveIso8601Date(string $startDate, string $endDate): string

@@ -10,6 +10,7 @@
 namespace Cline\Temporal\Time;
 
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterval;
 use DateInterval;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -29,6 +30,7 @@ use function str_starts_with;
 use function unserialize;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 #[CoversClass(InvalidDuration::class)]
@@ -1099,7 +1101,7 @@ final class DurationTest extends TestCase
         yield 'bad spacing unit' => ['10 ms'];
     }
 
-    private static function diff(string $spec): DateInterval
+    private static function diff(string $spec): CarbonInterval
     {
         $now = CarbonImmutable::now();
 

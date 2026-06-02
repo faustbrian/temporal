@@ -229,7 +229,7 @@ final class PeriodFactoryTest extends PeriodTestCase
             new DateInterval('P1D'),
             Date::parse('2016-05-20T00:00:00Z'),
         );
-        $period = Period::fromDateRange($datePeriod);
+        $period = Period::fromRange($datePeriod);
         $this->assertEquals($datePeriod->getStartDate(), $period->startDate);
         $this->assertEquals($datePeriod->getEndDate(), $period->endDate);
     }

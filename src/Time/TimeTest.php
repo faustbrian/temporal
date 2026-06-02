@@ -24,6 +24,7 @@ use function serialize;
 use function unserialize;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 #[CoversClass(InvalidTime::class)]

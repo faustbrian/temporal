@@ -23,6 +23,7 @@ use function throw_if;
  *
  * The enum owns both parsing and formatting rules so time notation stays
  * symmetric across the package.
+ * @author Brian Faust <brian@cline.sh>
  */
 enum TimeFormat
 {
@@ -57,12 +58,13 @@ enum TimeFormat
 
         $data = mb_trim($data);
         throw_if(1 !== preg_match($regexp, $data, $parts), InvalidTime::class, 'Unknown or bad format `'.$data.'`.');
+        $parts += ['hour' => '0', 'minute' => '0', 'second' => '0', 'microsecond' => '0'];
 
         return Time::at(
             hour: (int) $parts['hour'],
             minute: (int) $parts['minute'],
-            second: (int) ($parts['second'] ?? 0),
-            microsecond: (int) mb_str_pad(mb_substr($parts['microsecond'] ?? '0', 0, 6), 6, '0'),
+            second: (int) $parts['second'],
+            microsecond: (int) mb_str_pad(mb_substr($parts['microsecond'], 0, 6), 6, '0'),
         );
     }
 

@@ -11,6 +11,7 @@ namespace Cline\Temporal\Time;
 
 /**
  * Rounding strategies shared by time and duration precision helpers.
+ * @author Brian Faust <brian@cline.sh>
  */
 enum RoundingMode
 {

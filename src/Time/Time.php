@@ -34,6 +34,7 @@ use function throw_unless;
  * formatting and comparisons, while `$value` remains the canonical scalar used
  * for ordering and arithmetic.
  * @psalm-immutable
+ * @author Brian Faust <brian@cline.sh>
  */
 final readonly class Time implements JsonSerializable
 {
@@ -238,7 +239,7 @@ final readonly class Time implements JsonSerializable
     ): string {
         static $isSupported = null;
         $isSupported ??= class_exists(IntlDateFormatter::class);
-        $isSupported || throw new TimeException('Support for time locale formatting requires the `intl` extension for best performance or run "composer require symfony/polyfill-intl-icu" to install a polyfill.');
+        $isSupported || throw UnsupportedLocaleFormatting::dueToMissingIntlSupport();
 
         $timeType = match ($length) {
             TimeFormatLength::Full => IntlDateFormatter::FULL,
@@ -259,10 +260,10 @@ final readonly class Time implements JsonSerializable
                 new DateTimeImmutable(timezone: $timezone),
             ));
         } catch (Throwable $throwable) {
-            throw new TimeException('Unable to convert to locale "'.$locale.'" the current time; Please verify your locale.', $throwable->getCode(), previous: $throwable);
+            throw UnableToFormatLocaleTime::forLocale($locale, $throwable);
         }
 
-        return false !== $formatted ? $formatted : throw new TimeException('Unable to convert to locale "'.$locale.'" the current time.');
+        return false !== $formatted ? $formatted : throw UnableToFormatLocaleTime::forLocale($locale);
     }
 
     /**
@@ -426,7 +427,7 @@ final readonly class Time implements JsonSerializable
                 default => new DateTimeZone($timezone),
             };
         } catch (Throwable $throwable) {
-            throw new TimeException('Timezone must be a valid IANA Timezone Name supported by '.DateTimeZone::class, $throwable->getCode(), previous: $throwable);
+            throw InvalidTimezone::unsupportedIdentifier($throwable);
         }
     }
 }

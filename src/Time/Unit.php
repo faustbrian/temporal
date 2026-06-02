@@ -17,6 +17,7 @@ use function round;
  *
  * Every unit resolves to an exact microsecond scale factor so value objects can
  * centralize conversion, wrapping, rounding, and remainder logic in one place.
+ * @author Brian Faust <brian@cline.sh>
  */
 enum Unit
 {

@@ -27,6 +27,7 @@ use function str_starts_with;
  * The enum understands both mathematical interval notation and ISO-8601 interval
  * forms. Some cases can encode times as raw numeric offsets when an explicit unit
  * is supplied.
+ * @author Brian Faust <brian@cline.sh>
  */
 enum IntervalNotation
 {
@@ -127,7 +128,7 @@ enum IntervalNotation
         $start ??= is_string($end) ? '00:00' : 0;
         $end ??= is_string($start) ? '00:00' : 0;
 
-        if (!(get_debug_type($start) === get_debug_type($end) || is_string($start) || null !== $unit)) {
+        if (!(get_debug_type($start) === get_debug_type($end) || is_string($start) || $unit instanceof Unit)) {
             throw InvalidInterval::dueToMalformedNotation($data, $this);
         }
 

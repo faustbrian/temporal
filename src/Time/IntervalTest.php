@@ -26,6 +26,7 @@ use function serialize;
 use function unserialize;
 
 /**
+ * @author Brian Faust <brian@cline.sh>
  * @internal
  */
 #[CoversClass(IntervalSet::class)]
@@ -641,7 +642,6 @@ final class IntervalTest extends TestCase
      *
      * @throws InvalidDuration
      * @throws InvalidTime
-     * @throws TimeException
      */
     #[DataProvider('provideFrom_iso8601Cases')]
     public function test_from_iso8601(string $input, string $expected): void

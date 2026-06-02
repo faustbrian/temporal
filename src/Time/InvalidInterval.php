@@ -13,6 +13,7 @@ use Throwable;
 
 /**
  * Thrown when an interval string cannot be parsed by the selected notation.
+ * @author Brian Faust <brian@cline.sh>
  */
 final class InvalidInterval extends TimeException
 {

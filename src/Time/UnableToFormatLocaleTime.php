@@ -13,6 +13,7 @@ use Throwable;
 
 /**
  * Thrown when ICU cannot render a localized string for the requested time.
+ * @author Brian Faust <brian@cline.sh>
  */
 final class UnableToFormatLocaleTime extends TimeException
 {

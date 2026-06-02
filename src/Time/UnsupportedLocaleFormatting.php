@@ -11,6 +11,7 @@ namespace Cline\Temporal\Time;
 
 /**
  * Thrown when locale-aware formatting dependencies are unavailable.
+ * @author Brian Faust <brian@cline.sh>
  */
 final class UnsupportedLocaleFormatting extends TimeException
 {

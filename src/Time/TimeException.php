@@ -20,4 +20,4 @@ use Exception;
  *
  * @author Brian Faust <brian@cline.sh>
  */
-final class TimeException extends Exception {}
+abstract class TimeException extends Exception {}

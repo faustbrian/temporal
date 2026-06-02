@@ -14,7 +14,11 @@ use function preg_match;
 use function sprintf;
 
 /**
- * An Enum to handle interval bounds.
+ * Boundary-inclusion policy for {@see Period} endpoints.
+ *
+ * The enum captures whether the start and end endpoints participate in membership
+ * tests and also owns the string conversions for the supported mathematical
+ * interval notations.
  *
  * @author  Ignace Nyamagana Butera <nyamsprod@gmail.com>
  * @since   5.0.0
@@ -81,7 +85,7 @@ enum Bounds
     }
 
     /**
-     * Returns the ISO 80000 string representation of an interval.
+     * Build the ISO-80000 notation string for a period using these bounds.
      */
     public function buildIso80000(string $start, string $end): string
     {
@@ -94,7 +98,7 @@ enum Bounds
     }
 
     /**
-     * Returns the Bourbaki string representation of an interval.
+     * Build the Bourbaki notation string for a period using these bounds.
      */
     public function buildBourbaki(string $start, string $end): string
     {
@@ -174,6 +178,9 @@ enum Bounds
         };
     }
 
+    /**
+     * Return a new bounds value that keeps this end policy but copies the other's start policy.
+     */
     public function replaceStart(self $other): self
     {
         return match (true) {
@@ -182,6 +189,9 @@ enum Bounds
         };
     }
 
+    /**
+     * Return a new bounds value that keeps this start policy but copies the other's end policy.
+     */
     public function replaceEnd(self $other): self
     {
         return match (true) {

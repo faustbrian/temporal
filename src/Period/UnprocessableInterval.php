@@ -20,6 +20,10 @@ use RuntimeException;
 use Throwable;
 
 /**
+ * Thrown when a range operation is valid in principle but impossible for the
+ * supplied periods because their relationship does not satisfy the method's
+ * preconditions.
+ *
  * @author Brian Faust <brian@cline.sh>
  */
 final class UnprocessableInterval extends RuntimeException implements IntervalError
@@ -29,11 +33,17 @@ final class UnprocessableInterval extends RuntimeException implements IntervalEr
         parent::__construct($message, $code, $previous);
     }
 
+    /**
+     * Create an exception for operations that require overlapping periods.
+     */
     public static function dueToMissingOverlaps(): self
     {
         return new self('Both '.Period::class.' objects must overlaps.');
     }
 
+    /**
+     * Create an exception for operations that require at least one gap between periods.
+     */
     public static function dueToMissingGaps(): self
     {
         return new self('Both '.Period::class.' objects must have at least one gap.');

@@ -1,12 +1,19 @@
-<?php
+<?php declare(strict_types=1);
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Time;
 
+use Carbon\CarbonImmutable;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
+use Iterator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -16,29 +23,34 @@ use function json_encode;
 use function serialize;
 use function unserialize;
 
+/**
+ * @internal
+ */
 #[CoversClass(InvalidTime::class)]
 #[CoversClass(Time::class)]
 #[CoversClass(TimeFormat::class)]
 #[CoversClass(Unit::class)]
 final class TimeTest extends TestCase
 {
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * Creation
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
-    public function testFromPartsCreatesCorrectTime(): void
+    public function test_from_parts_creates_correct_time(): void
     {
-        $time = Time::at(10, 15, 30, 123456);
+        $time = Time::at(10, 15, 30, 123_456);
 
-        self::assertSame(10, $time->hour);
-        self::assertSame(15, $time->minute);
-        self::assertSame(30, $time->second);
-        self::assertSame(123456, $time->microsecond);
+        $this->assertSame(10, $time->hour);
+        $this->assertSame(15, $time->minute);
+        $this->assertSame(30, $time->second);
+        $this->assertSame(123_456, $time->microsecond);
     }
 
     #[TestWith(['part' => 25], 'the hour component is too high')]
     #[TestWith(['part' => -1], 'the hour component is too low')]
-    public function testDomainRejectsInvalidHours(int $part): void
+    public function test_domain_rejects_invalid_hours(int $part): void
     {
         $this->expectExceptionObject(InvalidTime::dueToMalformedHour($part));
 
@@ -47,7 +59,7 @@ final class TimeTest extends TestCase
 
     #[TestWith(['part' => 60], 'the minute component is too high')]
     #[TestWith(['part' => -1], 'the minute component is too low')]
-    public function testDomainRejectsInvalidMinutes(int $part): void
+    public function test_domain_rejects_invalid_minutes(int $part): void
     {
         $this->expectExceptionObject(InvalidTime::dueToMalformedMinute($part));
 
@@ -56,7 +68,7 @@ final class TimeTest extends TestCase
 
     #[TestWith(['part' => 60], 'the second component is too high')]
     #[TestWith(['part' => -1], 'the second component is too low')]
-    public function testDomainRejectsInvalidSeconds(int $part): void
+    public function test_domain_rejects_invalid_seconds(int $part): void
     {
         $this->expectExceptionObject(InvalidTime::dueToMalformedSecond($part));
 
@@ -65,226 +77,240 @@ final class TimeTest extends TestCase
 
     #[TestWith(['part' => 1_000_001], 'the microsecond component is too high')]
     #[TestWith(['part' => -1], 'the microsecond component is too low')]
-    public function testDomainRejectsInvalidMicroseconds(int $part): void
+    public function test_domain_rejects_invalid_microseconds(int $part): void
     {
         $this->expectExceptionObject(InvalidTime::dueToMalformedMicrosecond($part));
 
         Time::at(microsecond: $part);
     }
 
-    public function testMidnightAndNoon(): void
+    public function test_midnight_and_noon(): void
     {
-        self::assertSame(0, Time::midnight()->hour);
-        self::assertSame(12, Time::noon()->hour);
-        self::assertSame(23, Time::endOfDay()->hour);
+        $this->assertSame(0, Time::midnight()->hour);
+        $this->assertSame(12, Time::noon()->hour);
+        $this->assertSame(23, Time::endOfDay()->hour);
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * From microseconds
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
-    public function testFromMicrosecondsWrapsCorrectly(): void
+    public function test_from_microseconds_wraps_correctly(): void
     {
         $time = Time::fromOffset(25 * 3_600_500_000, Unit::Microsecond);
-        self::assertSame('01:00:12.500000', $time->toNotation());
+        $this->assertSame('01:00:12.500000', $time->toNotation());
 
         $time = Time::fromOffset(25 * 3_600_500, Unit::Millisecond);
-        self::assertSame('01:00:12.500000', $time->toNotation());
+        $this->assertSame('01:00:12.500000', $time->toNotation());
 
         $time = Time::fromOffset(25 * 3_600, Unit::Second);
-        self::assertSame('01:00:00', $time->toNotation());
+        $this->assertSame('01:00:00', $time->toNotation());
 
         $time = Time::fromOffset(25 * 60, Unit::Minute);
-        self::assertSame('01:00:00', $time->toNotation());
+        $this->assertSame('01:00:00', $time->toNotation());
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * Parsing
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
-    public function testParseString(): void
+    public function test_parse_string(): void
     {
         $time = Time::fromNotation('12:34:56.123456');
 
-        self::assertSame(12, $time->hour);
-        self::assertSame(34, $time->minute);
-        self::assertSame(56, $time->second);
-        self::assertSame(123456, $time->microsecond);
+        $this->assertSame(12, $time->hour);
+        $this->assertSame(34, $time->minute);
+        $this->assertSame(56, $time->second);
+        $this->assertSame(123_456, $time->microsecond);
     }
 
-    public function testParseWithoutSeconds(): void
+    public function test_parse_without_seconds(): void
     {
         $time = Time::fromNotation('08:15');
 
-        self::assertSame(8, $time->hour);
-        self::assertSame(15, $time->minute);
-        self::assertSame(0, $time->second);
+        $this->assertSame(8, $time->hour);
+        $this->assertSame(15, $time->minute);
+        $this->assertSame(0, $time->second);
     }
 
-    public function testParseInvalidThrows(): void
+    public function test_parse_invalid_throws(): void
     {
         $this->expectException(InvalidTime::class);
 
         Time::fromNotation('99:99:99');
     }
 
-    public function testParseDateTime(): void
+    public function test_parse_date_time(): void
     {
-        $dt = new DateTimeImmutable('2024-01-01 10:20:30.123456');
+        $dt = CarbonImmutable::parse('2024-01-01 10:20:30.123456');
         $time = Time::fromDate($dt);
 
-        self::assertSame(10, $time->hour);
-        self::assertSame(20, $time->minute);
-        self::assertSame(30, $time->second);
-        self::assertSame(123456, $time->microsecond);
+        $this->assertSame(10, $time->hour);
+        $this->assertSame(20, $time->minute);
+        $this->assertSame(30, $time->second);
+        $this->assertSame(123_456, $time->microsecond);
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * Formatting
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
-    public function testFormatDefault(): void
+    public function test_format_default(): void
     {
         $time = Time::at(9, 5, 3);
 
-        self::assertSame('09:05:03', $time->toNotation());
+        $this->assertSame('09:05:03', $time->toNotation());
     }
 
-    public function testFormatPadded(): void
+    public function test_format_padded(): void
     {
         $time = Time::at(9, 5, 3);
 
-        self::assertSame('09:05:03', $time->toNotation());
+        $this->assertSame('09:05:03', $time->toNotation());
     }
 
-    public function testFormatWithMicroseconds(): void
+    public function test_format_with_microseconds(): void
     {
         $time = Time::at(1, 2, 3, 45);
 
-        self::assertSame('01:02:03.000045', $time->toNotation());
+        $this->assertSame('01:02:03.000045', $time->toNotation());
     }
 
-    public function testFormatAutoMicroseconds(): void
+    public function test_format_auto_microseconds(): void
     {
         $time = Time::at(1, 2, 3);
 
-        self::assertSame('01:02:03', $time->toNotation());
+        $this->assertSame('01:02:03', $time->toNotation());
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * Arithmetic
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
-    public function testAddTime(): void
+    public function test_add_time(): void
     {
         $time = Time::at(10)
             ->shift(Duration::of(hours: 2, minutes: 30, seconds: 15, microseconds: 500));
 
-        self::assertSame(12, $time->hour);
-        self::assertSame(30, $time->minute);
-        self::assertSame(15, $time->second);
-        self::assertSame(500, $time->microsecond);
+        $this->assertSame(12, $time->hour);
+        $this->assertSame(30, $time->minute);
+        $this->assertSame(15, $time->second);
+        $this->assertSame(500, $time->microsecond);
     }
 
-    public function testAddTimeWrapsDay(): void
+    public function test_add_time_wraps_day(): void
     {
         $time = Time::at(23)->shift(Duration::of(hours: 2));
 
-        self::assertSame(1, $time->hour);
+        $this->assertSame(1, $time->hour);
     }
 
-    public function testAddWithoutArgumentChangesNothing(): void
+    public function test_add_without_argument_changes_nothing(): void
     {
         $time = Time::at(23);
 
-        self::assertSame($time, $time->shift(Duration::of()));
+        $this->assertSame($time, $time->shift(Duration::of()));
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * Comparison
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
-    public function testComparison(): void
+    public function test_comparison(): void
     {
         $a = Time::at(10);
         $b = Time::at(12);
 
-        self::assertTrue($a->isBefore($b));
-        self::assertTrue($a->isBeforeOrEqual($b));
-        self::assertTrue($b->isAfter($a));
-        self::assertTrue($b->isAfterOrEqual($a));
-        self::assertTrue($a->equals($a));
-        self::assertTrue($a->isBeforeOrEqual($a));
-        self::assertTrue($a->isAfterOrEqual($a));
+        $this->assertTrue($a->isBefore($b));
+        $this->assertTrue($a->isBeforeOrEqual($b));
+        $this->assertTrue($b->isAfter($a));
+        $this->assertTrue($b->isAfterOrEqual($a));
+        $this->assertTrue($a->equals($a));
+        $this->assertTrue($a->isBeforeOrEqual($a));
+        $this->assertTrue($a->isAfterOrEqual($a));
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * Diff
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
-    public function testDiffSigned(): void
+    public function test_diff_signed(): void
     {
         $a = Time::at(8);
         $b = Time::at(10);
 
-        self::assertSame(7_200_000_000, $a->diff($b)->total(Unit::Microsecond));
-        self::assertSame(-7_200_000_000, $b->diff($a)->total(Unit::Microsecond));
+        $this->assertSame(7_200_000_000, $a->diff($b)->total(Unit::Microsecond));
+        $this->assertSame(-7_200_000_000, $b->diff($a)->total(Unit::Microsecond));
     }
 
-    public function testDiffForwardWraps(): void
+    public function test_diff_forward_wraps(): void
     {
         $a = Time::at(23);
         $b = Time::at(1);
 
-        self::assertSame(7_200_000_000, $a->distance($b)->total(Unit::Microsecond));
+        $this->assertSame(7_200_000_000, $a->distance($b)->total(Unit::Microsecond));
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * Edge cases
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
-    public function testZeroAddReturnsSameInstance(): void
+    public function test_zero_add_returns_same_instance(): void
     {
         $time = Time::at(10);
 
-        self::assertSame($time, $time->shift(Duration::zero()));
+        $this->assertSame($time, $time->shift(Duration::zero()));
     }
 
-    public function testMicroseconds(): void
+    public function test_microseconds(): void
     {
-        self::assertSame(36_000_000_000, Time::at(10)->toOffset(Unit::Microsecond));
+        $this->assertSame(36_000_000_000, Time::at(10)->toOffset(Unit::Microsecond));
     }
 
     public function test_apply_to_datetime_immutable(): void
     {
         $date = new DateTimeImmutable('2026-05-11 08:15:30', new DateTimeZone('Africa/Luanda'));
-        $time = Time::at(14, 45, 12, 123456);
+        $time = Time::at(14, 45, 12, 123_456);
         $result = $time->applyTo($date);
 
-        self::assertSame('2026-05-11 14:45:12.123456', $result->format('Y-m-d H:i:s.u'));
-        self::assertSame('Africa/Luanda', $result->getTimezone()->getName());
+        $this->assertSame('2026-05-11 14:45:12.123456', $result->format('Y-m-d H:i:s.u'));
+        $this->assertSame('Africa/Luanda', $result->getTimezone()->getName());
 
         // Original instance remains unchanged
-        self::assertSame('2026-05-11 08:15:30.000000', $date->format('Y-m-d H:i:s.u'));
+        $this->assertSame('2026-05-11 08:15:30.000000', $date->format('Y-m-d H:i:s.u'));
     }
 
     public function test_apply_to_mutable_datetime_returns_immutable(): void
     {
         $date = new DateTime('2026-05-11 08:15:30', new DateTimeZone('UTC'));
-        $time = Time::at(22, 1, 2, 999999);
+        $time = Time::at(22, 1, 2, 999_999);
 
-        self::assertSame('2026-05-11 22:01:02.999999', $time->applyTo($date)->format('Y-m-d H:i:s.u'));
+        $this->assertSame('2026-05-11 22:01:02.999999', $time->applyTo($date)->format('Y-m-d H:i:s.u'));
 
         // Original mutable DateTime is NOT modified
-        self::assertSame('2026-05-11 08:15:30.000000', $date->format('Y-m-d H:i:s.u'));
+        $this->assertSame('2026-05-11 08:15:30.000000', $date->format('Y-m-d H:i:s.u'));
     }
 
     public function test_apply_to_preserves_date(): void
     {
-        $date = new DateTimeImmutable('2030-12-25 00:00:00');
+        $date = CarbonImmutable::parse('2030-12-25 00:00:00');
         $time = Time::at(9, 30);
 
-        self::assertSame('2030-12-25 09:30:00', $time->applyTo($date)->format('Y-m-d H:i:s'));
+        $this->assertSame('2030-12-25 09:30:00', $time->applyTo($date)->format('Y-m-d H:i:s'));
     }
 
     public function test_apply_to_preserves_timezone(): void
@@ -292,19 +318,19 @@ final class TimeTest extends TestCase
         $timezone = new DateTimeZone('Asia/Tokyo');
         $date = new DateTimeImmutable('2026-01-01 00:00:00', $timezone);
 
-        self::assertSame('Asia/Tokyo', Time::at(12)->applyTo($date)->getTimezone()->getName());
+        $this->assertSame('Asia/Tokyo', Time::at(12)->applyTo($date)->getTimezone()->getName());
     }
 
     /**
      * @param array<non-empty-string, int> $arguments
      */
-    #[DataProvider('withProvider')]
+    #[DataProvider('provideWith_updates_selected_componentsCases')]
     public function test_with_updates_selected_components(
         Time $original,
         array $arguments,
         string $expected,
     ): void {
-        self::assertSame($expected, $original->with(...$arguments)->toNotation());
+        $this->assertSame($expected, $original->with(...$arguments)->toNotation());
     }
 
     /**
@@ -316,9 +342,9 @@ final class TimeTest extends TestCase
      *     2: non-empty-string
      * }>
      */
-    public static function withProvider(): iterable
+    public static function provideWith_updates_selected_componentsCases(): iterable
     {
-        $base = Time::at(23, 54, 23, 123456);
+        $base = Time::at(23, 54, 23, 123_456);
 
         yield 'replace hour' => [
             $base,
@@ -371,10 +397,10 @@ final class TimeTest extends TestCase
 
         $updated = $original->with(hour: 8);
 
-        self::assertSame('23:54:23', $original->toNotation());
-        self::assertSame('08:54:23', $updated->toNotation());
-        self::assertNotSame($updated->toLocaleString(locale: 'tr-CY', length: TimeFormatLength::Short), $updated->toLocaleString(locale: 'tr-CY', length: TimeFormatLength::Long));
-        self::assertSame($updated->toLocaleString('en_US', 'Africa/Nairobi'), $updated->toLocaleString('en_US'));
+        $this->assertSame('23:54:23', $original->toNotation());
+        $this->assertSame('08:54:23', $updated->toNotation());
+        $this->assertNotSame($updated->toLocaleString(locale: 'tr-CY', length: TimeFormatLength::Short), $updated->toLocaleString(locale: 'tr-CY', length: TimeFormatLength::Long));
+        $this->assertSame($updated->toLocaleString('en_US', 'Africa/Nairobi'), $updated->toLocaleString('en_US'));
 
         $this->expectException(TimeException::class);
         $updated->toLocaleString('foo-bar');
@@ -382,9 +408,9 @@ final class TimeTest extends TestCase
 
     public function test_with_returns_same_instance_when_no_change(): void
     {
-        $time = Time::at(23, 54, 23, 123456);
+        $time = Time::at(23, 54, 23, 123_456);
 
-        self::assertSame($time, $time->with());
+        $this->assertSame($time, $time->with());
     }
 
     public function test_with_throws_on_invalid_hour(): void
@@ -437,18 +463,18 @@ final class TimeTest extends TestCase
         $time = Time::fromNotation('12:34:56.123456');
         $restored = unserialize(serialize($time));
 
-        self::assertInstanceOf(Time::class, $restored);
-        self::assertEquals($time, $restored);
+        $this->assertInstanceOf(Time::class, $restored);
+        $this->assertEquals($time, $restored);
     }
 
     public function test_time_can_be_json_serialized(): void
     {
         $time = Time::fromNotation('12:34:56');
 
-        self::assertSame('"12:34:56"', json_encode($time));
+        $this->assertSame('"12:34:56"', json_encode($time));
     }
 
-    #[DataProvider('timePrecisionProvider')]
+    #[DataProvider('provideTruncate_and_roundCases')]
     public function test_truncate_and_round(
         int $input,
         Unit $precision,
@@ -458,58 +484,55 @@ final class TimeTest extends TestCase
     ): void {
         $time = Time::fromOffset($input, Unit::Microsecond);
 
-        self::assertSame($expectedTruncate, $time->roundTo($precision, RoundingMode::Floor)->toOffset(Unit::Microsecond));
-        self::assertSame($expectedRound, $time->roundTo($precision)->toOffset(Unit::Microsecond));
-        self::assertSame($expectedCeil, $time->roundTo($precision, RoundingMode::Ceil)->toOffset(Unit::Microsecond));
+        $this->assertSame($expectedTruncate, $time->roundTo($precision, RoundingMode::Floor)->toOffset(Unit::Microsecond));
+        $this->assertSame($expectedRound, $time->roundTo($precision)->toOffset(Unit::Microsecond));
+        $this->assertSame($expectedCeil, $time->roundTo($precision, RoundingMode::Ceil)->toOffset(Unit::Microsecond));
     }
 
     /**
-     * @return array<non-empty-string, array{0: int, 1: Unit, 2: positive-int, 3: positive-int}>
+     * @return Iterator<non-empty-string, array{int, Unit, int<1, max>, int<1, max>}>
      */
-    public static function timePrecisionProvider(): array
+    public static function provideTruncate_and_roundCases(): iterable
     {
-        return [
-            // [input microseconds, precision, expected truncate, expected round]
+        // [input microseconds, precision, expected truncate, expected round]
+        yield 'seconds exact' => [
+            10_000_000, // 10s
+            Unit::Second,
+            10_000_000,
+            10_000_000,
+            10_000_000,
+        ];
 
-            'seconds exact' => [
-                10_000_000, // 10s
-                Unit::Second,
-                10_000_000,
-                10_000_000,
-                10_000_000,
-            ],
+        yield 'seconds truncate down' => [
+            10_499_999,
+            Unit::Second,
+            10_000_000,
+            10_000_000,
+            11_000_000,
+        ];
 
-            'seconds truncate down' => [
-                10_499_999,
-                Unit::Second,
-                10_000_000,
-                10_000_000,
-                11_000_000,
-            ],
+        yield 'seconds round up' => [
+            10_500_000,
+            Unit::Second,
+            10_000_000,
+            11_000_000,
+            11_000_000,
+        ];
 
-            'seconds round up' => [
-                10_500_000,
-                Unit::Second,
-                10_000_000,
-                11_000_000,
-                11_000_000,
-            ],
+        yield 'minutes round up' => [
+            3_150_000_000, // 52m30s
+            Unit::Minute,
+            3_120_000_000, // 52m truncate
+            3_180_000_000, // 53m round
+            3_180_000_000, // 53m round
+        ];
 
-            'minutes round up' => [
-                3_150_000_000, // 52m30s
-                Unit::Minute,
-                3_120_000_000, // 52m truncate
-                3_180_000_000, // 53m round
-                3_180_000_000, // 53m round
-            ],
-
-            'milliseconds' => [
-                1_499,
-                Unit::Millisecond,
-                1_000,
-                1_000,
-                2_000,
-            ],
+        yield 'milliseconds' => [
+            1_499,
+            Unit::Millisecond,
+            1_000,
+            1_000,
+            2_000,
         ];
     }
 
@@ -518,44 +541,42 @@ final class TimeTest extends TestCase
      *
      * @throws InvalidTime
      */
-    #[DataProvider('minOfProvider')]
-    public function testMinOf(array $times, Time $expected): void
+    #[DataProvider('provideMin_ofCases')]
+    public function test_min_of(array $times, Time $expected): void
     {
-        self::assertTrue(Time::minOf(...$times)->equals($expected));
+        $this->assertTrue(Time::minOf(...$times)->equals($expected));
     }
 
     /**
      * @throws InvalidTime
      *
-     * @return array<non-empty-string, array{0: list<Time>, 1: Time}>
+     * @return Iterator<non-empty-string, array{list<Time>, Time}>
      */
-    public static function minOfProvider(): array
+    public static function provideMin_ofCases(): iterable
     {
-        return [
-            'simple order' => [
-                [
-                    Time::at(hour: 10),
-                    Time::at(hour: 5),
-                    Time::at(hour: 8),
-                ],
+        yield 'simple order' => [
+            [
+                Time::at(hour: 10),
                 Time::at(hour: 5),
+                Time::at(hour: 8),
             ],
+            Time::at(hour: 5),
+        ];
 
-            'already sorted' => [
-                [
-                    Time::at(hour: 1),
-                    Time::at(hour: 2),
-                    Time::at(hour: 3),
-                ],
+        yield 'already sorted' => [
+            [
                 Time::at(hour: 1),
+                Time::at(hour: 2),
+                Time::at(hour: 3),
             ],
+            Time::at(hour: 1),
+        ];
 
-            'single value' => [
-                [
-                    Time::at(hour: 7),
-                ],
+        yield 'single value' => [
+            [
                 Time::at(hour: 7),
             ],
+            Time::at(hour: 7),
         ];
     }
 
@@ -564,79 +585,75 @@ final class TimeTest extends TestCase
      *
      * @throws InvalidTime
      */
-    #[DataProvider('maxOfProvider')]
-    public function testMaxOf(array $times, Time $expected): void
+    #[DataProvider('provideMax_ofCases')]
+    public function test_max_of(array $times, Time $expected): void
     {
-        self::assertTrue(Time::maxOf(...$times)->equals($expected));
+        $this->assertTrue(Time::maxOf(...$times)->equals($expected));
     }
 
     /**
      * @throws InvalidTime
      *
-     * @return array<non-empty-string, array{0: list<Time>, 1: Time}>
+     * @return Iterator<non-empty-string, array{list<Time>, Time}>
      */
-    public static function maxOfProvider(): array
+    public static function provideMax_ofCases(): iterable
     {
-        return [
-            'simple order' => [
-                [
-                    Time::at(hour: 10),
-                    Time::at(hour: 5),
-                    Time::at(hour: 8),
-                ],
+        yield 'simple order' => [
+            [
                 Time::at(hour: 10),
+                Time::at(hour: 5),
+                Time::at(hour: 8),
             ],
+            Time::at(hour: 10),
+        ];
 
-            'reverse order' => [
-                [
-                    Time::at(hour: 23),
-                    Time::at(hour: 1),
-                    Time::at(hour: 12),
-                ],
+        yield 'reverse order' => [
+            [
                 Time::at(hour: 23),
+                Time::at(hour: 1),
+                Time::at(hour: 12),
             ],
+            Time::at(hour: 23),
         ];
     }
 
-    #[DataProvider('clampProvider')]
-    public function testClamp(Time $time, Time $min, Time $max, Time $expected): void
+    #[DataProvider('provideClampCases')]
+    public function test_clamp(Time $time, Time $min, Time $max, Time $expected): void
     {
-        self::assertTrue($time->clamp($min, $max)->equals($expected));
+        $this->assertTrue($time->clamp($min, $max)->equals($expected));
     }
 
     /**
      * @throws InvalidTime
-     * @return array<non-empty-string, list<Time>>
+     * @return Iterator<non-empty-string, list<Time>>
      */
-    public static function clampProvider(): array
+    public static function provideClampCases(): iterable
     {
-        return [
-            'below range' => [
-                Time::at(hour: 2),
-                Time::at(hour: 5),
-                Time::at(hour: 10),
-                Time::at(hour: 5),
-            ],
+        yield 'below range' => [
+            Time::at(hour: 2),
+            Time::at(hour: 5),
+            Time::at(hour: 10),
+            Time::at(hour: 5),
+        ];
 
-            'above range' => [
-                Time::at(hour: 12),
-                Time::at(hour: 5),
-                Time::at(hour: 10),
-                Time::at(hour: 10),
-            ],
+        yield 'above range' => [
+            Time::at(hour: 12),
+            Time::at(hour: 5),
+            Time::at(hour: 10),
+            Time::at(hour: 10),
+        ];
 
-            'inside range' => [
-                Time::at(hour: 7),
-                Time::at(hour: 5),
-                Time::at(hour: 10),
-                Time::at(hour: 7),
-            ],
+        yield 'inside range' => [
+            Time::at(hour: 7),
+            Time::at(hour: 5),
+            Time::at(hour: 10),
+            Time::at(hour: 7),
         ];
     }
 
     public function test_time_now(): void
     {
-        self::assertFalse(Time::now()->equals(Time::now('Asia/Tokyo')));
+        $this->assertFalse(Time::now()->equals(Time::now('Asia/Tokyo')));
     }
 
     public function test_invalid_timezone_identifier(): void
@@ -646,26 +663,29 @@ final class TimeTest extends TestCase
         Time::now('Asia/Paris');
     }
 
-    #[DataProvider('validCompactProvider')]
-    public function test_fromNotation_compact_valid(string $value, Time $expected): void
+    #[DataProvider('provideFrom_notation_compact_validCases')]
+    public function test_from_notation_compact_valid(string $value, Time $expected): void
     {
-        self::assertTrue($expected->equals(Time::fromNotation($value, TimeFormat::Compact)));
+        $this->assertTrue($expected->equals(Time::fromNotation($value, TimeFormat::Compact)));
     }
 
     /**
      * @throws InvalidTime
      * @return iterable<non-empty-string, array{0: non-empty-string, 1: Time}>
      */
-    public static function validCompactProvider(): iterable
+    public static function provideFrom_notation_compact_validCases(): iterable
     {
         yield 'hours and minutes' => ['1h 30m', Time::at(1, 30)];
+
         yield 'with seconds' => ['1h 30m 45s', Time::at(1, 30, 45)];
+
         yield 'zero values' => ['0h 0m', Time::midnight()];
+
         yield 'compact spacing' => ['12h34m56s', Time::at(12, 34, 56)];
     }
 
-    #[DataProvider('invalidCompactProvider')]
-    public function test_fromNotation_compact_invalid(string $value): void
+    #[DataProvider('provideFrom_notation_compact_invalidCases')]
+    public function test_from_notation_compact_invalid(string $value): void
     {
         $this->expectException(InvalidTime::class);
 
@@ -675,32 +695,41 @@ final class TimeTest extends TestCase
     /**
      * @return iterable<non-empty-string, array{0: string}>
      */
-    public static function invalidCompactProvider(): iterable
+    public static function provideFrom_notation_compact_invalidCases(): iterable
     {
         yield 'missing hour' => ['30m'];
+
         yield 'missing minute' => ['1h'];
+
         yield 'seconds only' => ['45s'];
+
         yield 'microseconds only' => ['123us'];
+
         yield 'empty string' => [''];
+
         yield 'invalid unit order' => ['30m 1h'];
+
         yield 'invalid unit' => ['1h 30x'];
     }
 
-    #[DataProvider('compactNotationProvider')]
-    public function test_toNotation_compact(Time $time, string $expected): void
+    #[DataProvider('provideTo_notation_compactCases')]
+    public function test_to_notation_compact(Time $time, string $expected): void
     {
-        self::assertSame($expected, $time->toNotation(TimeFormat::Compact));
+        $this->assertSame($expected, $time->toNotation(TimeFormat::Compact));
     }
 
     /**
      * @throws InvalidTime
      * @return iterable<non-empty-string, array{0: Time, 1:non-empty-string}>
      */
-    public static function compactNotationProvider(): iterable
+    public static function provideTo_notation_compactCases(): iterable
     {
         yield 'hours and minutes' => [Time::at(1, 30), '1h30m'];
+
         yield 'with seconds' => [Time::at(1, 30, 45), '1h30m45s'];
+
         yield 'midnight' => [Time::midnight(), '0h0m'];
+
         yield 'microseconds' => [Time::at(1, microsecond: 256), '1h0m0s256µs'];
     }
 }

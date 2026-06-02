@@ -30,7 +30,12 @@ use function preg_match;
 use function throw_if;
 
 /**
- * League Period Duration.
+ * Immutable wrapper around PHP's {@see DateInterval} for period arithmetic.
+ *
+ * Unlike the `Time` namespace duration type, this object intentionally preserves
+ * calendar-aware interval semantics so month- and year-based intervals remain
+ * available for date-range work. The factories focus on turning external string
+ * formats into a normalized native interval representation.
  *
  * @author  Ignace Nyamagana Butera <nyamsprod@gmail.com>
  * @since   4.2.0
@@ -70,7 +75,11 @@ final readonly class Duration
     }
 
     /**
-     * Returns a new instance from an interval specification.
+     * Parse an ISO-8601 duration while preserving optional fractional precision.
+     *
+     * PHP's native parser has limited support for fractional seconds, so this
+     * method expands the accepted syntax and reattaches microsecond precision
+     * after the native interval has been built.
      *
      * @throws Exception
      */
@@ -185,11 +194,11 @@ final readonly class Duration
     }
 
     /**
-     * Returns a new instance with recalculate properties according to a given datepoint.
+     * Recalculate the wrapped interval against a concrete date context.
      *
-     * This method MUST retain the state of the current instance, and return
-     * an instance that contains the time and date segments recalculate to remove
-     * carry over points.
+     * Native intervals can carry overflow across fields depending on how they
+     * were created. Rebuilding the interval through add/diff against a specific
+     * date yields a normalized representation for that concrete calendar context.
      */
     public function adjustedTo(DateTimeInterface $date): self
     {

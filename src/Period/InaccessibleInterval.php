@@ -20,7 +20,7 @@ use InvalidArgumentException;
 use Throwable;
 
 /**
- * Exception thrown by the Sequence class.
+ * Thrown when sequence access targets an invalid or unavailable offset.
  *
  * @author  Ignace Nyamagana Butera <nyamsprod@gmail.com>
  * @since   4.1.0
@@ -32,6 +32,9 @@ final class InaccessibleInterval extends InvalidArgumentException implements Int
         parent::__construct($message, $code, $previous);
     }
 
+    /**
+     * Create an exception for an index outside the current {@see Sequence} bounds.
+     */
     public static function dueToInvalidIndex(int $offset): self
     {
         return new self('`'.$offset.'` is an invalid offset in the '.Sequence::class.' object.');

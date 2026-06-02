@@ -10,7 +10,10 @@
 namespace Cline\Temporal\Period;
 
 /**
- * Presence Enum.
+ * Legacy enum describing whether an initial date participates in a calculation.
+ *
+ * Deprecated in favor of the more explicit bounds API, but retained for
+ * compatibility with older consumers.
  *
  * @author  Ignace Nyamagana Butera <nyamsprod@gmail.com>
  * @since   5.0.0

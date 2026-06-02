@@ -1,17 +1,29 @@
-<?php
+<?php declare(strict_types=1);
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Time;
 
-use function implode;
-use function preg_match;
-use function mb_str_pad;
-use function substr;
-use function mb_trim;
-
 use const STR_PAD_LEFT;
 
+use function implode;
+use function mb_str_pad;
+use function mb_substr;
+use function mb_trim;
+use function preg_match;
+use function throw_if;
+
+/**
+ * Supported string encodings for {@see Time} values.
+ *
+ * The enum owns both parsing and formatting rules so time notation stays
+ * symmetric across the package.
+ */
 enum TimeFormat
 {
     case Compact;
@@ -32,6 +44,8 @@ enum TimeFormat
     $@x';
 
     /**
+     * Parse a textual clock representation into a normalized {@see Time}.
+     *
      * @throws InvalidTime
      */
     public function decode(string $data): Time
@@ -42,13 +56,13 @@ enum TimeFormat
         };
 
         $data = mb_trim($data);
-        1 === preg_match($regexp, $data, $parts) || throw new InvalidTime('Unknown or bad format `'.$data.'`.');
+        throw_if(1 !== preg_match($regexp, $data, $parts), InvalidTime::class, 'Unknown or bad format `'.$data.'`.');
 
         return Time::at(
             hour: (int) $parts['hour'],
             minute: (int) $parts['minute'],
             second: (int) ($parts['second'] ?? 0),
-            microsecond: (int) mb_str_pad(substr($parts['microsecond'] ?? '0', 0, 6), 6, '0'),
+            microsecond: (int) mb_str_pad(mb_substr($parts['microsecond'] ?? '0', 0, 6), 6, '0'),
         );
     }
 
@@ -64,12 +78,7 @@ enum TimeFormat
     }
 
     /**
-     * Returns the string representation of the Duration.
-     *
-     * The following format is used [-]HH:MM:SS[.mmmmmm]
-     * the fraction and the signed are only display if
-     * they duration is negative and/or the sub seconds
-     * fraction is different from 0
+     * Format a time using a fixed-width ISO-like clock representation.
      *
      * @return non-empty-string
      */
@@ -77,6 +86,7 @@ enum TimeFormat
     {
         $pad = static fn (int $value, int $length): string => mb_str_pad((string) $value, $length, '0', STR_PAD_LEFT);
         $formatted = $pad($time->hour, 2).':'.$pad($time->minute, 2).':'.$pad($time->second, 2);
+
         if (0 !== $time->microsecond) {
             $formatted .= '.'.$pad($time->microsecond, 6);
         }
@@ -85,7 +95,7 @@ enum TimeFormat
     }
 
     /**
-     * Format xhxmxsxµs where x is a number.
+     * Format a time using the compact human-oriented `12h34m56s789µs` style.
      *
      * @return non-empty-string
      */
@@ -94,6 +104,7 @@ enum TimeFormat
         $parts = [];
         $parts[] = $time->hour.'h';
         $parts[] = $time->minute.'m';
+
         if (0 !== $time->second || 0 !== $time->microsecond) {
             $parts[] = $time->second.'s';
         }

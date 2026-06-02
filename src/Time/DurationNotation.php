@@ -1,17 +1,30 @@
-<?php
+<?php declare(strict_types=1);
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Time;
 
+use const STR_PAD_LEFT;
+
 use function implode;
-use function preg_match;
 use function mb_rtrim;
 use function mb_str_pad;
 use function mb_trim;
+use function preg_match;
+use function throw_if;
+use function throw_unless;
 
-use const STR_PAD_LEFT;
-
+/**
+ * Supported serialized forms for exact {@see Duration} values.
+ *
+ * Each notation is deliberately restricted to deterministic units. Month and year
+ * components are excluded so parsing never depends on an external calendar context.
+ */
 enum DurationNotation
 {
     case Iso8601;
@@ -73,100 +86,12 @@ enum DurationNotation
         };
     }
 
-    /**
-     * Creates a new instance from a timer string representation.
-     *
-     * @throws InvalidDuration
-     */
-    private function fromChrono(string $duration): Duration
-    {
-        1 === preg_match(self::REGEXP_TIMER, $duration, $parts) || throw new InvalidDuration('Unknown or bad format `'.$duration.'`.');
-
-        $minutes = (int) $parts['minutes'];
-        $seconds = (int) $parts['seconds'];
-        $microseconds = (int) ($parts['microseconds'] ?? '0');
-
-        ($minutes >= 0 && $minutes < 60) || throw InvalidDuration::dueToMalformedMinute($minutes);
-        ($seconds >= 0 && $seconds < 60) || throw InvalidDuration::dueToMalformedSecond($seconds);
-        ($microseconds >= 0 && $microseconds < 1_000_000) || throw InvalidDuration::dueToMalformedMicrosecond($microseconds);
-
-        /** @var non-negative-int $microseconds */
-        $microseconds = self::toMicroseconds(
-            days: 0,
-            hours: (int) $parts['hours'],
-            minutes: $minutes,
-            seconds: $seconds,
-            microseconds: $microseconds,
-        );
-
-        $duration = Duration::of(microseconds: $microseconds);
-
-        return '-' === $parts['sign'] ? $duration->negated() : $duration;
-    }
-
-    /**
-     * Creates a new instance from a timer string representation.
-     *
-     * @throws InvalidDuration
-     */
-    private function fromCompact(string $data): Duration
-    {
-        $data = mb_trim($data);
-
-        ('' !== $data && 1 === preg_match(self::REGEXP_COMPACT, $data, $parts)) || throw new InvalidDuration('Unknown or bad format `'.$data.'`.');
-
-        /** @var non-negative-int $microseconds */
-        $microseconds = self::toMicroseconds(
-            days: (((int) ($parts['weeks'] ?? 0) * 7) + (int) ($parts['days'] ?? 0)),
-            hours: (int) ($parts['hours'] ?? 0),
-            minutes: (int) ($parts['minutes'] ?? 0),
-            seconds: (int) ($parts['seconds'] ?? 0),
-            microseconds: (int) ($parts['microseconds'] ?? 0),
-        );
-
-        $duration = Duration::of(microseconds: $microseconds);
-
-        return '-' === ($parts['sign'] ?? '') ? $duration->negated() : $duration;
-    }
-
-    /**
-     * Parses and returns a new instance from ISO8601 string representation.
-     *  Because the duration does not handle in a deterministic way month and year components
-     * the following restrictions apply:
-     *
-     * - only W, D, H, S are allowed
-     * - Y is rejected
-     * - M is only allowed in the time section (PT30M) to represents minutes
-     * - fractional values are only allowed on seconds
-     * - at least one unit must exist
-     * - negative marker is allowed in front of the expression
-     *
-     * @throws InvalidDuration
-     */
-    private function fromIso8601(string $data): Duration
-    {
-        1 === preg_match(self::REGEXP_ISO8601, $data, $parts) || throw InvalidDuration::dueToMalformedIso8601($data);
-
-        /** @var non-negative-int $microseconds */
-        $microseconds = self::toMicroseconds(
-            days: (((int) ($parts['weeks'] ?? 0) * 7) + (int) ($parts['days'] ?? 0)),
-            hours: (int) ($parts['hours'] ?? 0),
-            minutes: (int) ($parts['minutes'] ?? 0),
-            seconds: (float) ($parts['seconds'] ?? 0),
-            microseconds: 0
-        );
-
-        $duration = Duration::of(microseconds: $microseconds);
-
-        return '-' === ($parts['sign'] ?? '') ? $duration->negated() : $duration;
-    }
-
     private static function toMicroseconds(
         int $days,
         int $hours,
         int $minutes,
         int|float $seconds,
-        int $microseconds
+        int $microseconds,
     ): int {
         return Unit::Day->toMicroseconds($days)
             + Unit::Hour->toMicroseconds($hours)
@@ -176,12 +101,7 @@ enum DurationNotation
     }
 
     /**
-     * Returns the string representation of the Duration.
-     *
-     * The following format is used [-]HH:MM:SS[.mmmmmm]
-     * the fraction and the signed are only display if
-     * they duration is negative and/or the sub seconds
-     * fraction is different from 0
+     * Format a duration as `[-]HH:MM:SS[.mmmmmm]`.
      *
      * @return non-empty-string
      */
@@ -189,6 +109,7 @@ enum DurationNotation
     {
         $pad = static fn (int $value, int $length): string => mb_str_pad((string) $value, $length, '0', STR_PAD_LEFT);
         $formatted = $pad($duration->hours, 2).':'.$pad($duration->minutes, 2).':'.$pad($duration->seconds, 2);
+
         if (0 !== $duration->microseconds) {
             $formatted .= '.'.$pad($duration->microseconds, 6);
         }
@@ -209,6 +130,7 @@ enum DurationNotation
     {
         $time = '';
         $hours = $duration->hours % 24;
+
         if (0 !== $hours) {
             $time .= $hours.'H';
         }
@@ -218,6 +140,7 @@ enum DurationNotation
         }
 
         $seconds = (string) $duration->seconds;
+
         if (0 !== $duration->microseconds) {
             $seconds .= '.'.mb_rtrim(mb_str_pad((string) $duration->microseconds, 6, '0', STR_PAD_LEFT), '0');
         }
@@ -226,7 +149,7 @@ enum DurationNotation
             $time .= $seconds.'S';
         }
 
-        return  (0 === $duration->daysCount && '' === $time)
+        return (0 === $duration->daysCount && '' === $time)
             ? 'PT0S'
             : (-1 === $duration->sign ? '-' : '').'P'.(0 !== $duration->daysCount ? $duration->daysCount.'D' : '').('' !== $time ? 'T'.$time : '');
     }
@@ -238,16 +161,19 @@ enum DurationNotation
     private static function toCompact(Duration $duration): string
     {
         $time = [];
+
         if (0 !== $duration->weeksCount) {
             $time[] = $duration->weeksCount.'w';
         }
 
         $days = $duration->daysCount % 7;
+
         if (0 !== $days) {
             $time[] = $days.'d';
         }
 
         $hours = $duration->hours % 24;
+
         if (0 !== $hours) {
             $time[] = $hours.'h';
         }
@@ -265,5 +191,104 @@ enum DurationNotation
         }
 
         return [] === $time ? '0s' : (-1 === $duration->sign ? '-' : '').implode('', $time);
+    }
+
+    /**
+     * Parse a clock-style timer representation such as `01:02:03.000004`.
+     *
+     * @throws InvalidDuration
+     */
+    private function fromChrono(string $duration): Duration
+    {
+        throw_if(1 !== preg_match(self::REGEXP_TIMER, $duration, $parts), InvalidDuration::class, 'Unknown or bad format `'.$duration.'`.');
+
+        $minutes = (int) $parts['minutes'];
+        $seconds = (int) $parts['seconds'];
+        $microseconds = (int) ($parts['microseconds'] ?? '0');
+
+        if (!($minutes >= 0 && $minutes < 60)) {
+            throw InvalidDuration::dueToMalformedMinute($minutes);
+        }
+
+        if (!($seconds >= 0 && $seconds < 60)) {
+            throw InvalidDuration::dueToMalformedSecond($seconds);
+        }
+
+        if (!($microseconds >= 0 && $microseconds < 1_000_000)) {
+            throw InvalidDuration::dueToMalformedMicrosecond($microseconds);
+        }
+
+        /** @var non-negative-int $microseconds */
+        $microseconds = self::toMicroseconds(
+            days: 0,
+            hours: (int) $parts['hours'],
+            minutes: $minutes,
+            seconds: $seconds,
+            microseconds: $microseconds,
+        );
+
+        $duration = Duration::of(microseconds: $microseconds);
+
+        return '-' === $parts['sign'] ? $duration->negated() : $duration;
+    }
+
+    /**
+     * Parse a terse unit-suffixed duration such as `1w 2d 3h 4m`.
+     *
+     * @throws InvalidDuration
+     */
+    private function fromCompact(string $data): Duration
+    {
+        $data = mb_trim($data);
+
+        throw_unless('' !== $data && 1 === preg_match(self::REGEXP_COMPACT, $data, $parts), InvalidDuration::class, 'Unknown or bad format `'.$data.'`.');
+
+        /** @var non-negative-int $microseconds */
+        $microseconds = self::toMicroseconds(
+            days: (((int) ($parts['weeks'] ?? 0) * 7) + (int) ($parts['days'] ?? 0)),
+            hours: (int) ($parts['hours'] ?? 0),
+            minutes: (int) ($parts['minutes'] ?? 0),
+            seconds: (int) ($parts['seconds'] ?? 0),
+            microseconds: (int) ($parts['microseconds'] ?? 0),
+        );
+
+        $duration = Duration::of(microseconds: $microseconds);
+
+        return '-' === ($parts['sign'] ?? '') ? $duration->negated() : $duration;
+    }
+
+    /**
+     * Parse a constrained ISO-8601 duration into an exact scalar duration.
+     *
+     * Because this package models deterministic elapsed time rather than
+     * calendar-relative periods, the following restrictions apply:
+     *
+     * - only W, D, H, S are allowed
+     * - Y is rejected
+     * - M is only allowed in the time section (PT30M) to represents minutes
+     * - fractional values are only allowed on seconds
+     * - at least one unit must exist
+     * - negative marker is allowed in front of the expression
+     *
+     * @throws InvalidDuration
+     */
+    private function fromIso8601(string $data): Duration
+    {
+        if (1 !== preg_match(self::REGEXP_ISO8601, $data, $parts)) {
+            throw InvalidDuration::dueToMalformedIso8601($data);
+        }
+
+        /** @var non-negative-int $microseconds */
+        $microseconds = self::toMicroseconds(
+            days: (((int) ($parts['weeks'] ?? 0) * 7) + (int) ($parts['days'] ?? 0)),
+            hours: (int) ($parts['hours'] ?? 0),
+            minutes: (int) ($parts['minutes'] ?? 0),
+            seconds: (float) ($parts['seconds'] ?? 0),
+            microseconds: 0,
+        );
+
+        $duration = Duration::of(microseconds: $microseconds);
+
+        return '-' === ($parts['sign'] ?? '') ? $duration->negated() : $duration;
     }
 }

@@ -38,7 +38,14 @@ use function preg_split;
 use function property_exists;
 
 /**
- * An immutable value object class to manipulate DateTimeInterface interval.
+ * Immutable date-time interval value object with explicit boundary semantics.
+ *
+ * `Period` is the central range abstraction in the date-based half of the package.
+ * It keeps concrete start and end datetimes together with a {@see Bounds} policy
+ * that decides whether each endpoint participates in containment and relation tests.
+ * Factories accept multiple notation families so callers can move between native PHP
+ * date constructs, string notations, and relative intervals without losing that
+ * boundary metadata.
  *
  * @author  Ignace Nyamagana Butera <nyamsprod@gmail.com>
  * @since   1.0.0
@@ -47,7 +54,9 @@ use function property_exists;
 final readonly class Period implements JsonSerializable
 {
     /**
-     * @throws InvalidInterval If the instance can not be created
+     * Create a period from fully-normalized endpoints and an explicit bounds policy.
+     *
+     * @throws InvalidInterval If the end date precedes the start date.
      */
     private function __construct(
         public DateTimeImmutable $startDate,
@@ -72,6 +81,12 @@ final readonly class Period implements JsonSerializable
     }
 
     /**
+     * Parse one of the supported ISO-8601 interval forms.
+     *
+     * The notation may express `start/end`, `start/duration`, or `duration/end`.
+     * Relative duration operands are resolved into concrete endpoints before the
+     * instance is created.
+     *
      * @throws InvalidInterval If the notation is not supported or not known
      */
     public static function fromIso8601(string $format, string $notation, Bounds $bounds = Bounds::IncludeStartExcludeEnd): self
@@ -125,6 +140,8 @@ final readonly class Period implements JsonSerializable
     }
 
     /**
+     * Build a period from arbitrary native dates, date points, or parseable strings.
+     *
      * @throws Exception
      */
     public static function fromDate(
@@ -151,7 +168,7 @@ final readonly class Period implements JsonSerializable
     }
 
     /**
-     * Creates new instance from a starting date endpoint and a duration.
+     * Create a period by adding a duration to a starting endpoint.
      */
     public static function after(
         DatePoint|DateTimeInterface|string $startDate,
@@ -164,8 +181,7 @@ final readonly class Period implements JsonSerializable
     }
 
     /**
-     * Creates new instance where the given duration is simultaneously
-     * subtracted from and added to the given date endpoint.
+     * Create a symmetric period centered on the supplied midpoint.
      */
     public static function around(
         DatePoint|DateTimeInterface|string $midpoint,
@@ -179,7 +195,7 @@ final readonly class Period implements JsonSerializable
     }
 
     /**
-     * Creates new instance from an ending date endpoint and a duration.
+     * Create a period by subtracting a duration from an ending endpoint.
      */
     public static function before(
         DatePoint|DateTimeInterface|string $endDate,

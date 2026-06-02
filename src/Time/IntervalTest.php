@@ -1,24 +1,33 @@
-<?php
+<?php declare(strict_types=1);
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Time;
 
 use DateInterval;
 use DateTimeImmutable;
 use DateTimeZone;
+use Iterator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Throwable;
+
+use const JSON_UNESCAPED_SLASHES;
 
 use function iterator_to_array;
 use function json_encode;
 use function serialize;
 use function unserialize;
 
-use const JSON_UNESCAPED_SLASHES;
-
+/**
+ * @internal
+ */
 #[CoversClass(IntervalSet::class)]
 #[CoversClass(Interval::class)]
 #[CoversClass(InvalidInterval::class)]
@@ -27,51 +36,55 @@ use const JSON_UNESCAPED_SLASHES;
 #[CoversClass(Time::class)]
 final class IntervalTest extends TestCase
 {
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * Construction helpers
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
     public function test_after_creates_expected_range(): void
     {
         $range = Interval::since(
             Time::at(10),
-            Duration::of(minutes: 30)
+            Duration::of(minutes: 30),
         );
 
-        self::assertEquals('[10:00:00,10:30:00)', $range->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[10:00:00,10:30:00)', $range->toNotation(IntervalNotation::Iso80000));
     }
 
     public function test_before_creates_expected_range(): void
     {
         $range = Interval::until(
             Time::at(10),
-            Duration::of(minutes: 30)
+            Duration::of(minutes: 30),
         );
 
-        self::assertEquals('[09:30:00,10:00:00)', $range->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[09:30:00,10:00:00)', $range->toNotation(IntervalNotation::Iso80000));
     }
 
     public function test_around_creates_symmetric_range(): void
     {
         $range = Interval::around(
             Time::at(10),
-            Duration::of(minutes: 20)
+            Duration::of(minutes: 20),
         );
 
-        self::assertEquals('[09:50:00,10:10:00)', $range->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[09:50:00,10:10:00)', $range->toNotation(IntervalNotation::Iso80000));
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * Duration & comparisons
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
     public function test_duration(): void
     {
         $range = Interval::between(Time::at(10), Time::at(11));
 
-        self::assertEquals(
+        $this->assertEquals(
             Duration::of(minutes: 60),
-            $range->duration
+            $range->duration,
         );
     }
 
@@ -80,7 +93,7 @@ final class IntervalTest extends TestCase
         $a = Interval::between(Time::at(10), Time::at(11));
         $b = Interval::between(Time::at(20), Time::at(21));
 
-        self::assertTrue($a->sameDurationAs($b));
+        $this->assertTrue($a->sameDurationAs($b));
     }
 
     public function test_longer_and_shorter(): void
@@ -88,34 +101,38 @@ final class IntervalTest extends TestCase
         $a = Interval::between(Time::at(10), Time::at(12));
         $b = Interval::between(Time::at(10), Time::at(11));
 
-        self::assertTrue($a->longerThan($b));
-        self::assertTrue($a->longerThanOrEqual($b));
-        self::assertTrue($b->shorterThan($a));
-        self::assertTrue($b->shorterThanOrEqual($a));
+        $this->assertTrue($a->longerThan($b));
+        $this->assertTrue($a->longerThanOrEqual($b));
+        $this->assertTrue($b->shorterThan($a));
+        $this->assertTrue($b->shorterThanOrEqual($a));
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * contains (Time)
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
     public function test_contains_time_inside(): void
     {
         $range = Interval::between(Time::at(10), Time::at(12));
 
-        self::assertTrue($range->includes(Time::at(11)));
-        self::assertFalse($range->includes(Time::at(12))); // end excluded
+        $this->assertTrue($range->includes(Time::at(11)));
+        $this->assertFalse($range->includes(Time::at(12))); // end excluded
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * overlaps
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
     public function test_overlaps_true(): void
     {
         $a = Interval::between(Time::at(10), Time::at(12));
         $b = Interval::between(Time::at(11), Time::at(13));
 
-        self::assertTrue($a->overlaps($b));
+        $this->assertTrue($a->overlaps($b));
     }
 
     public function test_overlaps_false(): void
@@ -123,19 +140,21 @@ final class IntervalTest extends TestCase
         $a = Interval::between(Time::at(10), Time::at(11));
         $b = Interval::between(Time::at(12), Time::at(13));
 
-        self::assertFalse($a->overlaps($b));
+        $this->assertFalse($a->overlaps($b));
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * abuts
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
     public function test_abuts_true(): void
     {
         $a = Interval::between(Time::at(10), Time::at(11));
         $b = Interval::between(Time::at(11), Time::at(12));
 
-        self::assertTrue($a->abuts($b));
+        $this->assertTrue($a->abuts($b));
     }
 
     public function test_abuts_false(): void
@@ -143,12 +162,14 @@ final class IntervalTest extends TestCase
         $a = Interval::between(Time::at(10), Time::at(11));
         $b = Interval::between(Time::at(11, 1), Time::at(12));
 
-        self::assertFalse($a->abuts($b));
+        $this->assertFalse($a->abuts($b));
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * intersect
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
     public function test_intersect(): void
     {
@@ -157,8 +178,8 @@ final class IntervalTest extends TestCase
 
         $i = $a->intersect($b);
 
-        self::assertNotNull($i);
-        self::assertEquals('[11:00:00,12:00:00)', $i->toNotation(IntervalNotation::Iso80000));
+        $this->assertInstanceOf(Interval::class, $i);
+        $this->assertSame('[11:00:00,12:00:00)', $i->toNotation(IntervalNotation::Iso80000));
     }
 
     public function test_intersect_null_when_disjoint(): void
@@ -166,12 +187,14 @@ final class IntervalTest extends TestCase
         $a = Interval::between(Time::at(10), Time::at(11));
         $b = Interval::between(Time::at(12), Time::at(13));
 
-        self::assertNull($a->intersect($b));
+        $this->assertNotInstanceOf(Interval::class, $a->intersect($b));
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * gap
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
     public function test_gap(): void
     {
@@ -180,8 +203,8 @@ final class IntervalTest extends TestCase
 
         $gap = $a->gap($b);
 
-        self::assertNotNull($gap);
-        self::assertEquals('[11:00:00,12:00:00)', $gap->toNotation(IntervalNotation::Iso80000));
+        $this->assertInstanceOf(Interval::class, $gap);
+        $this->assertSame('[11:00:00,12:00:00)', $gap->toNotation(IntervalNotation::Iso80000));
     }
 
     public function test_gap_null_when_overlapping(): void
@@ -189,28 +212,32 @@ final class IntervalTest extends TestCase
         $a = Interval::between(Time::at(10), Time::at(12));
         $b = Interval::between(Time::at(11), Time::at(13));
 
-        self::assertNull($a->gap($b));
+        $this->assertNotInstanceOf(Interval::class, $a->gap($b));
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * splitForward
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
     public function test_split_forward_basic(): void
     {
         $range = Interval::between(Time::at(10), Time::at(12));
         $parts = $range->splitBy(Duration::of(minutes: 30));
 
-        self::assertCount(4, $parts);
-        self::assertEquals('[10:00:00,10:30:00)', $parts->get(0)->toNotation(IntervalNotation::Iso80000));
-        self::assertEquals('[10:30:00,11:00:00)', $parts->get(1)->toNotation(IntervalNotation::Iso80000));
-        self::assertEquals('[11:00:00,11:30:00)', $parts->get(2)->toNotation(IntervalNotation::Iso80000));
-        self::assertEquals('[11:30:00,12:00:00)', $parts->get(3)->toNotation(IntervalNotation::Iso80000));
+        $this->assertCount(4, $parts);
+        $this->assertSame('[10:00:00,10:30:00)', $parts->get(0)->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[10:30:00,11:00:00)', $parts->get(1)->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[11:00:00,11:30:00)', $parts->get(2)->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[11:30:00,12:00:00)', $parts->get(3)->toNotation(IntervalNotation::Iso80000));
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * splitBackward
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
     public function test_split_backward_40_minute_duration(): void
     {
@@ -218,17 +245,17 @@ final class IntervalTest extends TestCase
 
         $splits = $range->splitBy(Duration::of(minutes: 40), Bound::End);
 
-        self::assertCount(2, $splits);
+        $this->assertCount(2, $splits);
 
-        self::assertEquals('[09:20:00,10:00:00)', $splits->get(0)->toNotation(IntervalNotation::Iso80000));
-        self::assertEquals('[09:00:00,09:20:00)', $splits->get(1)->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[09:20:00,10:00:00)', $splits->get(0)->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[09:00:00,09:20:00)', $splits->get(1)->toNotation(IntervalNotation::Iso80000));
     }
 
     public function test_split_with_collapsed(): void
     {
         $range = Interval::collapsed(Time::at(10));
 
-        self::assertCount(0, $range->splitBy(Duration::of(minutes: 30)));
+        $this->assertCount(0, $range->splitBy(Duration::of(minutes: 30)));
     }
 
     public function test_equals(): void
@@ -236,9 +263,9 @@ final class IntervalTest extends TestCase
         $range = Interval::between(Time::at(10), Time::at(12));
         $rangebis = Interval::since(Time::at(10), Duration::of(hours: 2));
 
-        self::assertTrue($range->equals($rangebis));
-        self::assertTrue($range->shorterThanOrEqual($rangebis));
-        self::assertTrue($range->longerThanOrEqual($rangebis));
+        $this->assertTrue($range->equals($rangebis));
+        $this->assertTrue($range->shorterThanOrEqual($rangebis));
+        $this->assertTrue($range->longerThanOrEqual($rangebis));
     }
 
     public function test_contains_time_range_fully_inside(): void
@@ -246,8 +273,8 @@ final class IntervalTest extends TestCase
         $a = Interval::between(Time::at(10), Time::at(14));
         $b = Interval::between(Time::at(11), Time::at(13));
 
-        self::assertTrue($a->contains($b));
-        self::assertFalse($b->contains($a));
+        $this->assertTrue($a->contains($b));
+        $this->assertFalse($b->contains($a));
     }
 
     public function test_contains_time_range_boundary_excluded(): void
@@ -255,7 +282,7 @@ final class IntervalTest extends TestCase
         $a = Interval::between(Time::at(10), Time::at(12));
         $b = Interval::between(Time::at(11), Time::at(12));
 
-        self::assertTrue($a->contains($b));
+        $this->assertTrue($a->contains($b));
     }
 
     public function test_contains_time_range_partial_overlap_false(): void
@@ -263,7 +290,7 @@ final class IntervalTest extends TestCase
         $a = Interval::between(Time::at(10), Time::at(12));
         $b = Interval::between(Time::at(11), Time::at(13));
 
-        self::assertFalse($a->contains($b));
+        $this->assertFalse($a->contains($b));
     }
 
     public function test_contains_time_range_disjoint(): void
@@ -271,7 +298,7 @@ final class IntervalTest extends TestCase
         $a = Interval::between(Time::at(10), Time::at(11));
         $b = Interval::between(Time::at(12), Time::at(13));
 
-        self::assertFalse($a->contains($b));
+        $this->assertFalse($a->contains($b));
     }
 
     public function test_contains_time_range_identical(): void
@@ -279,23 +306,23 @@ final class IntervalTest extends TestCase
         $a = Interval::between(Time::at(10), Time::at(12));
         $b = Interval::between(Time::at(10), Time::at(12));
 
-        self::assertTrue($a->contains($b));
+        $this->assertTrue($a->contains($b));
     }
 
     public function test_contains_time_range_wraparound(): void
     {
-        $a = Interval::between(Time::at(22), Time::at(02));
-        $b = Interval::between(Time::at(23), Time::at(01));
+        $a = Interval::between(Time::at(22), Time::at(0o2));
+        $b = Interval::between(Time::at(23), Time::at(0o1));
 
-        self::assertTrue($a->contains($b));
+        $this->assertTrue($a->contains($b));
     }
 
     public function test_contains_time_range_reverse(): void
     {
-        $a = Interval::between(Time::at(23), Time::at(03));
+        $a = Interval::between(Time::at(23), Time::at(0o3));
         $b = Interval::between(Time::at(10), Time::at(11));
 
-        self::assertFalse($a->contains($b));
+        $this->assertFalse($a->contains($b));
     }
 
     public function test_range_forward(): void
@@ -303,12 +330,12 @@ final class IntervalTest extends TestCase
         $range = Interval::between(Time::at(hour: 9), Time::at(hour: 10));
         $times = iterator_to_array($range->steps(Duration::of(minutes: 15)));
 
-        self::assertCount(4, $times);
+        $this->assertCount(4, $times);
 
-        self::assertSame('09:00:00', $times[0]->toNotation());
-        self::assertSame('09:15:00', $times[1]->toNotation());
-        self::assertSame('09:30:00', $times[2]->toNotation());
-        self::assertSame('09:45:00', $times[3]->toNotation());
+        $this->assertSame('09:00:00', $times[0]->toNotation());
+        $this->assertSame('09:15:00', $times[1]->toNotation());
+        $this->assertSame('09:30:00', $times[2]->toNotation());
+        $this->assertSame('09:45:00', $times[3]->toNotation());
     }
 
     public function test_range_backward(): void
@@ -316,12 +343,12 @@ final class IntervalTest extends TestCase
         $range = Interval::between(Time::at(hour: 9), Time::at(hour: 10));
         $times = iterator_to_array($range->steps(Duration::of(minutes: 15), Bound::End));
 
-        self::assertCount(4, $times);
+        $this->assertCount(4, $times);
 
-        self::assertSame('09:45:00', $times[0]->toNotation());
-        self::assertSame('09:30:00', $times[1]->toNotation());
-        self::assertSame('09:15:00', $times[2]->toNotation());
-        self::assertSame('09:00:00', $times[3]->toNotation());
+        $this->assertSame('09:45:00', $times[0]->toNotation());
+        $this->assertSame('09:30:00', $times[1]->toNotation());
+        $this->assertSame('09:15:00', $times[2]->toNotation());
+        $this->assertSame('09:00:00', $times[3]->toNotation());
     }
 
     public function test_range_with_zero_duration(): void
@@ -335,7 +362,7 @@ final class IntervalTest extends TestCase
     public function test_range_with_collapsed_interval(): void
     {
         $range = Interval::collapsed(Time::at(hour: 9));
-        self::assertCount(0, iterator_to_array($range->steps(Duration::of(hours: 3), Bound::End)));
+        $this->assertCount(0, iterator_to_array($range->steps(Duration::of(hours: 3), Bound::End)));
     }
 
     public function test_expand(): void
@@ -343,7 +370,7 @@ final class IntervalTest extends TestCase
         $range = Interval::between(Time::at(hour: 10), Time::at(hour: 12));
         $expanded = $range->expand(Duration::of(hours: 1));
 
-        self::assertSame('[09:00:00,13:00:00)', $expanded->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[09:00:00,13:00:00)', $expanded->toNotation(IntervalNotation::Iso80000));
     }
 
     public function test_expand_wraps_around_midnight(): void
@@ -351,7 +378,7 @@ final class IntervalTest extends TestCase
         $range = Interval::between(Time::at(hour: 0, minute: 2), Time::at(hour: 23, minute: 58));
         $expanded = $range->expand(Duration::of(minutes: 5));
 
-        self::assertSame('[23:57:00,00:03:00)', $expanded->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[23:57:00,00:03:00)', $expanded->toNotation(IntervalNotation::Iso80000));
     }
 
     public function test_expand_can_shrink_range(): void
@@ -359,7 +386,7 @@ final class IntervalTest extends TestCase
         $range = Interval::between(Time::at(hour: 10), Time::at(hour: 14));
         $shrunk = $range->expand(Duration::of(hours: 1)->negated());
 
-        self::assertSame('[11:00:00,13:00:00)', $shrunk->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[11:00:00,13:00:00)', $shrunk->toNotation(IntervalNotation::Iso80000));
     }
 
     public function test_expand_by_24_hours_returns_same_range(): void
@@ -371,7 +398,7 @@ final class IntervalTest extends TestCase
 
         $expanded = $range->expand(Duration::of(hours: 24));
 
-        self::assertTrue($range->equals($expanded));
+        $this->assertTrue($range->equals($expanded));
     }
 
     public function test_expand_by_multiple_of_24_hours_returns_same_range(): void
@@ -383,7 +410,7 @@ final class IntervalTest extends TestCase
 
         $expanded = $range->expand(Duration::of(hours: 48));
 
-        self::assertTrue($range->equals($expanded));
+        $this->assertTrue($range->equals($expanded));
     }
 
     public function test_expand_can_collapse_range_to_empty(): void
@@ -391,7 +418,7 @@ final class IntervalTest extends TestCase
         $range = Interval::between(Time::at(hour: 10), Time::at(hour: 12));
         $collapsed = $range->expand(Duration::of(hours: 1)->negated());
 
-        self::assertSame('[11:00:00,11:00:00)', $collapsed->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[11:00:00,11:00:00)', $collapsed->toNotation(IntervalNotation::Iso80000));
     }
 
     public function test_collapsed_creates_zero_duration_range(): void
@@ -400,10 +427,10 @@ final class IntervalTest extends TestCase
 
         $range = Interval::collapsed($time);
 
-        self::assertEquals($time, $range->start);
-        self::assertEquals($time, $range->end);
-        self::assertTrue($range->duration->isZero());
-        self::assertSame(IntervalType::Collapsed, $range->type);
+        $this->assertEquals($time, $range->start);
+        $this->assertEquals($time, $range->end);
+        $this->assertTrue($range->duration->isZero());
+        $this->assertSame(IntervalType::Collapsed, $range->type);
     }
 
     public function test_circular_creates_full_day_range(): void
@@ -412,158 +439,158 @@ final class IntervalTest extends TestCase
 
         $interval = Interval::circular($time);
 
-        self::assertEquals($time, $interval->start);
-        self::assertEquals($time, $interval->end);
-        self::assertTrue($interval->duration->equals(Duration::of(hours: 24)));
-        self::assertSame(IntervalType::Circular, $interval->type);
+        $this->assertEquals($time, $interval->start);
+        $this->assertEquals($time, $interval->end);
+        $this->assertTrue($interval->duration->equals(Duration::of(hours: 24)));
+        $this->assertSame(IntervalType::Circular, $interval->type);
     }
 
-    public function testStartingOnReturnsSameInstanceWhenUnchanged(): void
+    public function test_starting_on_returns_same_instance_when_unchanged(): void
     {
         $range = Interval::between(Time::at(10), Time::at(12));
 
-        self::assertSame($range, $range->startingOn(Time::at(10)));
+        $this->assertSame($range, $range->startingOn(Time::at(10)));
     }
 
-    public function testStartingOnChangesStart(): void
+    public function test_starting_on_changes_start(): void
     {
         $range = Interval::between(Time::at(10), Time::at(12));
 
         $updated = $range->startingOn(Time::at(9));
 
-        self::assertSame('[09:00:00,12:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[09:00:00,12:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
     }
 
-    public function testEndingOnReturnsSameInstanceWhenUnchanged(): void
+    public function test_ending_on_returns_same_instance_when_unchanged(): void
     {
         $range = Interval::between(Time::at(10), Time::at(12));
 
-        self::assertSame(
+        $this->assertSame(
             $range,
-            $range->endingOn(Time::at(12))
+            $range->endingOn(Time::at(12)),
         );
     }
 
-    public function testEndingOnChangesEnd(): void
+    public function test_ending_on_changes_end(): void
     {
         $range = Interval::between(Time::at(10), Time::at(12));
 
         $updated = $range->endingOn(Time::at(14));
 
-        self::assertSame('[10:00:00,14:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[10:00:00,14:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
     }
 
-    public function testShiftReturnsSameInstanceForZeroDuration(): void
+    public function test_shift_returns_same_instance_for_zero_duration(): void
     {
         $range = Interval::between(Time::at(10), Time::at(12));
 
-        self::assertSame(
+        $this->assertSame(
             $range,
-            $range->shift(Duration::zero())
+            $range->shift(Duration::zero()),
         );
     }
 
-    public function testShiftMovesEntireRangeForward(): void
+    public function test_shift_moves_entire_range_forward(): void
     {
         $range = Interval::between(Time::at(10), Time::at(12));
 
         $shifted = $range->shift(Duration::of(hours: 2));
 
-        self::assertSame('[12:00:00,14:00:00)', $shifted->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[12:00:00,14:00:00)', $shifted->toNotation(IntervalNotation::Iso80000));
     }
 
-    public function testShiftSupportsCircularWrapping(): void
+    public function test_shift_supports_circular_wrapping(): void
     {
         $range = Interval::between(Time::at(22), Time::at(2));
 
         $shifted = $range->shift(Duration::of(hours: 3));
 
-        self::assertSame('[01:00:00,05:00:00)', $shifted->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[01:00:00,05:00:00)', $shifted->toNotation(IntervalNotation::Iso80000));
     }
 
-    public function testShiftStartMovesOnlyStart(): void
+    public function test_shift_start_moves_only_start(): void
     {
         $range = Interval::between(Time::at(10), Time::at(12));
 
         $updated = $range->shiftBound(duration: Duration::of(hours: 1), bound: Bound::Start);
 
-        self::assertSame('[11:00:00,12:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[11:00:00,12:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
     }
 
-    public function testShiftEndMovesOnlyEnd(): void
+    public function test_shift_end_moves_only_end(): void
     {
         $range = Interval::between(Time::at(10), Time::at(12));
 
         $updated = $range->shiftBound(duration: Duration::of(hours: 2), bound: Bound::End);
 
-        self::assertSame('[10:00:00,14:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[10:00:00,14:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
     }
 
-    public function testLastingFromStartChangesDuration(): void
+    public function test_lasting_from_start_changes_duration(): void
     {
         $range = Interval::between(Time::at(10), Time::at(12));
 
         $updated = $range->lasting(duration: Duration::of(hours: 5), from: Bound::Start);
 
-        self::assertSame('[10:00:00,15:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[10:00:00,15:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
     }
 
-    public function testLastingFromStartSupportsCircularWrapping(): void
+    public function test_lasting_from_start_supports_circular_wrapping(): void
     {
         $range = Interval::between(Time::at(22), Time::at(23));
 
         $updated = $range->lasting(duration: Duration::of(hours: 4), from: Bound::Start);
 
-        self::assertSame('[22:00:00,02:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[22:00:00,02:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
     }
 
-    public function testLastingFromEndChangesDuration(): void
+    public function test_lasting_from_end_changes_duration(): void
     {
         $range = Interval::between(Time::at(10), Time::at(12));
 
         $updated = $range->lasting(duration: Duration::of(hours: 5), from: Bound::End);
 
-        self::assertSame('[07:00:00,12:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[07:00:00,12:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
     }
 
-    public function testLastingFromEndSupportsCircularWrapping(): void
+    public function test_lasting_from_end_supports_circular_wrapping(): void
     {
         $range = Interval::between(Time::at(1), Time::at(3));
 
         $updated = $range->lasting(duration: Duration::of(hours: 6), from: Bound::End);
 
-        self::assertSame('[21:00:00,03:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[21:00:00,03:00:00)', $updated->toNotation(IntervalNotation::Iso80000));
     }
 
-    public function testInvertSwapsStartAndEnd(): void
+    public function test_invert_swaps_start_and_end(): void
     {
         $range = Interval::between(
             Time::at(10),
             Time::at(14),
         );
 
-        self::assertSame(
+        $this->assertSame(
             '[14:00:00,10:00:00)',
-            $range->complement()->toNotation(IntervalNotation::Iso80000)
+            $range->complement()->toNotation(IntervalNotation::Iso80000),
         );
     }
 
-    public function testInvertOfCollapsedRangeReturnsCircularRange(): void
+    public function test_invert_of_collapsed_range_returns_circular_range(): void
     {
         $range = Interval::collapsed(Time::at(10));
 
         $inverted = $range->complement();
 
-        self::assertSame(IntervalType::Circular, $inverted->type);
+        $this->assertSame(IntervalType::Circular, $inverted->type);
     }
 
-    public function testInvertOfCircularRangeReturnsCollapsedRange(): void
+    public function test_invert_of_circular_range_returns_collapsed_range(): void
     {
         $range = Interval::circular(Time::at(10));
 
         $inverted = $range->complement();
 
-        self::assertSame(IntervalType::Collapsed, $inverted->type);
+        $this->assertSame(IntervalType::Collapsed, $inverted->type);
     }
 
     public function test_full_day(): void
@@ -571,28 +598,28 @@ final class IntervalTest extends TestCase
         $range = Interval::fullDay();
         $inverted = $range->complement();
 
-        self::assertSame(IntervalType::Collapsed, $inverted->type);
-        self::assertTrue(Time::midnight()->equals($inverted->start));
-        self::assertFalse($inverted->includes($inverted->start));
-        self::assertTrue($range->includes($range->end));
+        $this->assertSame(IntervalType::Collapsed, $inverted->type);
+        $this->assertTrue(Time::midnight()->equals($inverted->start));
+        $this->assertFalse($inverted->includes($inverted->start));
+        $this->assertTrue($range->includes($range->end));
     }
 
-    public function testInvertIsAnInvolution(): void
+    public function test_invert_is_an_involution(): void
     {
         $range = Interval::between(
             Time::at(22),
             Time::at(2),
         );
 
-        self::assertTrue(
+        $this->assertTrue(
             $range
                 ->complement()
                 ->complement()
-                ->equals($range)
+                ->equals($range),
         );
     }
 
-    public function testInvertProducesComplementaryDuration(): void
+    public function test_invert_produces_complementary_duration(): void
     {
         $range = Interval::between(
             Time::at(22),
@@ -603,8 +630,8 @@ final class IntervalTest extends TestCase
             ->duration
             ->sum($range->complement()->duration);
 
-        self::assertTrue(
-            $total->equals(Duration::of(hours: 24))
+        $this->assertTrue(
+            $total->equals(Duration::of(hours: 24)),
         );
     }
 
@@ -616,25 +643,28 @@ final class IntervalTest extends TestCase
      * @throws InvalidTime
      * @throws TimeException
      */
-    #[DataProvider('iso8601ValidProvider')]
+    #[DataProvider('provideFrom_iso8601Cases')]
     public function test_from_iso8601(string $input, string $expected): void
     {
-        self::assertSame($expected, Interval::fromNotation($input, IntervalNotation::Iso8601)->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame($expected, Interval::fromNotation($input, IntervalNotation::Iso8601)->toNotation(IntervalNotation::Iso80000));
     }
 
     /**
-     * @return array<non-empty-string, array{0: non-empty-string, 1: non-empty-string}>
+     * @return Iterator<non-empty-string, array{non-empty-string, non-empty-string}>
      */
-    public static function iso8601ValidProvider(): array
+    public static function provideFrom_iso8601Cases(): iterable
     {
-        return [
-            'valid simple with start date' => ['10:00:00/PT1H', '[10:00:00,11:00:00)'],
-            'valid with spaces' => [' 10:00:00/PT1H ', '[10:00:00,11:00:00)'],
-            'valid simple with end date' => ['PT1H/11:00:00', '[10:00:00,11:00:00)'],
-            'valid with end date and space' => [' PT1H/11:00:00 ', '[10:00:00,11:00:00)'],
-            'valid with start and end time' => ['10:00:00/11:00:00', '[10:00:00,11:00:00)'],
-            'valid with start and end time with space' => [' 10:00:00 / 11:00:00 ', '[10:00:00,11:00:00)'],
-        ];
+        yield 'valid simple with start date' => ['10:00:00/PT1H', '[10:00:00,11:00:00)'];
+
+        yield 'valid with spaces' => [' 10:00:00/PT1H ', '[10:00:00,11:00:00)'];
+
+        yield 'valid simple with end date' => ['PT1H/11:00:00', '[10:00:00,11:00:00)'];
+
+        yield 'valid with end date and space' => [' PT1H/11:00:00 ', '[10:00:00,11:00:00)'];
+
+        yield 'valid with start and end time' => ['10:00:00/11:00:00', '[10:00:00,11:00:00)'];
+
+        yield 'valid with start and end time with space' => [' 10:00:00 / 11:00:00 ', '[10:00:00,11:00:00)'];
     }
 
     /**
@@ -642,7 +672,7 @@ final class IntervalTest extends TestCase
      *
      * @throws InvalidInterval
      */
-    #[DataProvider('iso8601InvalidProvider')]
+    #[DataProvider('provideFrom_iso8601_invalidCases')]
     public function test_from_iso8601_invalid(string $input): void
     {
         $this->expectException(TimeException::class);
@@ -651,19 +681,23 @@ final class IntervalTest extends TestCase
     }
 
     /**
-     * @return array<non-empty-string, array{0: string}>
+     * @return Iterator<non-empty-string, array{string}>
      */
-    public static function iso8601InvalidProvider(): array
+    public static function provideFrom_iso8601_invalidCases(): iterable
     {
-        return [
-            'missing slash' => ['10:00:00PT1H'],
-            'empty string' => [''],
-            'invalid start time' => ['invalid/PT1H'],
-            'invalid end duration' => ['10:00:00/invalid'],
-            'extra segments' => ['10:00:00/PT1H/PT2H'],
-            'invalid end time' => ['PT2H/invalid'],
-            'invalid start duration' => ['Pinvalid/09:00:00'],
-        ];
+        yield 'missing slash' => ['10:00:00PT1H'];
+
+        yield 'empty string' => [''];
+
+        yield 'invalid start time' => ['invalid/PT1H'];
+
+        yield 'invalid end duration' => ['10:00:00/invalid'];
+
+        yield 'extra segments' => ['10:00:00/PT1H/PT2H'];
+
+        yield 'invalid end time' => ['PT2H/invalid'];
+
+        yield 'invalid start duration' => ['Pinvalid/09:00:00'];
     }
 
     /**
@@ -672,23 +706,24 @@ final class IntervalTest extends TestCase
      *
      * @throws InvalidInterval
      */
-    #[DataProvider('iso80000ValidProvider')]
+    #[DataProvider('provideFrom_iso80000Cases')]
     public function test_from_iso80000(string $input, string $expectedIso8601): void
     {
-        self::assertSame($expectedIso8601, Interval::fromNotation($input, IntervalNotation::Iso80000)->toNotation());
+        $this->assertSame($expectedIso8601, Interval::fromNotation($input, IntervalNotation::Iso80000)->toNotation());
     }
 
     /**
-     * @return array<non-empty-string, array{0: non-empty-string, 1: non-empty-string}>
+     * @return Iterator<non-empty-string, array{non-empty-string, non-empty-string}>
      */
-    public static function iso80000ValidProvider(): array
+    public static function provideFrom_iso80000Cases(): iterable
     {
-        return [
-            'full range' => ['[10:00:00,12:00:00)', '10:00:00/PT2H'],
-            'open start' => ['[,12:00:00)', '00:00:00/PT12H'],
-            'open end' => ['[10:00:00,)', '10:00:00/PT14H'],
-            'with spaces' => ['[ 10:00:00 , 12:00:00 )', '10:00:00/PT2H'],
-        ];
+        yield 'full range' => ['[10:00:00,12:00:00)', '10:00:00/PT2H'];
+
+        yield 'open start' => ['[,12:00:00)', '00:00:00/PT12H'];
+
+        yield 'open end' => ['[10:00:00,)', '10:00:00/PT14H'];
+
+        yield 'with spaces' => ['[ 10:00:00 , 12:00:00 )', '10:00:00/PT2H'];
     }
 
     /**
@@ -696,7 +731,7 @@ final class IntervalTest extends TestCase
      *
      * @throws InvalidInterval|InvalidTime
      */
-    #[DataProvider('iso80000InvalidProvider')]
+    #[DataProvider('provideFrom_iso80000_invalidCases')]
     public function test_from_iso80000_invalid(string $input): void
     {
         $this->expectException(TimeException::class);
@@ -705,17 +740,19 @@ final class IntervalTest extends TestCase
     }
 
     /**
-     * @return array<non-empty-string, array{0: string}>
+     * @return Iterator<non-empty-string, array{string}>
      */
-    public static function iso80000InvalidProvider(): array
+    public static function provideFrom_iso80000_invalidCases(): iterable
     {
-        return [
-            'unsupported boudaries' => ['[10:00:00,12:00:00]'],
-            'missing at least one boundary value' => ['[,)'],
-            'missing brackets' => ['10:00:00,12:00:00'],
-            'invalid format' => ['[invalid]'],
-            'invalid start' => ['[invalid,12:00:00)'],
-        ];
+        yield 'unsupported boudaries' => ['[10:00:00,12:00:00]'];
+
+        yield 'missing at least one boundary value' => ['[,)'];
+
+        yield 'missing brackets' => ['10:00:00,12:00:00'];
+
+        yield 'invalid format' => ['[invalid]'];
+
+        yield 'invalid start' => ['[invalid,12:00:00)'];
     }
 
     /**
@@ -724,33 +761,34 @@ final class IntervalTest extends TestCase
      *
      * @throws InvalidInterval
      */
-    #[DataProvider('bourbakiValidProvider')]
+    #[DataProvider('provideFrom_bourakiCases')]
     public function test_from_bouraki(string $input, string $expectedIso8601): void
     {
-        self::assertSame($expectedIso8601, Interval::fromNotation($input, IntervalNotation::Bourbaki)->toNotation());
+        $this->assertSame($expectedIso8601, Interval::fromNotation($input, IntervalNotation::Bourbaki)->toNotation());
     }
 
     /**
-     * @return array<non-empty-string, array{0: non-empty-string, 1: non-empty-string}>
+     * @return Iterator<non-empty-string, array{non-empty-string, non-empty-string}>
      */
-    public static function bourbakiValidProvider(): array
+    public static function provideFrom_bourakiCases(): iterable
     {
-        return [
-            'full range' => ['[10:00:00,12:00:00[', '10:00:00/PT2H'],
-            'open start' => ['[,12:00:00[', '00:00:00/PT12H'],
-            'open end' => ['[10:00:00,[', '10:00:00/PT14H'],
-            'with spaces' => ['[ 10:00:00 , 12:00:00 [', '10:00:00/PT2H'],
-        ];
+        yield 'full range' => ['[10:00:00,12:00:00[', '10:00:00/PT2H'];
+
+        yield 'open start' => ['[,12:00:00[', '00:00:00/PT12H'];
+
+        yield 'open end' => ['[10:00:00,[', '10:00:00/PT14H'];
+
+        yield 'with spaces' => ['[ 10:00:00 , 12:00:00 [', '10:00:00/PT2H'];
     }
 
     /**
-     * @param non-empty-string $input
+     * @param non-empty-string        $input
      * @param class-string<Throwable> $expectedException
      *
      * @throws InvalidTime
      * @throws TimeException
      */
-    #[DataProvider('bourbakiInvalidProvider')]
+    #[DataProvider('provideFrom_bourbaki_invalidCases')]
     public function test_from_bourbaki_invalid(string $input, string $expectedException): void
     {
         $this->expectException($expectedException);
@@ -759,17 +797,19 @@ final class IntervalTest extends TestCase
     }
 
     /**
-     * @return array<non-empty-string, array{0: string, 1: ?class-string}>
+     * @return Iterator<non-empty-string, array{string, (null|class-string)}>
      */
-    public static function bourbakiInvalidProvider(): array
+    public static function provideFrom_bourbaki_invalidCases(): iterable
     {
-        return [
-            'unsupported boudaries' => ['[10:00:00,12:00:00', TimeException::class],
-            'missing at least one boundary value' => ['[,[', TimeException::class],
-            'missing brackets' => ['10:00:00,12:00:00', TimeException::class],
-            'invalid format' => ['[invalid', TimeException::class],
-            'invalid start' => ['[invalid,12:00:00[', TimeException::class],
-        ];
+        yield 'unsupported boudaries' => ['[10:00:00,12:00:00', TimeException::class];
+
+        yield 'missing at least one boundary value' => ['[,[', TimeException::class];
+
+        yield 'missing brackets' => ['10:00:00,12:00:00', TimeException::class];
+
+        yield 'invalid format' => ['[invalid', TimeException::class];
+
+        yield 'invalid start' => ['[invalid,12:00:00[', TimeException::class];
     }
 
     public function test_interval_can_be_serialized_and_unserialized(): void
@@ -777,15 +817,15 @@ final class IntervalTest extends TestCase
         $interval = Interval::fromNotation('12:34:56/-PT23H30S', IntervalNotation::Iso8601);
         $restored = unserialize(serialize($interval));
 
-        self::assertInstanceOf(Interval::class, $restored);
-        self::assertEquals($interval, $restored);
+        $this->assertInstanceOf(Interval::class, $restored);
+        $this->assertEquals($interval, $restored);
     }
 
     public function test_duration_can_be_json_serialized(): void
     {
         $interval = Interval::between(Time::at(22), Time::at(2));
 
-        self::assertSame('"22:00:00/PT4H"', json_encode($interval, JSON_UNESCAPED_SLASHES));
+        $this->assertSame('"22:00:00/PT4H"', json_encode($interval, JSON_UNESCAPED_SLASHES));
     }
 
     /**
@@ -793,54 +833,54 @@ final class IntervalTest extends TestCase
      *
      * @throws InvalidTime
      */
-    #[DataProvider('splitAtProvider')]
+    #[DataProvider('provideSplit_atCases')]
     public function test_split_at(Interval $interval, Time $split, array $expected): void
     {
-        self::assertSame($expected, $interval->splitAt($split)->allFormatted());
+        $this->assertSame($expected, $interval->splitAt($split)->allFormatted());
     }
 
     /**
      * @throws InvalidTime
      *
-     * @return array<non-empty-string, array{0: Interval, 1: Time, 2: list<non-empty-string>}>
+     * @return Iterator<non-empty-string, array{Interval, Time, list<non-empty-string>}>
      */
-    public static function splitAtProvider(): array
+    public static function provideSplit_atCases(): iterable
     {
-        return [
-            'collapsed interval returns empty set' => [
-                Interval::between(Time::at(hour: 10), Time::at(hour: 10)),
-                Time::at(hour: 10),
-                [],
-            ],
-            'split inside interval' => [
-                Interval::between(Time::at(hour: 10), Time::noon()),
-                Time::at(hour: 11),
-                ['10:00:00/PT1H', '11:00:00/PT1H'],
-            ],
+        yield 'collapsed interval returns empty set' => [
+            Interval::between(Time::at(hour: 10), Time::at(hour: 10)),
+            Time::at(hour: 10),
+            [],
+        ];
 
-            'split at start returns original interval' => [
-                Interval::between(Time::at(hour: 10), Time::noon()),
-                Time::at(hour: 10),
-                ['10:00:00/PT2H'],
-            ],
+        yield 'split inside interval' => [
+            Interval::between(Time::at(hour: 10), Time::noon()),
+            Time::at(hour: 11),
+            ['10:00:00/PT1H', '11:00:00/PT1H'],
+        ];
 
-            'split at end returns original interval' => [
-                Interval::between(Time::at(hour: 10), Time::noon()),
-                Time::noon(),
-                ['10:00:00/PT2H'],
-            ],
-            'split outside interval returns empty set' => [
-                Interval::between(Time::at(hour: 10), Time::noon()),
-                Time::at(hour: 13),
-                ['10:00:00/PT2H'],
-            ],
+        yield 'split at start returns original interval' => [
+            Interval::between(Time::at(hour: 10), Time::noon()),
+            Time::at(hour: 10),
+            ['10:00:00/PT2H'],
+        ];
+
+        yield 'split at end returns original interval' => [
+            Interval::between(Time::at(hour: 10), Time::noon()),
+            Time::noon(),
+            ['10:00:00/PT2H'],
+        ];
+
+        yield 'split outside interval returns empty set' => [
+            Interval::between(Time::at(hour: 10), Time::noon()),
+            Time::at(hour: 13),
+            ['10:00:00/PT2H'],
         ];
     }
 
-    #[DataProvider('intervalStateProvider')]
+    #[DataProvider('provideInterval_stateCases')]
     public function test_interval_state(Interval $interval, IntervalType $type): void
     {
-        self::assertSame($type, $interval->type);
+        $this->assertSame($type, $interval->type);
     }
 
     /**
@@ -849,7 +889,7 @@ final class IntervalTest extends TestCase
      *
      * @return iterable<non-empty-string, array{interval: Interval, type:IntervalType}>
      */
-    public static function intervalStateProvider(): iterable
+    public static function provideInterval_stateCases(): iterable
     {
         yield 'interval is circular' => [
             'interval' => Interval::circular(Time::at(hour: 10)),
@@ -875,29 +915,34 @@ final class IntervalTest extends TestCase
     public function test_until_with_negative_duration(): void
     {
         $interval = Interval::until(Time::at(hour: 10), Duration::fromNotation('-PT3H', DurationNotation::Iso8601));
-        self::assertSame(1, $interval->duration->sign);
-        self::assertEquals($interval->duration, Duration::of(hours: 21));
+        $this->assertSame(1, $interval->duration->sign);
+        $this->assertEquals($interval->duration, Duration::of(hours: 21));
     }
 
     public function test_around_with_negative_duration(): void
     {
         $interval = Interval::around(Time::at(hour: 10, minute: 30), Duration::fromNotation('-PT1H', DurationNotation::Iso8601));
-        self::assertSame(1, $interval->duration->sign);
-        self::assertEquals($interval->duration, Duration::of(hours: 23));
-        self::assertEquals($interval->start, Time::at(hour: 11));
-        self::assertEquals($interval->end, Time::at(hour: 10, minute: 00));
+        $this->assertSame(1, $interval->duration->sign);
+        $this->assertEquals($interval->duration, Duration::of(hours: 23));
+        $this->assertEquals($interval->start, Time::at(hour: 11));
+        $this->assertEquals($interval->end, Time::at(hour: 10, minute: 0o0));
     }
 
     public function test_it_can_be_converted_to_using_php_native_objects(): void
     {
-        $class = new class () extends DateTimeImmutable {};
+        $class = new class() extends DateTimeImmutable {};
         $timeZoneName = 'Africa/Brazzaville';
 
-        $interval = Interval::between(Time::noon(), Time::at(18))->toNative(new $class('2025-03-02 23:12:59', new DateTimeZone($timeZoneName)));
-        self::assertInstanceOf($class::class, $interval['startDate']);
-        self::assertSame($interval['startDate']->getTimezone()->getName(), $timeZoneName);
-        self::assertSame('2025-03-02 12:00:00', $interval['startDate']->format('Y-m-d H:i:s'));
-        self::assertEquals(new DateInterval('PT6H'), $interval['interval']);
+        $interval = Interval::between(Time::noon(), Time::at(18))->toNative(
+            new $class('2025-03-02 23:12:59', new DateTimeZone($timeZoneName)),
+        );
+        $this->assertInstanceOf($class::class, $interval['startDate']);
+        $this->assertSame($interval['startDate']->getTimezone()->getName(), $timeZoneName);
+        $this->assertSame('2025-03-02 12:00:00', $interval['startDate']->format('Y-m-d H:i:s'));
+        $this->assertEquals(
+            new DateInterval('PT6H'),
+            $interval['interval'],
+        );
     }
 
     public function test_splitting_is_coherent(): void
@@ -906,19 +951,19 @@ final class IntervalTest extends TestCase
         $duration = Duration::of(minutes: 10);
         $steps = $interval->steps($duration, Bound::End);
 
-        self::assertEquals($interval->splitAt(...$steps)->sorted(), $interval->splitBy($duration, Bound::End)->sorted());
+        $this->assertEquals($interval->splitAt(...$steps)->sorted(), $interval->splitBy($duration, Bound::End)->sorted());
     }
 
     public function test_differences(): void
     {
-        self::assertEquals(
+        $this->assertEquals(
             Interval::fullDay(),
-            Interval::fullDay()->difference(Interval::collapsed(Time::at(hour: 10)))->first()
+            Interval::fullDay()->difference(Interval::collapsed(Time::at(hour: 10)))->first(),
         );
 
-        self::assertEquals(
+        $this->assertEquals(
             new IntervalSet(),
-            Interval::collapsed(Time::at(hour: 10))->difference(Interval::fullDay())
+            Interval::collapsed(Time::at(hour: 10))->difference(Interval::fullDay()),
         );
     }
 
@@ -929,23 +974,23 @@ final class IntervalTest extends TestCase
             Time::at(12, 0, 0, 250_000),
         );
 
-        self::assertSame('[10:00:00.500000,12:00:00.250000[', $interval->toNotation(IntervalNotation::Bourbaki));
-        self::assertSame('[10:00:00.500000,12:00:00.250000)', $interval->toNotation(IntervalNotation::Iso80000));
-        self::assertSame('[600.008333,720.004167)', $interval->toNotation(IntervalNotation::Iso80000, Unit::Minute));
-        self::assertSame('[600.008333,720.004167[', $interval->toNotation(IntervalNotation::Bourbaki, Unit::Minute));
-        self::assertSame('10:00:00.500000/12:00:00.250000', $interval->toNotation(IntervalNotation::Iso8601StartEnd, Unit::Minute));
-        self::assertSame(
+        $this->assertSame('[10:00:00.500000,12:00:00.250000[', $interval->toNotation(IntervalNotation::Bourbaki));
+        $this->assertSame('[10:00:00.500000,12:00:00.250000)', $interval->toNotation(IntervalNotation::Iso80000));
+        $this->assertSame('[600.008333,720.004167)', $interval->toNotation(IntervalNotation::Iso80000, Unit::Minute));
+        $this->assertSame('[600.008333,720.004167[', $interval->toNotation(IntervalNotation::Bourbaki, Unit::Minute));
+        $this->assertSame('10:00:00.500000/12:00:00.250000', $interval->toNotation(IntervalNotation::Iso8601StartEnd, Unit::Minute));
+        $this->assertSame(
             $interval->toNotation(IntervalNotation::Iso8601StartEnd),
-            $interval->toNotation(IntervalNotation::Iso8601StartEnd, Unit::Minute)
+            $interval->toNotation(IntervalNotation::Iso8601StartEnd, Unit::Minute),
         );
-        self::assertSame('10:00:00/12:00:00', $interval->roundTo(Unit::Second, RoundingMode::Floor)->toNotation(IntervalNotation::Iso8601StartEnd));
-        self::assertSame('10:00:01/12:00:00', $interval->roundTo(Unit::Second, RoundingMode::Nearest)->toNotation(IntervalNotation::Iso8601StartEnd));
-        self::assertSame('[600,720[', $interval->roundTo(Unit::Second, RoundingMode::Floor)->toNotation(IntervalNotation::Bourbaki, Unit::Minute));
-        self::assertSame('[600.016667,720[', $interval->roundTo(Unit::Second, RoundingMode::Nearest)->toNotation(IntervalNotation::Bourbaki, Unit::Minute));
-        self::assertSame('[600.016667,720[', Interval::fromNotation(
+        $this->assertSame('10:00:00/12:00:00', $interval->roundTo(Unit::Second, RoundingMode::Floor)->toNotation(IntervalNotation::Iso8601StartEnd));
+        $this->assertSame('10:00:01/12:00:00', $interval->roundTo(Unit::Second, RoundingMode::Nearest)->toNotation(IntervalNotation::Iso8601StartEnd));
+        $this->assertSame('[600,720[', $interval->roundTo(Unit::Second, RoundingMode::Floor)->toNotation(IntervalNotation::Bourbaki, Unit::Minute));
+        $this->assertSame('[600.016667,720[', $interval->roundTo(Unit::Second, RoundingMode::Nearest)->toNotation(IntervalNotation::Bourbaki, Unit::Minute));
+        $this->assertSame('[600.016667,720[', Interval::fromNotation(
             '[600.016667,720[',
             IntervalNotation::Bourbaki,
-            Unit::Minute
+            Unit::Minute,
         )->toNotation(IntervalNotation::Bourbaki, Unit::Minute));
     }
 }

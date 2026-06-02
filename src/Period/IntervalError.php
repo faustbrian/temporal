@@ -19,6 +19,11 @@ namespace Cline\Temporal\Period;
 use Throwable;
 
 /**
+ * Marker interface implemented by period-related failures.
+ *
+ * Catch this interface when callers want to handle all semantic period errors
+ * without also catching unrelated runtime exceptions.
+ *
  * @author Brian Faust <brian@cline.sh>
  */
 interface IntervalError extends Throwable {}

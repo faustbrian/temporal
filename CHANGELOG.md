@@ -10,3 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release
 - Added repository-level maintainer guidance in `AGENTS.md`.
+
+### Changed
+- Expanded PHPDoc coverage across core `Time`, `Period`, and chart types to
+  document invariants, notation rules, boundary semantics, and exception
+  behavior to the package's higher-detail documentation standard.

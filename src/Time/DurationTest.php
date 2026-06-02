@@ -1,135 +1,150 @@
-<?php
+<?php declare(strict_types=1);
 
-declare(strict_types=1);
+/**
+ * Copyright (C) Brian Faust
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 namespace Cline\Temporal\Time;
 
+use Carbon\CarbonImmutable;
 use DateInterval;
-use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
+use Illuminate\Support\Facades\Date;
+use Iterator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-use function json_encode;
-use function ltrim;
-use function serialize;
-use function substr;
-use function unserialize;
-
 use const PHP_INT_MAX;
 
+use function json_encode;
+use function mb_ltrim;
+use function mb_substr;
+use function serialize;
+use function str_starts_with;
+use function unserialize;
+
+/**
+ * @internal
+ */
 #[CoversClass(InvalidDuration::class)]
 #[CoversClass(Duration::class)]
 #[CoversClass(DurationNotation::class)]
 #[CoversClass(Unit::class)]
 final class DurationTest extends TestCase
 {
-    public function testParseMicroseconds(): void
+    public function test_parse_microseconds(): void
     {
-        $duration = Duration::of(weeks:5, days:6, hours: 2, minutes: 15, seconds: 42, microseconds: 123_456);
+        $duration = Duration::of(weeks: 5, days: 6, hours: 2, minutes: 15, seconds: 42, microseconds: 123_456);
 
-        self::assertSame(5, $duration->weeksCount);
-        self::assertSame(41, $duration->daysCount);
-        self::assertSame(2 + (41 * 24), $duration->hours);
-        self::assertSame(15, $duration->minutes);
-        self::assertSame(42, $duration->seconds);
-        self::assertSame(123_456, $duration->microseconds);
-        self::assertSame(1, $duration->sign);
-        self::assertSame(3_550_542_123_456, $duration->total(Unit::Microsecond));
-        self::assertSame('5w6d2h15m42s123456µs', $duration->toNotation(DurationNotation::Compact));
+        $this->assertSame(5, $duration->weeksCount);
+        $this->assertSame(41, $duration->daysCount);
+        $this->assertSame(2 + (41 * 24), $duration->hours);
+        $this->assertSame(15, $duration->minutes);
+        $this->assertSame(42, $duration->seconds);
+        $this->assertSame(123_456, $duration->microseconds);
+        $this->assertSame(1, $duration->sign);
+        $this->assertSame(3_550_542_123_456, $duration->total(Unit::Microsecond));
+        $this->assertSame('5w6d2h15m42s123456µs', $duration->toNotation(DurationNotation::Compact));
     }
 
-    public function testParseNegativeMicroseconds(): void
+    public function test_parse_negative_microseconds(): void
     {
         $duration = Duration::of(microseconds: 1_500_000)->negated();
 
-        self::assertSame(0, $duration->hours);
-        self::assertSame(0, $duration->minutes);
-        self::assertSame(1, $duration->seconds);
-        self::assertSame(500_000, $duration->microseconds);
-        self::assertSame(-1, $duration->sign);
-        self::assertSame('-1s500000µs', $duration->toNotation(DurationNotation::Compact));
+        $this->assertSame(0, $duration->hours);
+        $this->assertSame(0, $duration->minutes);
+        $this->assertSame(1, $duration->seconds);
+        $this->assertSame(500_000, $duration->microseconds);
+        $this->assertSame(-1, $duration->sign);
+        $this->assertSame('-1s500000µs', $duration->toNotation(DurationNotation::Compact));
     }
 
-    public function testFormatMicrosecondsWithoutFraction(): void
+    public function test_format_microseconds_without_fraction(): void
     {
-        self::assertSame('09:25:00', Duration::of(hours: 9, minutes: 25)->toNotation(DurationNotation::Chrono));
+        $this->assertSame('09:25:00', Duration::of(hours: 9, minutes: 25)->toNotation(DurationNotation::Chrono));
     }
 
-    public function testFormatMicrosecondsWithFraction(): void
+    public function test_format_microseconds_with_fraction(): void
     {
-        self::assertSame('01:02:03.000045', Duration::of(hours: 1, minutes: 2, seconds: 3, microseconds: 45)->toNotation(DurationNotation::Chrono));
+        $this->assertSame('01:02:03.000045', Duration::of(hours: 1, minutes: 2, seconds: 3, microseconds: 45)->toNotation(DurationNotation::Chrono));
     }
 
-    public function testFormatNegativeMicroseconds(): void
+    public function test_format_negative_microseconds(): void
     {
-        self::assertSame('-04:05:06', Duration::of(hours: 4, minutes: 5, seconds: 6)->negated()->toNotation(DurationNotation::Chrono));
+        $this->assertSame('-04:05:06', Duration::of(hours: 4, minutes: 5, seconds: 6)->negated()->toNotation(DurationNotation::Chrono));
     }
 
-    public function testMicrosecondsToDateInterval(): void
+    public function test_microseconds_to_date_interval(): void
     {
         $interval = Duration::of(hours: 27, minutes: 12, seconds: 5, microseconds: 123_456)->toDateInterval();
 
-        self::assertSame(1, $interval->d);
-        self::assertSame(3, $interval->h);
-        self::assertSame(12, $interval->i);
-        self::assertSame(5, $interval->s);
-        self::assertSame(0, $interval->invert);
-        self::assertFalse($interval->days);
+        $this->assertSame(1, $interval->d);
+        $this->assertSame(3, $interval->h);
+        $this->assertSame(12, $interval->i);
+        $this->assertSame(5, $interval->s);
+        $this->assertSame(0, $interval->invert);
+        $this->assertFalse($interval->days);
 
-        self::assertEqualsWithDelta(0.123456, $interval->f, 0.000001);
+        $this->assertEqualsWithDelta(0.123_456, $interval->f, 0.000_001);
     }
 
-    public function testMicrosecondsToDateIntervalWithDateReference(): void
+    public function test_microseconds_to_date_interval_with_date_reference(): void
     {
-        $interval = Duration::of(hours: 27, minutes: 12, seconds: 5, microseconds: 123_456)->toDateInterval(new DateTime());
+        $interval = Duration::of(hours: 27, minutes: 12, seconds: 5, microseconds: 123_456)->toDateInterval(
+            Date::now(),
+        );
 
-        self::assertSame(1, $interval->d);
-        self::assertSame(3, $interval->h);
-        self::assertSame(12, $interval->i);
-        self::assertSame(5, $interval->s);
-        self::assertSame(0, $interval->invert);
-        self::assertSame(1, $interval->days);
+        $this->assertSame(1, $interval->d);
+        $this->assertSame(3, $interval->h);
+        $this->assertSame(12, $interval->i);
+        $this->assertSame(5, $interval->s);
+        $this->assertSame(0, $interval->invert);
+        $this->assertSame(1, $interval->days);
 
-        self::assertEqualsWithDelta(0.123456, $interval->f, 0.000001);
+        $this->assertEqualsWithDelta(0.123_456, $interval->f, 0.000_001);
     }
 
-    public function testNegativeMicrosecondsToDateInterval(): void
+    public function test_negative_microseconds_to_date_interval(): void
     {
-        $interval = Duration::of(microseconds:5_000_000)->negated()->toDateInterval();
+        $interval = Duration::of(microseconds: 5_000_000)->negated()->toDateInterval();
 
-        self::assertSame(1, $interval->invert);
-        self::assertSame(5, $interval->s);
+        $this->assertSame(1, $interval->invert);
+        $this->assertSame(5, $interval->s);
     }
 
-    public function testToDateIntervalWithRelativeDate(): void
+    public function test_to_date_interval_with_relative_date(): void
     {
         $duration = Duration::of(weeks: 5, minutes: 32, seconds: 23, microseconds: 456)->negated();
         $pureInterval = $duration->toDateInterval();
-        $relativeInterval = $duration->toDateInterval(new DateTimeImmutable(datetime: '2024-01-27', timezone: new DateTimeZone('UTC')));
+        $relativeInterval = $duration->toDateInterval(
+            new DateTimeImmutable(datetime: '2024-01-27', timezone: new DateTimeZone('UTC')),
+        );
 
-        self::assertFalse($pureInterval->days);
-        self::assertSame(35, $relativeInterval->days);
-        self::assertNotEquals($pureInterval->days, $relativeInterval->days);
+        $this->assertFalse($pureInterval->days);
+        $this->assertSame(35, $relativeInterval->days);
+        $this->assertNotEquals($pureInterval->days, $relativeInterval->days);
     }
 
-    public function testZeroMicroseconds(): void
+    public function test_zero_microseconds(): void
     {
         $duration = Duration::of();
 
-        self::assertSame('00:00:00', $duration->toNotation(DurationNotation::Chrono));
-        self::assertSame(0, $duration->hours);
-        self::assertSame(0, $duration->minutes);
-        self::assertSame(0, $duration->seconds);
-        self::assertSame(0, $duration->microseconds);
-        self::assertSame(0, $duration->daysCount);
-        self::assertSame(0, $duration->weeksCount);
-        self::assertSame(0, $duration->sign);
-        self::assertSame('0s', $duration->toNotation(DurationNotation::Compact));
-        self::assertTrue($duration->isZero());
-        self::assertEquals($duration, Duration::zero());
+        $this->assertSame('00:00:00', $duration->toNotation(DurationNotation::Chrono));
+        $this->assertSame(0, $duration->hours);
+        $this->assertSame(0, $duration->minutes);
+        $this->assertSame(0, $duration->seconds);
+        $this->assertSame(0, $duration->microseconds);
+        $this->assertSame(0, $duration->daysCount);
+        $this->assertSame(0, $duration->weeksCount);
+        $this->assertSame(0, $duration->sign);
+        $this->assertSame('0s', $duration->toNotation(DurationNotation::Compact));
+        $this->assertTrue($duration->isZero());
+        $this->assertEquals($duration, Duration::zero());
     }
 
     public function test_add_returns_new_instance(): void
@@ -137,7 +152,7 @@ final class DurationTest extends TestCase
         $a = Duration::of(hours: 1);
         $b = Duration::of(minutes: 30);
 
-        self::assertNotSame($a, $a->sum($b));
+        $this->assertNotSame($a, $a->sum($b));
     }
 
     public function test_add_single_duration(): void
@@ -145,7 +160,7 @@ final class DurationTest extends TestCase
         $a = Duration::of(hours: 1);
         $b = Duration::of(minutes: 30);
 
-        self::assertSame('01:30:00', $a->sum($b)->toNotation(DurationNotation::Chrono));
+        $this->assertSame('01:30:00', $a->sum($b)->toNotation(DurationNotation::Chrono));
     }
 
     public function test_add_multiple_durations(): void
@@ -154,10 +169,10 @@ final class DurationTest extends TestCase
         $result = $base->sum(
             Duration::of(minutes: 30),
             Duration::of(seconds: 45),
-            Duration::of(microseconds: 123456),
+            Duration::of(microseconds: 123_456),
         );
 
-        self::assertSame('01:30:45.123456', $result->toNotation(DurationNotation::Chrono));
+        $this->assertSame('01:30:45.123456', $result->toNotation(DurationNotation::Chrono));
     }
 
     public function test_add_negative_duration(): void
@@ -165,7 +180,7 @@ final class DurationTest extends TestCase
         $a = Duration::of(hours: 5);
         $b = Duration::of(hours: 2)->negated();
 
-        self::assertSame('03:00:00', $a->sum($b)->toNotation(DurationNotation::Chrono));
+        $this->assertSame('03:00:00', $a->sum($b)->toNotation(DurationNotation::Chrono));
     }
 
     public function test_add_result_can_be_negative(): void
@@ -173,72 +188,82 @@ final class DurationTest extends TestCase
         $a = Duration::of(hours: 1);
         $b = Duration::of(hours: 3)->negated();
 
-        self::assertSame('-02:00:00', $a->sum($b)->toNotation(DurationNotation::Chrono));
+        $this->assertSame('-02:00:00', $a->sum($b)->toNotation(DurationNotation::Chrono));
     }
 
     public function test_add_without_arguments_returns_equal_duration(): void
     {
         $duration = Duration::of(hours: 2);
 
-        self::assertSame($duration, $duration->sum());
+        $this->assertSame($duration, $duration->sum());
     }
 
     public function test_add_preserves_microseconds(): void
     {
-        $a = Duration::of(microseconds: 500000);
-        $b = Duration::of(microseconds: 250000);
+        $a = Duration::of(microseconds: 500_000);
+        $b = Duration::of(microseconds: 250_000);
 
-        self::assertSame('00:00:00.750000', $a->sum($b)->toNotation(DurationNotation::Chrono));
+        $this->assertSame('00:00:00.750000', $a->sum($b)->toNotation(DurationNotation::Chrono));
     }
 
     public function test_abs_negate(): void
     {
-        $duration = Duration::of(microseconds: 500000)->negated();
+        $duration = Duration::of(microseconds: 500_000)->negated();
 
-        self::assertEquals($duration, $duration->abs()->negated());
+        $this->assertEquals($duration, $duration->abs()->negated());
     }
 
-    #[DataProvider('iso8601Provider')]
+    #[DataProvider('provideTo_iso8601Cases')]
     public function test_to_iso8601(int $microseconds, string $expected): void
     {
         $duration = 0 > $microseconds
             ? Duration::of(microseconds: -$microseconds)->negated()
             : Duration::of(microseconds: $microseconds);
 
-        self::assertSame($expected, $duration->toNotation());
+        $this->assertSame($expected, $duration->toNotation());
     }
 
     /**
      * @return iterable<non-empty-string, array{0:int, 1:string}>
      */
-    public static function iso8601Provider(): iterable
+    public static function provideTo_iso8601Cases(): iterable
     {
         yield 'zero duration' => [0, 'PT0S'];
+
         yield 'one second' => [1_000_000, 'PT1S'];
+
         yield 'one minute' => [60_000_000, 'PT1M'];
+
         yield 'one hour' => [3_600_000_000, 'PT1H'];
+
         yield 'hours minutes seconds' => [3_661_000_000, 'PT1H1M1S'];
+
         yield 'fractional seconds' => [3_661_500_000, 'PT1H1M1.5S'];
+
         yield 'microseconds precision' => [3_661_000_123, 'PT1H1M1.000123S'];
+
         yield 'sub second only' => [123, 'PT0.000123S'];
+
         yield 'trim trailing zeros' => [1_500_000, 'PT1.5S'];
+
         yield 'negative fractional duration' => [-1_500_000, '-PT1.5S'];
+
         yield 'negative complex duration' => [-3_661_000_123, '-PT1H1M1.000123S'];
+
         yield '24 hours duration' => [86_400_000_000, 'P1D'];
     }
 
-    #[DataProvider('truncateProvider')]
+    #[DataProvider('provideTruncate_to_precisionCases')]
     public function test_truncate_to_precision(
         int $microseconds,
         Unit $precision,
         int $expectedMicroseconds,
     ): void {
-
         $duration = 0 > $microseconds
             ? Duration::of(microseconds: -$microseconds)->negated()
             : Duration::of(microseconds: $microseconds);
 
-        self::assertSame(
+        $this->assertSame(
             $expectedMicroseconds,
             $duration
                 ->roundTo($precision, RoundingMode::Floor)
@@ -249,7 +274,7 @@ final class DurationTest extends TestCase
     /**
      * @return iterable<non-empty-string, array{0: int, 1: Unit, 2: int}>
      */
-    public static function truncateProvider(): iterable
+    public static function provideTruncate_to_precisionCases(): iterable
     {
         // 1h 1m 1s + 500ms = 3_661_500_000 µs
         yield 'truncate to seconds removes microseconds' => [
@@ -283,46 +308,47 @@ final class DurationTest extends TestCase
         ];
 
         yield 'negative duration is preserved when inverted' => [
-           -3_661_500_000,
-           Unit::Minute,
-           -3_660_000_000,
+            -3_661_500_000,
+            Unit::Minute,
+            -3_660_000_000,
         ];
     }
 
     /**
      * @throws InvalidDuration
      */
-    #[DataProvider('truncateImmutabilityProvider')]
+    #[DataProvider('provideTruncate_is_immutableCases')]
     public function test_truncate_is_immutable(
         int $microseconds,
         Unit $precision,
     ): void {
         $duration = 0 > $microseconds
             ? Duration::of(microseconds: -$microseconds)->negated()
-            : Duration::of(microseconds:$microseconds);
+            : Duration::of(microseconds: $microseconds);
 
         $result = $duration->roundTo($precision, RoundingMode::Floor);
 
-        self::assertNotSame($duration, $result);
+        $this->assertNotSame($duration, $result);
     }
 
     /**
      * @return iterable<array{0: non-negative-int, 1: Unit}>
      */
-    public static function truncateImmutabilityProvider(): iterable
+    public static function provideTruncate_is_immutableCases(): iterable
     {
         yield [3_661_500_000, Unit::Second];
+
         yield [3_661_500_000, Unit::Minute];
-        //yield [-3_661_500_000, Unit::Hour];
+        // yield [-3_661_500_000, Unit::Hour];
     }
 
     public function test_truncate_preserves_sign_consistency(): void
     {
-        $positive = Duration::of(microseconds:3_661_500_000);
-        $negative = Duration::of(microseconds:3_661_500_000)->negated();
+        $positive = Duration::of(microseconds: 3_661_500_000);
+        $negative = Duration::of(microseconds: 3_661_500_000)->negated();
 
-        self::assertTrue($positive->roundTo(Unit::Minute, RoundingMode::Floor)->total(Unit::Microsecond) > 0);
-        self::assertTrue($negative->roundTo(Unit::Minute, RoundingMode::Floor)->total(Unit::Microsecond) < 0);
+        $this->assertGreaterThan(0, $positive->roundTo(Unit::Minute, RoundingMode::Floor)->total(Unit::Microsecond));
+        $this->assertLessThan(0, $negative->roundTo(Unit::Minute, RoundingMode::Floor)->total(Unit::Microsecond));
     }
 
     public function test_it_can_not_invert_php_int_max(): void
@@ -330,27 +356,29 @@ final class DurationTest extends TestCase
         $this->expectException(InvalidDuration::class);
         $this->expectExceptionMessage('The duration exceeds the supported range.');
 
-        Duration::of(microseconds:PHP_INT_MAX)->negated();
+        Duration::of(microseconds: PHP_INT_MAX)->negated();
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * compareTo
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
-    #[DataProvider('compareProvider')]
+    #[DataProvider('provideCompare_toCases')]
     public function test_compare_to(
         Duration $left,
         Duration $right,
         int $expected,
     ): void {
-        self::assertSame($expected, $left->compareTo($right));
+        $this->assertSame($expected, $left->compareTo($right));
     }
 
     /**
      * @throws InvalidDuration
      * @return iterable<non-empty-string, array{0: Duration, 1: Duration}>
      */
-    public static function compareProvider(): iterable
+    public static function provideCompare_toCases(): iterable
     {
         yield 'equal durations' => [
             Duration::of(hours: 1),
@@ -377,60 +405,70 @@ final class DurationTest extends TestCase
         ];
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * equals
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
     public function test_equals_returns_true_for_equal_duration(): void
     {
-        self::assertTrue(Duration::of(hours: 1)->equals(Duration::of(minutes: 60)));
+        $this->assertTrue(Duration::of(hours: 1)->equals(Duration::of(minutes: 60)));
     }
 
     public function test_equals_returns_false_for_different_duration(): void
     {
-        self::assertFalse(Duration::of(hours: 1)->equals(Duration::of(minutes: 59)));
+        $this->assertFalse(Duration::of(hours: 1)->equals(Duration::of(minutes: 59)));
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * isGreaterThan
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
     public function test_is_greater_than(): void
     {
-        self::assertTrue(Duration::of(hours: 2)->isLongerThan(Duration::of(hours: 1)));
-        self::assertFalse(Duration::of(hours: 1)->isLongerThan(Duration::of(hours: 2)));
+        $this->assertTrue(Duration::of(hours: 2)->isLongerThan(Duration::of(hours: 1)));
+        $this->assertFalse(Duration::of(hours: 1)->isLongerThan(Duration::of(hours: 2)));
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * isGreaterThanOrEqual
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
     public function test_is_greater_than_or_equal(): void
     {
-        self::assertTrue(Duration::of(hours: 2)->isLongerThanOrEqual(Duration::of(hours: 1)));
-        self::assertTrue(Duration::of(hours: 1)->isLongerThanOrEqual(Duration::of(minutes: 60)));
-        self::assertFalse(Duration::of(minutes: 30)->isLongerThanOrEqual(Duration::of(hours: 1)));
+        $this->assertTrue(Duration::of(hours: 2)->isLongerThanOrEqual(Duration::of(hours: 1)));
+        $this->assertTrue(Duration::of(hours: 1)->isLongerThanOrEqual(Duration::of(minutes: 60)));
+        $this->assertFalse(Duration::of(minutes: 30)->isLongerThanOrEqual(Duration::of(hours: 1)));
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * isLesserThan
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
     public function test_is_lesser_than(): void
     {
-        self::assertTrue(Duration::of(minutes: 30)->isShorterThan(Duration::of(hours: 1)));
-        self::assertFalse(Duration::of(hours: 2)->isShorterThan(Duration::of(hours: 1)));
+        $this->assertTrue(Duration::of(minutes: 30)->isShorterThan(Duration::of(hours: 1)));
+        $this->assertFalse(Duration::of(hours: 2)->isShorterThan(Duration::of(hours: 1)));
     }
 
-    /* -------------------------------------------------
+    /*
+     * -------------------------------------------------
      * isLesserThanOrEqual
-     * ------------------------------------------------- */
+     * -------------------------------------------------
+     */
 
     public function test_is_lesser_than_or_equal(): void
     {
-        self::assertTrue(Duration::of(minutes: 30)->isShorterThanOrEqual(Duration::of(hours: 1)));
-        self::assertTrue(Duration::of(hours: 1)->isShorterThanOrEqual(Duration::of(minutes: 60)));
-        self::assertFalse(Duration::of(hours: 2)->isShorterThanOrEqual(Duration::of(hours: 1)));
+        $this->assertTrue(Duration::of(minutes: 30)->isShorterThanOrEqual(Duration::of(hours: 1)));
+        $this->assertTrue(Duration::of(hours: 1)->isShorterThanOrEqual(Duration::of(minutes: 60)));
+        $this->assertFalse(Duration::of(hours: 2)->isShorterThanOrEqual(Duration::of(hours: 1)));
     }
 
     /**
@@ -441,7 +479,7 @@ final class DurationTest extends TestCase
      *
      * @throws InvalidDuration
      */
-    #[DataProvider('withProvider')]
+    #[DataProvider('provideIncrementCases')]
     public function test_increment(
         Duration $initial,
         int $hours,
@@ -452,20 +490,20 @@ final class DurationTest extends TestCase
     ): void {
         $result = $initial->increase(hours: $hours, minutes: $minutes, seconds: $seconds, microseconds: $microseconds);
 
-        self::assertSame($expected, $result->toNotation(DurationNotation::Chrono));
+        $this->assertSame($expected, $result->toNotation(DurationNotation::Chrono));
     }
 
     /**
      * @throws InvalidDuration
      * @return iterable<non-empty-string, array{0: Duration, 1: ?int, 2: ?int, 3: ?int, 4: ?int, 5: non-empty-string}>
      */
-    public static function withProvider(): iterable
+    public static function provideIncrementCases(): iterable
     {
         $base = Duration::of(
             hours: 12,
             minutes: 34,
             seconds: 56,
-            microseconds: 123456,
+            microseconds: 123_456,
         );
 
         yield 'replace hours' => [
@@ -519,8 +557,8 @@ final class DurationTest extends TestCase
         $duration = Duration::of(hours: 10);
         $modified = $duration->increase(hours: 5);
 
-        self::assertSame('10:00:00', $duration->toNotation(DurationNotation::Chrono));
-        self::assertSame('15:00:00', $modified->toNotation(DurationNotation::Chrono));
+        $this->assertSame('10:00:00', $duration->toNotation(DurationNotation::Chrono));
+        $this->assertSame('15:00:00', $modified->toNotation(DurationNotation::Chrono));
     }
 
     public function test_decrement_preserves_original_instance(): void
@@ -528,127 +566,127 @@ final class DurationTest extends TestCase
         $duration = Duration::of(hours: 10);
         $modified = $duration->decrease(hours: 5);
 
-        self::assertSame('10:00:00', $duration->toNotation(DurationNotation::Chrono));
-        self::assertSame('05:00:00', $modified->toNotation(DurationNotation::Chrono));
+        $this->assertSame('10:00:00', $duration->toNotation(DurationNotation::Chrono));
+        $this->assertSame('05:00:00', $modified->toNotation(DurationNotation::Chrono));
     }
 
     public function test_increment_returns_same_instance_when_called_without_arguments(): void
     {
         $duration = Duration::of(hours: 1);
 
-        self::assertSame($duration, $duration->increase());
+        $this->assertSame($duration, $duration->increase());
     }
 
     public function test_decrement_returns_same_instance_when_called_without_arguments(): void
     {
         $duration = Duration::of(hours: 1);
 
-        self::assertSame($duration, $duration->decrease());
+        $this->assertSame($duration, $duration->decrease());
     }
 
-    public function testItParsesSimpleMinutes(): void
+    public function test_it_parses_simple_minutes(): void
     {
         $duration = Duration::fromNotation('PT30M', DurationNotation::Iso8601);
 
-        self::assertSame('PT30M', $duration->toNotation());
+        $this->assertSame('PT30M', $duration->toNotation());
     }
 
-    public function testItParsesHoursMinutesSeconds(): void
+    public function test_it_parses_hours_minutes_seconds(): void
     {
         $duration = Duration::fromNotation('PT1H30M15S', DurationNotation::Iso8601);
 
-        self::assertSame('PT1H30M15S', $duration->toNotation());
+        $this->assertSame('PT1H30M15S', $duration->toNotation());
     }
 
-    public function testItParsesFractionalSeconds(): void
+    public function test_it_parses_fractional_seconds(): void
     {
         $duration = Duration::fromNotation('PT0.5S', DurationNotation::Iso8601);
 
-        self::assertSame('PT0.5S', $duration->toNotation());
+        $this->assertSame('PT0.5S', $duration->toNotation());
     }
 
-    public function testItParsesDays(): void
+    public function test_it_parses_days(): void
     {
         $duration = Duration::fromNotation('P2DT3H', DurationNotation::Iso8601);
 
-        self::assertSame('P2DT3H', $duration->toNotation());
+        $this->assertSame('P2DT3H', $duration->toNotation());
     }
 
-    public function testItParsesNegativeDuration(): void
+    public function test_it_parses_negative_duration(): void
     {
         $duration = Duration::fromNotation('-PT30S', DurationNotation::Iso8601);
 
-        self::assertSame('-PT30S', $duration->toNotation());
+        $this->assertSame('-PT30S', $duration->toNotation());
     }
 
-    public function testItParseAndNormalizeDuration(): void
+    public function test_it_parse_and_normalize_duration(): void
     {
         $rawIso8601 = '-PT25H0.5S';
         $duration = Duration::fromNotation($rawIso8601, DurationNotation::Iso8601);
 
-        self::assertNotSame($rawIso8601, $duration->toNotation());
-        self::assertSame('-P1DT1H0.5S', $duration->toNotation());
-        self::assertSame(1, $duration->daysCount);
+        $this->assertNotSame($rawIso8601, $duration->toNotation());
+        $this->assertSame('-P1DT1H0.5S', $duration->toNotation());
+        $this->assertSame(1, $duration->daysCount);
     }
 
-    public function testItRejectsYears(): void
+    public function test_it_rejects_years(): void
     {
         $this->expectException(InvalidDuration::class);
 
         Duration::fromNotation('P1Y', DurationNotation::Iso8601);
     }
 
-    public function testItRejectsMonths(): void
+    public function test_it_rejects_months(): void
     {
         $this->expectException(InvalidDuration::class);
 
         Duration::fromNotation('P1M', DurationNotation::Iso8601);
     }
 
-    public function testItRejectsEmptyTimeDesignator(): void
+    public function test_it_rejects_empty_time_designator(): void
     {
         $this->expectException(InvalidDuration::class);
 
         Duration::fromNotation('PT', DurationNotation::Iso8601);
     }
 
-    public function testItRejectsCompletelyInvalidString(): void
+    public function test_it_rejects_completely_invalid_string(): void
     {
         $this->expectException(InvalidDuration::class);
 
         Duration::fromNotation('invalid', DurationNotation::Iso8601);
     }
 
-    public function testItParsesWeeks(): void
+    public function test_it_parses_weeks(): void
     {
         $duration = Duration::fromNotation('P2W', DurationNotation::Iso8601);
 
-        self::assertSame('P14D', $duration->toNotation());
+        $this->assertSame('P14D', $duration->toNotation());
     }
 
-    public function testItParsesWeeksAndDays(): void
+    public function test_it_parses_weeks_and_days(): void
     {
         $duration = Duration::fromNotation('P1W2D', DurationNotation::Iso8601);
 
-        self::assertSame('P9D', $duration->toNotation());
-        self::assertSame(9, $duration->daysCount);
+        $this->assertSame('P9D', $duration->toNotation());
+        $this->assertSame(9, $duration->daysCount);
     }
 
-    public function testItParsesNegativeWeeks(): void
+    public function test_it_parses_negative_weeks(): void
     {
         $duration = Duration::fromNotation('-P3W', DurationNotation::Iso8601);
 
-        self::assertSame('-P21D', $duration->toNotation());
+        $this->assertSame('-P21D', $duration->toNotation());
     }
 
-    public function testItParsesWeeksWithTimeComponents(): void
+    public function test_it_parses_weeks_with_time_components(): void
     {
         $duration = Duration::fromNotation('P1WT2H30M', DurationNotation::Iso8601);
 
-        self::assertSame('P7DT2H30M', $duration->toNotation());
+        $this->assertSame('P7DT2H30M', $duration->toNotation());
     }
 
-    public function testItRejectsEmptyWeekNotation(): void
+    public function test_it_rejects_empty_week_notation(): void
     {
         $this->expectException(InvalidDuration::class);
 
@@ -661,30 +699,30 @@ final class DurationTest extends TestCase
         $min = Duration::min();
         $zero = Duration::zero();
 
-        self::assertTrue($max->isLongerThan($min));
-        self::assertTrue($max->isLongerThan($zero));
-        self::assertTrue($zero->isLongerThanOrEqual($min));
-        self::assertTrue($min->isShorterThan($zero));
+        $this->assertTrue($max->isLongerThan($min));
+        $this->assertTrue($max->isLongerThan($zero));
+        $this->assertTrue($zero->isLongerThanOrEqual($min));
+        $this->assertTrue($min->isShorterThan($zero));
     }
 
-    public function testItRejectsInvalidMultiply(): void
+    public function test_it_rejects_invalid_multiply(): void
     {
         $this->expectException(InvalidDuration::class);
 
         Duration::max()->multipliedBy(3);
     }
 
-    public function testItRejectsDivideByZero(): void
+    public function test_it_rejects_divide_by_zero(): void
     {
         $this->expectException(InvalidDuration::class);
 
         Duration::max()->dividedBy(0);
     }
 
-    public function testItMultiplyTheDuration(): void
+    public function test_it_multiply_the_duration(): void
     {
-        self::assertSame('PT4H', Duration::of(hours: 2)->multipliedBy(2)->toNotation());
-        self::assertSame('PT4M', Duration::of(minutes: 2)->multipliedBy(2)->toNotation());
+        $this->assertSame('PT4H', Duration::of(hours: 2)->multipliedBy(2)->toNotation());
+        $this->assertSame('PT4M', Duration::of(minutes: 2)->multipliedBy(2)->toNotation());
     }
 
     public function test_duration_can_be_serialized_and_unserialized(): void
@@ -692,57 +730,58 @@ final class DurationTest extends TestCase
         $duration = Duration::fromNotation('-PT23H30S', DurationNotation::Iso8601);
         $restored = unserialize(serialize($duration));
 
-        self::assertInstanceOf(Duration::class, $restored);
-        self::assertEquals($duration, $restored);
+        $this->assertInstanceOf(Duration::class, $restored);
+        $this->assertEquals($duration, $restored);
     }
 
     public function test_duration_can_be_json_serialized(): void
     {
         $duration = Duration::of(hours: 2, seconds: 35);
 
-        self::assertSame('"PT2H35S"', json_encode($duration));
+        $this->assertSame('"PT2H35S"', json_encode($duration));
     }
 
-    #[DataProvider('roundToProvider')]
+    #[DataProvider('provideRound_toCases')]
     public function test_round_to(int $input, Unit $precision, int $expected): void
     {
         $duration = 0 > $input
-            ? Duration::of(microseconds:  -$input)->negated()
-            : Duration::of(microseconds:  $input);
+            ? Duration::of(microseconds: -$input)->negated()
+            : Duration::of(microseconds: $input);
 
-        self::assertSame($expected, $duration->roundTo($precision)->total(Unit::Microsecond));
+        $this->assertSame($expected, $duration->roundTo($precision)->total(Unit::Microsecond));
     }
 
     /**
-     * @return array<non-empty-string, array{0: int, 1: Unit, 2: int}>
+     * @return Iterator<non-empty-string, array{int, Unit, int}>
      */
-    public static function roundToProvider(): array
+    public static function provideRound_toCases(): iterable
     {
-        return [
-            // [input microseconds, precision, expected microseconds]
+        // [input microseconds, precision, expected microseconds]
+        // seconds
+        yield 'round down seconds' => [1_499_999, Unit::Second, 1_000_000];
 
-            // seconds
-            'round down seconds' => [1_499_999, Unit::Second, 1_000_000],
-            'round up seconds'   => [1_500_000, Unit::Second, 2_000_000],
-            'exact seconds'      => [2_000_000, Unit::Second, 2_000_000],
+        yield 'round up seconds' => [1_500_000, Unit::Second, 2_000_000];
 
-            // minutes
-            'round down minutes' => [89_000_000, Unit::Minute, 60_000_000],
-            'round up minutes'   => [91_000_000, Unit::Minute, 120_000_000],
+        yield 'exact seconds' => [2_000_000, Unit::Second, 2_000_000];
 
-            // hours
-            'round hours'        => [3_500_000_000, Unit::Hour, 3_600_000_000],
+        // minutes
+        yield 'round down minutes' => [89_000_000, Unit::Minute, 60_000_000];
 
-            // days
-            'round days'         => [86_000_000_000, Unit::Day, 86_400_000_000],
+        yield 'round up minutes' => [91_000_000, Unit::Minute, 120_000_000];
 
-            // negative values
-            'negative round up'  => [-1_500_000, Unit::Second, -2_000_000],
-            'negative round down' => [-1_499_999, Unit::Second, -1_000_000],
+        // hours
+        yield 'round hours' => [3_500_000_000, Unit::Hour, 3_600_000_000];
 
-            // micro boundary (identity case)
-            'micro unchanged'    => [999, Unit::Microsecond, 999],
-        ];
+        // days
+        yield 'round days' => [86_000_000_000, Unit::Day, 86_400_000_000];
+
+        // negative values
+        yield 'negative round up' => [-1_500_000, Unit::Second, -2_000_000];
+
+        yield 'negative round down' => [-1_499_999, Unit::Second, -1_000_000];
+
+        // micro boundary (identity case)
+        yield 'micro unchanged' => [999, Unit::Microsecond, 999];
     }
 
     /**
@@ -750,36 +789,34 @@ final class DurationTest extends TestCase
      *
      * @throws InvalidTime
      */
-    #[DataProvider('minOfProvider')]
-    public function testMinOf(array $durations, Duration $expected): void
+    #[DataProvider('provideMin_ofCases')]
+    public function test_min_of(array $durations, Duration $expected): void
     {
-        self::assertTrue(Duration::minOf(...$durations)->equals($expected));
+        $this->assertTrue(Duration::minOf(...$durations)->equals($expected));
     }
 
     /**
      * @throws InvalidDuration
-     * @return array<non-empty-string, array{0: list<Duration>, 1: Duration}>
+     * @return Iterator<non-empty-string, array{list<Duration>, Duration}>
      */
-    public static function minOfProvider(): array
+    public static function provideMin_ofCases(): iterable
     {
-        return [
-            'simple case' => [
-                [
-                    Duration::of(seconds: 10),
-                    Duration::of(seconds: 5),
-                    Duration::of(seconds: 8),
-                ],
+        yield 'simple case' => [
+            [
+                Duration::of(seconds: 10),
                 Duration::of(seconds: 5),
+                Duration::of(seconds: 8),
             ],
+            Duration::of(seconds: 5),
+        ];
 
-            'mixed units' => [
-                [
-                    Duration::of(minutes: 1),
-                    Duration::of(seconds: 30),
-                    Duration::of(seconds: 90),
-                ],
+        yield 'mixed units' => [
+            [
+                Duration::of(minutes: 1),
                 Duration::of(seconds: 30),
+                Duration::of(seconds: 90),
             ],
+            Duration::of(seconds: 30),
         ];
     }
 
@@ -788,125 +825,300 @@ final class DurationTest extends TestCase
      *
      * @throws InvalidTime
      */
-    #[DataProvider('maxOfProvider')]
-    public function testMaxOf(array $durations, Duration $expected): void
+    #[DataProvider('provideMax_ofCases')]
+    public function test_max_of(array $durations, Duration $expected): void
     {
-        self::assertTrue(Duration::maxOf(...$durations)->equals($expected));
+        $this->assertTrue(Duration::maxOf(...$durations)->equals($expected));
     }
 
     /**
      * @throws InvalidDuration
-     * @return array<non-empty-string, array{0: list<Duration>, 1: Duration}>
+     * @return Iterator<non-empty-string, array{list<Duration>, Duration}>
      */
-    public static function maxOfProvider(): array
+    public static function provideMax_ofCases(): iterable
     {
-        return [
-            'simple case' => [
-                [
-                    Duration::of(seconds: 10),
-                    Duration::of(seconds: 5),
-                    Duration::of(seconds: 8),
-                ],
+        yield 'simple case' => [
+            [
                 Duration::of(seconds: 10),
+                Duration::of(seconds: 5),
+                Duration::of(seconds: 8),
             ],
+            Duration::of(seconds: 10),
         ];
     }
 
-    #[DataProvider('clampProvider')]
-    public function testClamp(Duration $value, Duration $min, Duration $max, Duration $expected): void
+    #[DataProvider('provideClampCases')]
+    public function test_clamp(Duration $value, Duration $min, Duration $max, Duration $expected): void
     {
-        self::assertTrue($value->clamp($min, $max)->equals($expected));
+        $this->assertTrue($value->clamp($min, $max)->equals($expected));
     }
 
     /**
      * @throws InvalidDuration
-     * @return array<non-empty-string, list<Duration>>
+     * @return Iterator<non-empty-string, list<Duration>>
      */
-    public static function clampProvider(): array
+    public static function provideClampCases(): iterable
     {
-        return [
-            'below range' => [
-                Duration::of(seconds: 2),
-                Duration::of(seconds: 5),
-                Duration::of(seconds: 10),
-                Duration::of(seconds: 5),
-            ],
+        yield 'below range' => [
+            Duration::of(seconds: 2),
+            Duration::of(seconds: 5),
+            Duration::of(seconds: 10),
+            Duration::of(seconds: 5),
+        ];
 
-            'above range' => [
-                Duration::of(seconds: 20),
-                Duration::of(seconds: 5),
-                Duration::of(seconds: 10),
-                Duration::of(seconds: 10),
-            ],
+        yield 'above range' => [
+            Duration::of(seconds: 20),
+            Duration::of(seconds: 5),
+            Duration::of(seconds: 10),
+            Duration::of(seconds: 10),
+        ];
 
-            'inside range' => [
-                Duration::of(seconds: 7),
-                Duration::of(seconds: 5),
-                Duration::of(seconds: 10),
-                Duration::of(seconds: 7),
-            ],
+        yield 'inside range' => [
+            Duration::of(seconds: 7),
+            Duration::of(seconds: 5),
+            Duration::of(seconds: 10),
+            Duration::of(seconds: 7),
+        ];
 
-            'edge boundaries' => [
-                Duration::of(seconds: 5),
-                Duration::of(seconds: 5),
-                Duration::of(seconds: 10),
-                Duration::of(seconds: 5),
-            ],
+        yield 'edge boundaries' => [
+            Duration::of(seconds: 5),
+            Duration::of(seconds: 5),
+            Duration::of(seconds: 10),
+            Duration::of(seconds: 5),
         ];
     }
 
-    #[DataProvider('validIntervalsProvider')]
-    public function testFromDateIntervalConvertsCorrectly(DateInterval $interval, int $expectedMicroseconds): void
+    #[DataProvider('provideFrom_date_interval_converts_correctlyCases')]
+    public function test_from_date_interval_converts_correctly(DateInterval $interval, int $expectedMicroseconds): void
     {
-        self::assertSame($expectedMicroseconds, Duration::fromDateInterval($interval)->total(Unit::Microsecond));
+        $this->assertSame($expectedMicroseconds, Duration::fromDateInterval($interval)->total(Unit::Microsecond));
     }
 
     /**
-     * @return array<non-empty-string, array{interval: DateInterval, expectedMicroseconds: int}>
+     * @return Iterator<non-empty-string, array{interval: DateInterval, expectedMicroseconds: int}>
      */
-    public static function validIntervalsProvider(): array
+    public static function provideFrom_date_interval_converts_correctlyCases(): iterable
     {
-        return [
-            'simple positive' => [
-                'interval' => new DateInterval('P1DT2H3M4S'),
-                'expectedMicroseconds' => ((1 * 86400) + (2 * 3600) + (3 * 60) + 4) * 1_000_000,
-            ],
-
-            'negative interval' => [
-                'interval' => self::diff('-PT1H30M'),
-                'expectedMicroseconds' => -((1 * 3600) + (30 * 60)) * 1_000_000,
-            ],
-
-            'with microseconds' => [
-                'interval' => self::fromSpec('PT0S', 500_000),
-                'expectedMicroseconds' => 500_000,
-            ],
-
-            'days from diff (days populated)' => [
-                'interval' => self::diff('P2D'),
-                'expectedMicroseconds' => -2 * 86400 * 1_000_000,
-            ],
+        yield 'simple positive' => [
+            'interval' => new DateInterval('P1DT2H3M4S'),
+            'expectedMicroseconds' => (86_400 + (2 * 3_600) + (3 * 60) + 4) * 1_000_000,
         ];
+
+        yield 'negative interval' => [
+            'interval' => self::diff('-PT1H30M'),
+            'expectedMicroseconds' => -(3_600 + (30 * 60)) * 1_000_000,
+        ];
+
+        yield 'with microseconds' => [
+            'interval' => self::fromSpec('PT0S', 500_000),
+            'expectedMicroseconds' => 500_000,
+        ];
+
+        yield 'days from diff (days populated)' => [
+            'interval' => self::diff('P2D'),
+            'expectedMicroseconds' => -2 * 86_400 * 1_000_000,
+        ];
+    }
+
+    #[DataProvider('provideFrom_date_interval_throws_for_invalid_intervalsCases')]
+    public function test_from_date_interval_throws_for_invalid_intervals(DateInterval $interval): void
+    {
+        $this->expectException(InvalidDuration::class);
+
+        Duration::fromDateInterval($interval);
+    }
+
+    /**
+     * @return Iterator<non-empty-string, array{DateInterval}>
+     */
+    public static function provideFrom_date_interval_throws_for_invalid_intervalsCases(): iterable
+    {
+        yield 'has years' => [
+            new DateInterval('P1Y'),
+        ];
+
+        yield 'has months' => [
+            new DateInterval('P2M'),
+        ];
+
+        yield 'years and days mixed' => [
+            new DateInterval('P1Y2DT3H'),
+        ];
+    }
+
+    public function test_diffrent_date_intervals(): void
+    {
+        $a = self::diff('P3DT4H');
+        $b = new DateInterval('P3DT4H');
+
+        $this->assertNotEquals(Duration::fromDateInterval($a), Duration::fromDateInterval($b));
+    }
+
+    public function test_diff_different_date_intervals_when_deterministic(): void
+    {
+        $nonDeterministic = new DateInterval('P1M1D');
+        $a = CarbonImmutable::parse('2025-05-03 12:34:56');
+        $b = $a->add($nonDeterministic);
+
+        $duration = Duration::fromDateInterval($a->diff($b));
+        $this->assertTrue($duration->isLongerThan(Duration::of(days: 30)));
+
+        $this->expectException(InvalidDuration::class);
+        Duration::fromDateInterval($nonDeterministic);
+    }
+
+    /**
+     * @param null|non-negative-int $milliseconds
+     *
+     * @throws InvalidDuration
+     */
+    #[DataProvider('provideClock_factoryCases')]
+    public function test_clock_factory(string $data, int $seconds, ?int $milliseconds = 0): void
+    {
+        $duration = 0 > $seconds
+            ? Duration::of(seconds: -$seconds, milliseconds: $milliseconds ?? 0)->negated()
+            : Duration::of(seconds: $seconds, milliseconds: $milliseconds ?? 0);
+
+        $this->assertTrue(Duration::fromNotation($data, DurationNotation::Chrono)->equals($duration));
+    }
+
+    /**
+     * @return Iterator<non-empty-string, array{0: non-empty-string, 1: int, 2?: int}>
+     */
+    public static function provideClock_factoryCases(): iterable
+    {
+        yield 'zero' => ['00:00:00', 0];
+
+        yield 'simple' => ['01:02:03', 3_723];
+
+        yield 'midnight edge' => ['00:00:01', 1];
+
+        yield 'large hours' => ['100:00:00', 360_000];
+
+        yield 'microseconds' => ['01:02:03.500000', 3_723, 500];
+    }
+
+    #[DataProvider('provideInvalid_clock_factoryCases')]
+    public function test_invalid_clock_factory(string $value): void
+    {
+        $this->expectException(InvalidDuration::class);
+        Duration::fromNotation($value, DurationNotation::Chrono);
+    }
+
+    /**
+     * @return Iterator<non-empty-string, array{string}>
+     */
+    public static function provideInvalid_clock_factoryCases(): iterable
+    {
+        yield 'mm:ss format' => ['12:34'];
+
+        yield 'too many parts' => ['01:02:03:04'];
+
+        yield 'missing seconds' => ['01:02'];
+
+        yield 'invalid seconds' => ['01:02:60'];
+
+        yield 'invalid minutes' => ['01:60:59'];
+
+        yield 'invalid microseconds' => ['01:59:59.10000000'];
+
+        yield 'letters' => ['aa:bb:cc'];
+
+        yield 'empty' => [''];
+
+        yield 'wrong separator' => ['01-02-03'];
+    }
+
+    /**
+     * @param null|non-negative-int $microseconds
+     *
+     * @throws InvalidDuration
+     */
+    #[DataProvider('provideCompact_factoryCases')]
+    public function test_compact_factory(string $value, int $seconds, ?int $microseconds = 0): void
+    {
+        $duration = 0 > $seconds
+            ? Duration::of(seconds: -$seconds, microseconds: $microseconds ?? 0)->negated()
+            : Duration::of(seconds: $seconds, microseconds: $microseconds ?? 0);
+
+        $this->assertTrue(Duration::fromNotation($value, DurationNotation::Compact)->equals($duration));
+    }
+
+    /**
+     * @return Iterator<non-empty-string, array{0: non-empty-string, 1: int, 2?: int}>
+     */
+    public static function provideCompact_factoryCases(): iterable
+    {
+        yield 'seconds only' => ['5s', 5];
+
+        yield 'minutes seconds' => ['1m 30s', 90];
+
+        yield 'hours' => ['2h', 7_200];
+
+        yield 'full' => ['1w 2d 3h 4m 5s', 788_645];
+
+        yield 'whitespace flexible' => ['1w   3h    5s', 604_800 + 3 * 3_600 + 5];
+
+        yield 'microseconds' => ['1s 250µs', 1, 250];
+
+        yield 'microseconds with u instead of micron' => ['1s 250us', 1,  250];
+
+        yield 'negative' => ['-1h 30m', -5_400];
+
+        yield 'zero' => ['0s', 0];
+    }
+
+    #[DataProvider('provideInvalid_compact_factoryCases')]
+    public function test_invalid_compact_factory(string $value): void
+    {
+        $this->expectException(InvalidDuration::class);
+        Duration::fromNotation($value, DurationNotation::Compact);
+    }
+
+    /**
+     * @return Iterator<non-empty-string, array{string}>
+     */
+    public static function provideInvalid_compact_factoryCases(): iterable
+    {
+        yield 'empty string' => [''];
+
+        yield 'wrong order' => ['3h 1w'];
+
+        yield 'duplicate unit' => ['1w 2w'];
+
+        yield 'clock format forbidden' => ['12:34:56'];
+
+        yield 'partial clock forbidden' => ['12:34'];
+
+        yield 'unknown unit' => ['10x'];
+
+        yield 'letters only' => ['abc'];
+
+        yield 'missing number' => ['h 10m'];
+
+        yield 'bad spacing unit' => ['10 ms'];
     }
 
     private static function diff(string $spec): DateInterval
     {
-        $now = new DateTimeImmutable();
+        $now = CarbonImmutable::now();
 
-        $res = $now->add(new DateInterval(ltrim($spec, '-')))->diff($now);
-
-        return $res;
+        return $now->add(
+            new DateInterval(mb_ltrim($spec, '-')),
+        )->diff($now);
     }
 
     private static function fromSpec(string $spec, int $microseconds): DateInterval
     {
         $sign = 0;
+
         if (str_starts_with($spec, '-')) {
-            $spec = substr($spec, 1);
+            $spec = mb_substr($spec, 1);
             $sign = 1;
         }
 
         $interval = new DateInterval($spec);
+
         if (1 === $sign) {
             $interval->invert = 1;
         }
@@ -916,166 +1128,5 @@ final class DurationTest extends TestCase
         }
 
         return $interval;
-    }
-
-    #[DataProvider('invalidIntervalsProvider')]
-    public function testFromDateIntervalThrowsForInvalidIntervals(DateInterval $interval): void
-    {
-        $this->expectException(InvalidDuration::class);
-
-        Duration::fromDateInterval($interval);
-    }
-
-    /**
-     * @return array<non-empty-string, array{0: DateInterval}>
-     */
-    public static function invalidIntervalsProvider(): array
-    {
-        return [
-            'has years' => [
-                new DateInterval('P1Y'),
-            ],
-
-            'has months' => [
-                new DateInterval('P2M'),
-            ],
-
-            'years and days mixed' => [
-                new DateInterval('P1Y2DT3H'),
-            ],
-        ];
-    }
-
-    public function test_diffrent_date_intervals(): void
-    {
-        $a = self::diff('P3DT4H');
-        $b = new DateInterval('P3DT4H');
-
-        self::assertNotEquals(Duration::fromDateInterval($a), Duration::fromDateInterval($b));
-    }
-
-    public function test_diff_different_date_intervals_when_deterministic(): void
-    {
-        $nonDeterministic = new DateInterval('P1M1D');
-        $a = new DateTimeImmutable('2025-05-03 12:34:56');
-        $b = $a->add($nonDeterministic);
-
-        $duration = Duration::fromDateInterval($a->diff($b));
-        self::assertTrue($duration->isLongerThan(Duration::of(days: 30)));
-
-        $this->expectException(InvalidDuration::class);
-        Duration::fromDateInterval($nonDeterministic);
-    }
-
-    /**
-     * @param non-negative-int|null $milliseconds
-     *
-     * @throws InvalidDuration
-     */
-    #[DataProvider('validClocks')]
-    public function test_clock_factory(string $data, int $seconds, ?int $milliseconds = 0): void
-    {
-        $duration = 0 > $seconds
-            ? Duration::of(seconds: -$seconds, milliseconds: $milliseconds ?? 0)->negated()
-            : Duration::of(seconds: $seconds, milliseconds: $milliseconds ?? 0);
-
-        self::assertTrue(Duration::fromNotation($data, DurationNotation::Chrono)->equals($duration));
-    }
-
-    /**
-     * @return array<non-empty-string, array{0: non-empty-string, 1: int, 2?: int}>
-     */
-    public static function validClocks(): array
-    {
-        return [
-            'zero' => ['00:00:00', 0],
-            'simple' => ['01:02:03', 3723],
-            'midnight edge' => ['00:00:01', 1],
-            'large hours' => ['100:00:00', 360000],
-            'microseconds' => ['01:02:03.500000', 3723, 500],
-        ];
-    }
-
-    #[DataProvider('invalidClocks')]
-    public function test_invalid_clock_factory(string $value): void
-    {
-        $this->expectException(InvalidDuration::class);
-        Duration::fromNotation($value, DurationNotation::Chrono);
-    }
-
-    /**
-     * @return array<non-empty-string, array{0:string}>
-     */
-    public static function invalidClocks(): array
-    {
-        return [
-            'mm:ss format' => ['12:34'],
-            'too many parts' => ['01:02:03:04'],
-            'missing seconds' => ['01:02'],
-            'invalid seconds' => ['01:02:60'],
-            'invalid minutes' => ['01:60:59'],
-            'invalid microseconds' => ['01:59:59.10000000'],
-            'letters' => ['aa:bb:cc'],
-            'empty' => [''],
-            'wrong separator' => ['01-02-03'],
-        ];
-    }
-
-    /**
-     * @param non-negative-int|null $microseconds
-     *
-     * @throws InvalidDuration
-     */
-    #[DataProvider('validCompactNotation')]
-    public function test_compact_factory(string $value, int $seconds, ?int $microseconds = 0): void
-    {
-        $duration = 0 > $seconds
-            ? Duration::of(seconds: -$seconds, microseconds: $microseconds ?? 0)->negated()
-            : Duration::of(seconds: $seconds, microseconds: $microseconds ?? 0);
-
-        self::assertTrue(Duration::fromNotation($value, DurationNotation::Compact)->equals($duration));
-    }
-
-    /**
-     * @return array<non-empty-string, array{0: non-empty-string, 1: int, 2?: int}>
-     */
-    public static function validCompactNotation(): array
-    {
-        return [
-            'seconds only' => ['5s', 5],
-            'minutes seconds' => ['1m 30s', 90],
-            'hours' => ['2h', 7200],
-            'full' => ['1w 2d 3h 4m 5s', 788645],
-            'whitespace flexible' => ['1w   3h    5s', 1 * 604800 + 3 * 3600 + 5],
-            'microseconds' => ['1s 250µs', 1, 250],
-            'microseconds with u instead of micron' => ['1s 250us', 1,  250],
-            'negative' => ['-1h 30m', -5400],
-            'zero' => ['0s', 0],
-        ];
-    }
-
-    #[DataProvider('invalidCompactNotation')]
-    public function test_invalid_compact_factory(string $value): void
-    {
-        $this->expectException(InvalidDuration::class);
-        Duration::fromNotation($value, DurationNotation::Compact);
-    }
-
-    /**
-     * @return array<non-empty-string, array{0: string}>
-     */
-    public static function invalidCompactNotation(): array
-    {
-        return [
-            'empty string' => [''],
-            'wrong order' => ['3h 1w'],
-            'duplicate unit' => ['1w 2w'],
-            'clock format forbidden' => ['12:34:56'],
-            'partial clock forbidden' => ['12:34'],
-            'unknown unit' => ['10x'],
-            'letters only' => ['abc'],
-            'missing number' => ['h 10m'],
-            'bad spacing unit' => ['10 ms'],
-        ];
     }
 }

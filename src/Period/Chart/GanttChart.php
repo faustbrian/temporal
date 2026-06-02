@@ -29,7 +29,12 @@ use function mb_str_pad;
 use function str_repeat;
 
 /**
- * A class to output a Dataset via a Gantt Bar Graph.
+ * Renders period datasets as fixed-width textual Gantt charts.
+ *
+ * The renderer calculates a dataset-wide time scale once, then projects each
+ * sequence onto a character grid using the configured output, padding, colors,
+ * and bound markers from {@see GanttChartConfig}.
+ *
  * @author Brian Faust <brian@cline.sh>
  */
 final class GanttChart implements Chart
@@ -80,7 +85,7 @@ final class GanttChart implements Chart
     }
 
     /**
-     * Sets the scale to render the line.
+     * Derive the chart's origin timestamp and per-column unit size from the dataset span.
      */
     private function setChartScale(Data $dataset): void
     {
@@ -97,9 +102,7 @@ final class GanttChart implements Chart
     }
 
     /**
-     * Convert a Dataset item into a graph line.
-     *
-     * The empty line get filled by characters to create something like this  [--------)
+     * Convert one sequence into a single chart row by painting over an empty line template.
      */
     private function sequenceToLine(Sequence $item): string
     {
@@ -107,6 +110,8 @@ final class GanttChart implements Chart
     }
 
     /**
+     * Paint one period onto an in-progress character buffer.
+     *
      * @param array<string> $characters
      *
      * @return array<string>

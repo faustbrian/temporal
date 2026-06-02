@@ -10,6 +10,11 @@
 namespace Cline\Temporal\Time;
 
 /**
+ * Classification of how an {@see Interval} traverses the 24-hour cycle.
+ *
+ * The value is derived from the normalized endpoints plus the underlying duration,
+ * and drives behaviors such as complement calculation and stepping.
+ *
  * @author Brian Faust <brian@cline.sh>
  */
 enum IntervalType

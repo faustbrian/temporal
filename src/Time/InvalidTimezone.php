@@ -12,8 +12,14 @@ namespace Cline\Temporal\Time;
 use DateTimeZone;
 use Throwable;
 
+/**
+ * Thrown when a supplied timezone cannot be resolved to a supported IANA identifier.
+ */
 final class InvalidTimezone extends TimeException
 {
+    /**
+     * Create an exception for an unsupported timezone identifier.
+     */
     public static function unsupportedIdentifier(?Throwable $previous = null): self
     {
         return new self(

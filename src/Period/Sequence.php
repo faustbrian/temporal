@@ -36,7 +36,12 @@ use function uasort;
 use function usort;
 
 /**
- * A class to manipulate interval collection.
+ * Mutable collection type for orchestrating multiple {@see Period} instances.
+ *
+ * `Sequence` provides higher-order range operations such as union, intersection,
+ * gap detection, sorting, and subtraction across a set of periods. Unlike the
+ * `Time` namespace interval-set type, this class is intentionally mutable through
+ * ArrayAccess-style operations so callers can build and refine working sets.
  *
  * @author  Ignace Nyamagana Butera <nyamsprod@gmail.com>
  * @since   4.1.0
@@ -55,9 +60,10 @@ final class Sequence implements ArrayAccess, Countable, IteratorAggregate, JsonS
     }
 
     /**
-     * Returns the sequence interval as a Period instance.
+     * Collapse the sequence to the smallest period that covers every member.
      *
-     * If the sequence contains no Period instance, null is returned.
+     * If the sequence is empty, `null` is returned instead of inventing a
+     * sentinel period.
      */
     public function length(): ?Period
     {
@@ -78,7 +84,7 @@ final class Sequence implements ArrayAccess, Countable, IteratorAggregate, JsonS
     }
 
     /**
-     * Returns the gaps inside the instance.
+     * Return every uncovered gap between sorted, non-touching periods.
      */
     public function gaps(): self
     {
@@ -107,7 +113,7 @@ final class Sequence implements ArrayAccess, Countable, IteratorAggregate, JsonS
     }
 
     /**
-     * Returns the intersections inside the instance.
+     * Return every overlapping segment discovered while traversing the sequence.
      */
     public function intersections(): self
     {
@@ -150,7 +156,7 @@ final class Sequence implements ArrayAccess, Countable, IteratorAggregate, JsonS
     }
 
     /**
-     * Returns the unions inside the instance.
+     * Merge touching and overlapping periods into their unioned representation.
      */
     public function unions(): self
     {

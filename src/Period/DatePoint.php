@@ -27,7 +27,12 @@ use function date_default_timezone_get;
 use function intdiv;
 
 /**
- * League Period Datepoint.
+ * Immutable wrapper around a single normalized date-time endpoint.
+ *
+ * `DatePoint` acts as the bridge between native PHP date objects and the higher
+ * level {@see Period} API. It centralizes endpoint normalization, relation
+ * helpers, and coarse-grained period factories such as "current hour" or
+ * "current month" so callers can derive interval windows from one concrete instant.
  *
  * @author  Ignace Nyamagana Butera <nyamsprod@gmail.com>
  * @since   4.2.0
@@ -56,6 +61,11 @@ final readonly class DatePoint
     }
 
     /**
+     * Build a date point from a date string and optional timezone context.
+     *
+     * When no timezone is supplied, the current PHP default timezone is used so
+     * string parsing stays aligned with native runtime expectations.
+     *
      * @throws Exception
      */
     public static function fromDateString(string $dateString, DateTimeZone|string|null $timezone = null): self
@@ -69,6 +79,9 @@ final readonly class DatePoint
         );
     }
 
+    /**
+     * Build a date point from a Unix timestamp using Carbon for convenience.
+     */
     public static function fromTimestamp(int $timestamp): self
     {
         return new self(
@@ -76,6 +89,9 @@ final readonly class DatePoint
         );
     }
 
+    /**
+     * Parse a date string using an explicit native format string.
+     */
     public static function fromFormat(string $format, string $dateString): self
     {
         try {

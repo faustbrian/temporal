@@ -31,6 +31,12 @@ use function mb_strlen;
 use function throw_unless;
 
 /**
+ * Labelled collection of chart-ready period sequences.
+ *
+ * `Dataset` is the canonical input shape for chart renderers. It keeps labels,
+ * normalized {@see Sequence} values, the widest label width, and the overall
+ * period span in sync as items are appended.
+ *
  * @author Brian Faust <brian@cline.sh>
  */
 final class Dataset implements Data
@@ -51,7 +57,7 @@ final class Dataset implements Data
     }
 
     /**
-     * Creates a new collection from a countable iterable structure.
+     * Create a dataset by pairing generated labels with a countable item collection.
      *
      * @param iterable<array-key, Period|Sequence> $items
      */
@@ -98,6 +104,9 @@ final class Dataset implements Data
         return $this;
     }
 
+    /**
+     * Append a labelled period or sequence and update cached dataset metadata.
+     */
     public function append(string|int $label, Period|Sequence $item): self
     {
         if ($item instanceof Period) {
@@ -175,7 +184,7 @@ final class Dataset implements Data
     }
 
     /**
-     * Computes the Period boundary for the dataset.
+     * Expand the cached dataset span so it covers the appended sequence.
      */
     private function setLength(Sequence $sequence): void
     {

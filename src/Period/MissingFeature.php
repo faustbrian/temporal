@@ -19,6 +19,11 @@ namespace Cline\Temporal\Period;
 use LogicException;
 
 /**
+ * Thrown when a requested period capability is intentionally unavailable.
+ *
+ * This is typically used as a guard around optional framework or runtime features
+ * that the package cannot emulate safely.
+ *
  * @author Brian Faust <brian@cline.sh>
  */
 final class MissingFeature extends LogicException implements IntervalError {}

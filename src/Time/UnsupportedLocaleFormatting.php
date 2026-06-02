@@ -9,8 +9,14 @@
 
 namespace Cline\Temporal\Time;
 
+/**
+ * Thrown when locale-aware formatting dependencies are unavailable.
+ */
 final class UnsupportedLocaleFormatting extends TimeException
 {
+    /**
+     * Create an exception describing the missing ICU or polyfill dependency.
+     */
     public static function dueToMissingIntlSupport(): self
     {
         return new self('Support for time locale formatting requires the `intl` extension for best performance or run "composer require symfony/polyfill-intl-icu" to install a polyfill.');

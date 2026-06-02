@@ -10,6 +10,11 @@
 namespace Cline\Temporal\Time;
 
 /**
+ * Identifies which side of an {@see Interval} an operation should anchor to.
+ *
+ * Several interval helpers can either preserve or move the start or end bound,
+ * and this enum keeps that choice explicit in the API.
+ *
  * @author Brian Faust <brian@cline.sh>
  */
 enum Bound
